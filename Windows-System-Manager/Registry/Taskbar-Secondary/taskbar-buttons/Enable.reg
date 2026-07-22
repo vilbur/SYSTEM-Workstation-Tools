@@ -1,0 +1,12 @@
+Windows Registry Editor Version 5.00
+
+; setting for other windows taskbars
+; http://finnzan.blogspot.cz/2017/01/windows-10-taskbar-customization.html
+
+; MMTaskbarEnabled =
+; 0 = Show taskbar buttons on all taskbars
+; 1 = Show taskbar buttons on main taskbar and taskbar where window is open
+; 2 = Show taskbar buttons on taskbar where window is open
+
+[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced]
+"MMTaskbarMode"=dword:0

@@ -1,0 +1,8 @@
+Windows Registry Editor Version 5.00
+
+; DOCUMENTATION: https://technet.microsoft.com/en-us/library/cc976564.aspx
+; HELP: https://eu.battle.net/forums/en/sc2/topic/1874252251
+
+[HKEY_CURRENT_USER\Keyboard Layout\Toggle]
+"Language HotKey"="1"
+"Layout HotKey"="1"

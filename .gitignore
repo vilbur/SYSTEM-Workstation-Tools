@@ -1,0 +1,4 @@
+*.bak
+*.ini
+test.ms
+*-cache.ms
