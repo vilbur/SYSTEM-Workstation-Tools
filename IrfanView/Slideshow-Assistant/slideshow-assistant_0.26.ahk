@@ -12,9 +12,8 @@ if not A_IsAdmin
 }
 
 ; slideshow-assistant.ahk
-; Version: 0.29
-; Multiple instances are allowed; each instance exits when its exact bound viewer closes.
-; Automatic navigation waits at least one second after physical input and between image changes.
+; Version: 0.26
+; Multiple instances are allowed; each instance binds to one IrfanView process and viewer window.
 ; Files are never deleted or overwritten; destructive actions move them to _DELETE or _CROP.
 
 SetTitleMatchMode, 2
@@ -27,9 +26,6 @@ pause_duration	:= 3000
 
 last_action_time := A_TickCount
 pause_until := 0
-last_image_change_time := 0
-minimum_image_change_gap := 1000
-minimum_user_input_idle := 1000
 
 current_image_path := ""
 current_image_started := A_TickCount
@@ -92,12 +88,6 @@ CheckIrfanView:
         return
     }
 
-    if !hasAnyVisibleIrfanViewViewerWindow()
-    {
-        Gosub, handleExit
-        return
-    }
-
     if closeBlockedIrfanViewDialogs()
     {
         resetSlideTimer()
@@ -141,11 +131,6 @@ CheckIrfanView:
         return
     }
 
-    if shouldBlockAutomaticNavigationAfterUserInput(current_time)
-    {
-        return
-    }
-
     if (current_time - last_action_time >= interval)
     {
         learnCurrentImageTime()
@@ -163,7 +148,6 @@ CheckIrfanView:
         }
 
         last_action_time := A_TickCount
-        recordImageChange()
 
         SetTimer, DelayedLoadLearnedTime, -50
     }
@@ -259,21 +243,12 @@ bindToIrfanViewWindow(window_id)
     }
 
     bound_irfanview_process_id := process_id
+    bound_irfanview_main_window_id := getMainIrfanViewWindowForProcess(process_id)
+    bound_irfanview_anchor_window_id := bound_irfanview_main_window_id
 
-    if (window_class = "IrfanView")
+    if (!bound_irfanview_anchor_window_id)
     {
-        bound_irfanview_main_window_id := window_id
         bound_irfanview_anchor_window_id := window_id
-    }
-    else
-    {
-        bound_irfanview_main_window_id := getMainIrfanViewWindowForProcess(process_id)
-        bound_irfanview_anchor_window_id := bound_irfanview_main_window_id
-
-        if (!bound_irfanview_anchor_window_id)
-        {
-            bound_irfanview_anchor_window_id := window_id
-        }
     }
 
     bound_irfanview_window_missing_since := 0
@@ -337,86 +312,42 @@ isWindowOwnedByProcess(window_id, expected_process_id)
 }
 
 
-/*  CHECK WHETHER THIS INSTANCE'S EXACT ORIGINAL VIEWER WINDOW STILL EXISTS
-    Hidden process leftovers and replacement IrfanView windows are never accepted.
+/*  CHECK WHETHER THIS INSTANCE'S ORIGINAL IRFANVIEW SESSION STILL EXISTS
+    The exact bound viewer window is authoritative; a leftover process alone is not enough.
  */
 isBoundIrfanViewProcessRunning()
 {
     global bound_irfanview_process_id
+    global bound_irfanview_main_window_id
     global bound_irfanview_anchor_window_id
+    global bound_irfanview_window_missing_since
+    global bound_irfanview_window_missing_grace
 
     if (!bound_irfanview_process_id || !bound_irfanview_anchor_window_id)
     {
         return false
     }
 
-    return isWindowOwnedByProcess(bound_irfanview_anchor_window_id, bound_irfanview_process_id)
-}
+    Process, Exist, %bound_irfanview_process_id%
 
-
-/*  CHECK WHETHER ANY VISIBLE IRFANVIEW IMAGE VIEWER EXISTS
-    Dialogs and hidden process windows do not keep the script alive.
- */
-hasAnyVisibleIrfanViewViewerWindow()
-{
-    return (findTopmostVisibleIrfanViewViewerWindow() != 0)
-}
-
-
-/*  TEST THE STRICT VIEWER-LIFETIME RULE
-    A zero window handle must never count as a live bound viewer.
- */
-testStrictViewerLifetimeRule()
-{
-    global bound_irfanview_process_id
-    global bound_irfanview_anchor_window_id
-
-    saved_process_id := bound_irfanview_process_id
-    saved_window_id := bound_irfanview_anchor_window_id
-
-    bound_irfanview_process_id := 0
-    bound_irfanview_anchor_window_id := 0
-    test_result := !isBoundIrfanViewProcessRunning()
-
-    bound_irfanview_process_id := saved_process_id
-    bound_irfanview_anchor_window_id := saved_window_id
-
-    return test_result
-}
-
-
-/*  CHECK FOR THE FULLSCREEN SURFACE OF THIS INSTANCE'S BOUND IRFANVIEW PROCESS
-    A different normal IrfanView window is never accepted as a replacement session.
- */
-hasVisibleFullscreenWindowForBoundProcess()
-{
-    global bound_irfanview_process_id
-
-    if (!bound_irfanview_process_id)
+    if (ErrorLevel != bound_irfanview_process_id)
     {
         return false
     }
 
-    WinGet, window_list, List, ahk_pid %bound_irfanview_process_id%
-
-    Loop, %window_list%
+    if (isWindowOwnedByProcess(bound_irfanview_anchor_window_id, bound_irfanview_process_id))
     {
-        window_id := window_list%A_Index%
-
-        if !DllCall("IsWindowVisible", "Ptr", window_id)
-        {
-            continue
-        }
-
-        WinGetClass, window_class, ahk_id %window_id%
-
-        if (window_class = "FullScreenClass")
-        {
-            return true
-        }
+        bound_irfanview_window_missing_since := 0
+        return true
     }
 
-    return false
+    if (!bound_irfanview_window_missing_since)
+    {
+        bound_irfanview_window_missing_since := A_TickCount
+        return true
+    }
+
+    return (A_TickCount - bound_irfanview_window_missing_since < bound_irfanview_window_missing_grace)
 }
 
 
@@ -532,16 +463,10 @@ isIrfanViewDialogWindow(window_id)
 getMainIrfanViewWindowForProcess(process_id)
 {
     global bound_irfanview_process_id
-    global bound_irfanview_main_window_id
 
     if (!process_id || process_id != bound_irfanview_process_id)
     {
         return 0
-    }
-
-    if isWindowOwnedByProcess(bound_irfanview_main_window_id, process_id)
-    {
-        return bound_irfanview_main_window_id
     }
 
     WinGet, window_list, List, ahk_pid %process_id%
@@ -1280,39 +1205,6 @@ getPendingImageTransformOptions(rotation_quarters, is_flipped)
 }
 
 
-/*  RUN ONE HIDDEN EXTERNAL COMMAND WITH A HARD TIME LIMIT
-    Exit cleanup can never remain blocked forever inside IrfanView conversion.
- */
-runHiddenCommandWithTimeout(command_line, timeout_ms := 15000)
-{
-    Run, %command_line%,, Hide UseErrorLevel, process_id
-
-    if (ErrorLevel || !process_id)
-    {
-        return false
-    }
-
-    command_started := A_TickCount
-
-    Loop
-    {
-        Process, Exist, %process_id%
-
-        if (ErrorLevel != process_id)
-        {
-            return true
-        }
-
-        if (A_TickCount - command_started >= timeout_ms)
-        {
-            return false
-        }
-
-        Sleep, 50
-    }
-}
-
-
 /*  APPLY DEFERRED L/R/H TRANSFORMS TO THE ORIGINAL IMAGE PATH
     The untouched source is moved to _CROP before the transformed file replaces it.
  */
@@ -1372,9 +1264,10 @@ savePendingImageTransforms()
         output_path := getUniqueFilePath(source_dir . "\" . temp_name)
         command_line := Chr(34) . iv_exe_path . Chr(34) . " " . Chr(34) . current_input_path . Chr(34) . " /silent " . transform_option . " /convert=" . Chr(34) . output_path . Chr(34)
 
-        conversion_succeeded := runHiddenCommandWithTimeout(command_line, 5000)
+        RunWait, %command_line%,, Hide UseErrorLevel
+        conversion_error := ErrorLevel
 
-        if (!conversion_succeeded || !FileExist(output_path))
+        if (conversion_error || !FileExist(output_path))
         {
             if FileExist(output_path)
             {
@@ -2108,61 +2001,6 @@ pauseSlideShowAdd()
     pause_until := Max(pause_until, A_TickCount) + 3000
 }
 
-/*  BLOCK AUTOMATIC NAVIGATION AFTER PHYSICAL INPUT OR A RECENT IMAGE CHANGE
-    This prevents timer navigation from doubling a manual image change.
- */
-shouldBlockAutomaticNavigationAfterUserInput(current_time)
-{
-    global last_image_change_time
-    global minimum_image_change_gap
-    global minimum_user_input_idle
-
-    if (A_TimeIdlePhysical < minimum_user_input_idle)
-    {
-        return true
-    }
-
-    if (last_image_change_time > 0
-        && current_time - last_image_change_time < minimum_image_change_gap)
-    {
-        return true
-    }
-
-    return false
-}
-
-
-/*  RECORD ONE SUCCESSFUL MANUAL OR AUTOMATIC IMAGE CHANGE
-    The next scripted image change is blocked for at least one second.
- */
-recordImageChange()
-{
-    global last_image_change_time
-
-    last_image_change_time := A_TickCount
-
-    ;-- return
-}
-
-
-/*  TEST THE IMAGE-CHANGE GAP RULE
-    Confirms that changes inside the one-second guard are blocked.
- */
-testImageChangeGapRule()
-{
-    global last_image_change_time
-    global minimum_image_change_gap
-
-    saved_change_time := last_image_change_time
-    last_image_change_time := A_TickCount
-    blocked_now := shouldBlockAutomaticNavigationAfterUserInput(A_TickCount)
-    blocked_later_by_gap := shouldBlockAutomaticNavigationAfterUserInput(A_TickCount + minimum_image_change_gap - 1)
-    last_image_change_time := saved_change_time
-
-    return (blocked_now && blocked_later_by_gap)
-}
-
-
 /*  RESET SLIDESHOW TIMER
  */
 resetSlideTimer()
@@ -2482,7 +2320,6 @@ $*Space::
 
     if sendKeysToMainIrfanView("{Space}", main_window_id)
     {
-        recordImageChange()
         SetTimer, DelayedLoadLearnedTime, -50
     }
     KeyWait, Space
@@ -2506,7 +2343,6 @@ $*Backspace::
 
     if (send_succeeded)
     {
-        recordImageChange()
         SetTimer, DelayedLoadLearnedTime, -50
     }
 return
@@ -2541,7 +2377,6 @@ return
 
     if (send_succeeded)
     {
-        recordImageChange()
         SetTimer, DelayedLoadLearnedTime, -50
     }
 return
@@ -2573,7 +2408,6 @@ return
 
     if (send_succeeded)
     {
-        recordImageChange()
         SetTimer, DelayedLoadLearnedTime, -50
     }
 return
@@ -2620,7 +2454,6 @@ return
 
     if (send_succeeded)
     {
-        recordImageChange()
         SetTimer, DelayedLoadLearnedTime, -50
     }
 return
@@ -2721,18 +2554,18 @@ return
 return
 
 
-/*  TEST THAT AUTOMATIC EXIT USES THE SHARED CLEANUP LABEL
-    Both viewer shutdown and tray Exit must reach the same cleanup path.
+/*  TEST THE NON-RECURSIVE EXIT TERMINATION SEQUENCE
+    Returns true when the script unregisters OnExit immediately before ExitApp.
  */
-testExitFlowIsolation()
+testExitTerminationSequence()
 {
     FileRead, script_source, %A_ScriptFullPath%
 
-    gosub_exit_text := "Gosub" . ", handleExit"
+    windows_sequence := "OnExit,``r``n    ExitApp"
+    unix_sequence := "OnExit,``n    ExitApp"
 
-    return (InStr(script_source, gosub_exit_text)
-        && InStr(script_source, "OnExit, handleExit")
-        && InStr(script_source, "DllCall(""ExitProcess"""))
+    return (InStr(script_source, windows_sequence)
+        || InStr(script_source, unix_sequence))
 }
 
 
@@ -2746,47 +2579,54 @@ RemoveToolTip:
 return
 
 
-/*  APPLY DELAYED RENAMES AND PROTECTIVE MOVES, THEN TERMINATE HARD
-    The tray icon is hidden before cleanup so no stale tray item remains visible.
+/*  APPLY DELAYED RENAMES AND PROTECTIVE MOVES
  */
 handleExit:
 
-    Menu, Tray, NoIcon
+    if (exit_work_started)
+    {
+        return
+    }
+
+    exit_work_started := true
     SetTimer, CheckIrfanView, Off
     SetTimer, DelayedLoadLearnedTime, Off
 
-    if (!exit_work_started)
+    savePendingImageTransforms()
+
+    bound_irfanview_process_id := 0
+    bound_irfanview_main_window_id := 0
+    bound_irfanview_anchor_window_id := 0
+    bound_irfanview_window_missing_since := 0
+
+
+    for delete_path, value in delete_move_queue
     {
-        exit_work_started := true
-
-        savePendingImageTransforms()
-
-        for delete_path, value in delete_move_queue
+        if value
         {
-            if value
+            if FileExist(delete_path)
             {
-                if FileExist(delete_path)
-                {
-                    moveFileToSubdirectory(delete_path, "_DELETE")
-                }
-            }
-        }
-
-        for old_path, new_path in learned_rename_map
-        {
-            if FileExist(old_path)
-            {
-                if (old_path != new_path)
-                {
-                    safe_new_path := getUniqueFilePath(new_path)
-                    FileMove, %old_path%, %safe_new_path%, 0
-                }
+                moveFileToSubdirectory(delete_path, "_DELETE")
             }
         }
     }
 
-    /* Hard process termination prevents OnExit recursion from keeping the tray process alive. */
-    DllCall("ExitProcess", "UInt", 0)
+
+    for old_path, new_path in learned_rename_map
+    {
+        if FileExist(old_path)
+        {
+            if (old_path != new_path)
+            {
+                safe_new_path := getUniqueFilePath(new_path)
+                FileMove, %old_path%, %safe_new_path%, 0
+            }
+        }
+    }
+
+    /* Disable the callback before ExitApp so handleExit cannot call itself again. */
+    OnExit,
+    ExitApp
 return
 
 

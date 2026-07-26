@@ -1,0 +1,285 @@
+﻿#NoEnv
+#SingleInstance Off  
+SetBatchLines, -1
+SetTitleMatchMode, 2
+DetectHiddenWindows, On
+
+; ==============================================================================
+; 1. PARAMETER CHECK (Re-Run, File Execution & Hide)
+; ==============================================================================
+arg := A_Args[1] ? A_Args[1] : %1%
+
+if (arg != "") {
+    
+    ; Find the main background instance of this script
+    mainScriptID := 0
+    WinGet, hwnds, List, %A_ScriptFullPath% ahk_class AutoHotkey
+    Loop, %hwnds% {
+        if (hwnds%A_Index% != A_ScriptHwnd) {
+            mainScriptID := hwnds%A_Index%
+            break
+        }
+    }
+
+    ; If we found the main script, tell it to abort its current Auto-session
+    if (mainScriptID) {
+        PostMessage, 0x5556, 0, 0,, ahk_id %mainScriptID%
+    } else {
+        ; Fallback if main script isn't running
+        if WinExist("ahk_exe Everything.exe")
+            WinClose, ahk_exe Everything.exe
+    }
+
+    ; --- GOAL 1: RUN FILE ---
+    if FileExist(arg) {
+        Run, "%arg%" 
+    } 
+    ; --- MANUAL TRIGGER (-manual) ---
+    else if (arg = "-manual") {
+        if (mainScriptID)
+            PostMessage, 0x5555, 0, 0,, ahk_id %mainScriptID%
+    }
+    
+    ExitApp 
+}
+
+; ==============================================================================
+; 2. GLOBAL SETUP & SETTINGS
+; ==============================================================================
+OnMessage(0x5555, "TriggerManualMode")
+OnMessage(0x5556, "AbortAutoMode") ; New listener for the hide command
+
+global eHeight := 400
+global padding := 0
+global currentMode := "None"
+global origWin := ""
+global origCtrl := ""
+global eWin := ""
+global ignoredWin := "" ; Tracks the dialog we told Everything to ignore
+
+#Persistent
+SetTimer, DialogWatcher, 250
+return
+
+; ==============================================================================
+; 3. BEHAVIOR: AUTO-DIALOG WATCHER (Class #32770)
+; ==============================================================================
+DialogWatcher:
+    if (currentMode != "None")
+        return
+
+    ; Cleanup the ignore list if the ignored dialog was finally closed by the user
+    if (ignoredWin != "" && !WinExist("ahk_id " . ignoredWin)) {
+        ignoredWin := ""
+    }
+
+    WinGet, winList, List, ahk_class #32770
+    Loop, %winList% {
+        wid := winList%A_Index%
+        
+        ; If this is the dialog we explicitly hid Everything from, skip it!
+        if (wid == ignoredWin)
+            continue
+
+        WinGetTitle, wTitle, ahk_id %wid%
+        
+        if (wTitle ~= "i)(open|save|browse|select)") {
+            currentMode := "Auto"
+            origWin := wid
+            
+            ; Stabilization delay for Windows animations
+            WinWaitActive, ahk_id %origWin%,, 2
+            Sleep, 200 
+            
+            ControlGetFocus, focusedCtrl, ahk_id %origWin%
+            origCtrl := InStr(focusedCtrl, "Edit") ? focusedCtrl : "Edit1" 
+
+            Run, "C:\Program Files\Everything 1.5a\Everything.exe"
+            WinWaitActive, ahk_exe Everything.exe,, 5
+            
+            if !ErrorLevel {
+                eWin := WinExist("A")
+                WinSet, AlwaysOnTop, On, ahk_id %eWin%
+                SetTimer, AutoAlignTracker, 10 
+            } else {
+                currentMode := "None" 
+            }
+            return 
+        }
+    }
+return
+
+/** 
+	KEEP EVERYTHING WINDOW ALIGNE BELOW DIALOG
+  */
+AutoAlignTracker:
+    if !WinExist("ahk_id " . origWin) || !WinExist("ahk_id " . eWin) {
+        if WinExist("ahk_id " . eWin)
+            WinClose, ahk_id %eWin%
+        SetTimer, AutoAlignTracker, Off
+        currentMode := "None"
+        return
+    }
+
+    WinGetPos, ox, oy, ow, oh, ahk_id %origWin%
+    
+    ; --- SMART SCREEN BOUNDARY CHECK ---
+    ; Get the boundaries of the primary monitor's work area (excludes taskbar)
+    SysGet, MonitorWorkArea, MonitorWorkArea
+    
+    totalNeededHeight := oh + padding + eHeight
+    
+    ; Check if the bottom of Everything would go past the taskbar
+    if ((oy + totalNeededHeight) > MonitorWorkAreaBottom) {
+        
+        ; Calculate exactly how high we need to push the original dialog
+        newY := MonitorWorkAreaBottom - totalNeededHeight
+        
+        ; Safety Net: Ensure we don't push the dialog's title bar off the top of the screen
+        if (newY < MonitorWorkAreaTop)
+            newY := MonitorWorkAreaTop
+            
+        ; If the dialog isn't already at the new Y position, move it
+        if (oy != newY) {
+            WinMove, ahk_id %origWin%,, %ox%, %newY%
+            
+            ; Update 'oy' so the Everything window knows the new position
+            oy := newY 
+        }
+    }
+    ; -----------------------------------
+
+    ; Finally, snap the Everything window exactly to the bottom of the dialog
+    WinMove, ahk_id %eWin%,, %ox%, % oy + oh + padding, %ow%, %eHeight%
+return
+; ==============================================================================
+; ABORT FUNCTION (Fired when launching a file)
+; ==============================================================================
+AbortAutoMode() {
+    global currentMode, origWin, eWin, ignoredWin
+
+    ; If Everything is currently attached to a dialog, blacklist that specific dialog
+    if (currentMode == "Auto") {
+        ignoredWin := origWin 
+        SetTimer, AutoAlignTracker, Off
+    } 
+    
+    ; Close Everything and reset the script state
+    if WinExist("ahk_exe Everything.exe")
+        WinClose, ahk_exe Everything.exe
+        
+    currentMode := "None"
+}
+; ==============================================================================
+; 4. BEHAVIOR: MANUAL CURSOR TRIGGER (Fired by Parameter)
+; ==============================================================================
+
+
+TriggerManualMode() {
+	
+	;MsgBox, Test
+    global currentMode, origWin, origCtrl, eWin, eHeight
+
+    ; Reset any existing Auto-session
+    if (currentMode == "Auto") {
+        SetTimer, AutoAlignTracker, Off
+        if WinExist("ahk_id " . eWin)
+            WinClose, ahk_id %eWin%
+    }
+
+    currentMode := "Manual"
+    origWin := WinExist("A")
+	
+    ControlGetFocus, origCtrl, ahk_id %origWin%
+	
+    ;if !InStr(origCtrl, "Edit") {
+    ;    currentMode := "None"
+    ;    return
+    ;}
+
+	;if !( WinExist(  ahk_id %eWin% ) )
+	{
+		
+		CoordMode, Mouse, Screen
+		
+		MouseGetPos, mX, mY
+	
+		Run, "C:\Program Files\Everything 1.5a\Everything.exe"
+		
+		WinWaitActive, ahk_exe Everything.exe,, 5
+	
+		if !ErrorLevel
+		{
+			eWin := WinExist("A")
+	
+			; Correct syntax here as well
+			WinSet, AlwaysOnTop, On, ahk_id %eWin%
+			
+			WinMove, ahk_id %eWin%,, %mX%, %mY%
+		}
+		
+	}
+	
+	
+}
+
+
+; ==============================================================================
+; 5. SELECTION & HAND-OFF
+; ==============================================================================
+#IfWinActive ahk_exe Everything.exe
+
++Enter::
+    Clipboard := ""
+    Send, ^+c 
+    ClipWait, 1.2 
+    if ErrorLevel 
+        return 
+
+    ; Get the window class of the original window
+    WinGetClass, origClass, ahk_id %origWin%
+
+
+	; Check if the Everything result is a Folder ("D" = Directory) or a File
+	if InStr(FileExist(Clipboard), "D")
+		targetPath := Clipboard
+	else
+		SplitPath, Clipboard,, targetPath ; If it's a file, extract its parent folder path
+
+
+
+    ; Check if the original window is File Explorer
+    if (origClass = "CabinetWClass" || origClass = "ExploreWClass") {
+        
+
+        ; Use COM to cleanly navigate the existing Explorer window to the new path
+        for window in ComObjCreate("Shell.Application").Windows {
+            if (window.hwnd == origWin) {
+                window.Navigate(targetPath)
+                break
+            }
+        }
+        
+    }
+	
+	else if ( origClass = "TTOTAL_CMD") 
+	{
+		;msgBox, Total commander
+	    Run, "D:\GoogleDrive\TotalComander\_TC-commands\file\go_to_path.ahk",,Min
+	}
+	else {
+        ; Standard behavior for Open/Save/Browse dialogs
+        ControlSetText, %origCtrl%, %Clipboard%, ahk_id %origWin%
+    }
+    
+    ; Cleanup and window activation
+    if (currentMode == "Manual") {
+        WinClose, ahk_id %eWin% 
+        currentMode := "None"
+        WinActivate, ahk_id %origWin% ; Focus the window so you see the result
+    } else {
+        WinActivate, ahk_id %origWin%
+    }
+return
+
+#IfWinActive

@@ -12,9 +12,8 @@ if not A_IsAdmin
 }
 
 ; slideshow-assistant.ahk
-; Version: 0.29
+; Version: 0.28
 ; Multiple instances are allowed; each instance exits when its exact bound viewer closes.
-; Automatic navigation waits at least one second after physical input and between image changes.
 ; Files are never deleted or overwritten; destructive actions move them to _DELETE or _CROP.
 
 SetTitleMatchMode, 2
@@ -27,9 +26,6 @@ pause_duration	:= 3000
 
 last_action_time := A_TickCount
 pause_until := 0
-last_image_change_time := 0
-minimum_image_change_gap := 1000
-minimum_user_input_idle := 1000
 
 current_image_path := ""
 current_image_started := A_TickCount
@@ -141,11 +137,6 @@ CheckIrfanView:
         return
     }
 
-    if shouldBlockAutomaticNavigationAfterUserInput(current_time)
-    {
-        return
-    }
-
     if (current_time - last_action_time >= interval)
     {
         learnCurrentImageTime()
@@ -163,7 +154,6 @@ CheckIrfanView:
         }
 
         last_action_time := A_TickCount
-        recordImageChange()
 
         SetTimer, DelayedLoadLearnedTime, -50
     }
@@ -2108,61 +2098,6 @@ pauseSlideShowAdd()
     pause_until := Max(pause_until, A_TickCount) + 3000
 }
 
-/*  BLOCK AUTOMATIC NAVIGATION AFTER PHYSICAL INPUT OR A RECENT IMAGE CHANGE
-    This prevents timer navigation from doubling a manual image change.
- */
-shouldBlockAutomaticNavigationAfterUserInput(current_time)
-{
-    global last_image_change_time
-    global minimum_image_change_gap
-    global minimum_user_input_idle
-
-    if (A_TimeIdlePhysical < minimum_user_input_idle)
-    {
-        return true
-    }
-
-    if (last_image_change_time > 0
-        && current_time - last_image_change_time < minimum_image_change_gap)
-    {
-        return true
-    }
-
-    return false
-}
-
-
-/*  RECORD ONE SUCCESSFUL MANUAL OR AUTOMATIC IMAGE CHANGE
-    The next scripted image change is blocked for at least one second.
- */
-recordImageChange()
-{
-    global last_image_change_time
-
-    last_image_change_time := A_TickCount
-
-    ;-- return
-}
-
-
-/*  TEST THE IMAGE-CHANGE GAP RULE
-    Confirms that changes inside the one-second guard are blocked.
- */
-testImageChangeGapRule()
-{
-    global last_image_change_time
-    global minimum_image_change_gap
-
-    saved_change_time := last_image_change_time
-    last_image_change_time := A_TickCount
-    blocked_now := shouldBlockAutomaticNavigationAfterUserInput(A_TickCount)
-    blocked_later_by_gap := shouldBlockAutomaticNavigationAfterUserInput(A_TickCount + minimum_image_change_gap - 1)
-    last_image_change_time := saved_change_time
-
-    return (blocked_now && blocked_later_by_gap)
-}
-
-
 /*  RESET SLIDESHOW TIMER
  */
 resetSlideTimer()
@@ -2482,7 +2417,6 @@ $*Space::
 
     if sendKeysToMainIrfanView("{Space}", main_window_id)
     {
-        recordImageChange()
         SetTimer, DelayedLoadLearnedTime, -50
     }
     KeyWait, Space
@@ -2506,7 +2440,6 @@ $*Backspace::
 
     if (send_succeeded)
     {
-        recordImageChange()
         SetTimer, DelayedLoadLearnedTime, -50
     }
 return
@@ -2541,7 +2474,6 @@ return
 
     if (send_succeeded)
     {
-        recordImageChange()
         SetTimer, DelayedLoadLearnedTime, -50
     }
 return
@@ -2573,7 +2505,6 @@ return
 
     if (send_succeeded)
     {
-        recordImageChange()
         SetTimer, DelayedLoadLearnedTime, -50
     }
 return
@@ -2620,7 +2551,6 @@ return
 
     if (send_succeeded)
     {
-        recordImageChange()
         SetTimer, DelayedLoadLearnedTime, -50
     }
 return
