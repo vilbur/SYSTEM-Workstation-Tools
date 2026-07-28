@@ -1,4 +1,4 @@
-﻿# Path-Config Testing Guide
+# Path-Config Testing Guide
 
 ## Test files
 
@@ -6,13 +6,10 @@ The test file version must always match the source version.
 
 Current pair:
 
-- `Path-Config.ahk`
-- `Path-Config-Test_0.04.ahk`
+- `Path-Config.hta` version `0.16`
+- `Test/Path-Config-Test_0.16.ps1`
 
-The next code version should produce a matching pair such as:
-
-- `Path-Config.ahk`
-- `Path-Config-Test_0.05.ahk`
+The canonical source filename remains `Path-Config.hta`; versioned PowerShell tests are stored under `Test/`, and the test filename advances with each version.
 
 ## Automated test safety
 
@@ -28,9 +25,10 @@ It may:
 
 - inspect source text
 - validate required strings
-- validate labels and function names
-- run an AutoHotkey parser-only check
-- create and remove temporary parser-output files
+- validate generated-HTML handler and function names
+- run a Windows JScript parser-only check
+- perform read-only status checks
+- create and remove temporary parser-output or capture files
 
 ## Static checks
 
@@ -43,13 +41,14 @@ Check for all of the following:
 - correct internal version string
 - no obsolete previous filename in the new source
 
-### Language
+### Language and silent status checks
 
-- no `#Include`
-- no AutoHotkey v2-only arrow functions
-- no `function name()` declaration syntax
-- no `then` after `if`
-- no references to undefined project helper functions
+- IE9-compatible JScript syntax
+- no external script or web dependencies
+- no references to undefined generated-HTML handlers
+- no `WScript.Shell.Exec`, which can flash a console window
+- captured status commands use `WScript.Shell.Run` with hidden window style `0`
+- temporary capture output is removed in a `finally` block
 
 ### Fixed tab
 
@@ -85,7 +84,7 @@ Check for all of the following:
 - persistent apply dispatcher
 - environment write target
 - environment-change broadcast
-- elevated launch method
+- administrator compatibility-property read/write/delete methods
 - managed startup cleanup
 - managed startup creation
 - startup command builder
@@ -100,9 +99,7 @@ Check for all of the following:
 
 ## Parser test
 
-Use the installed AutoHotkey v1 executable to parse the source without running normal configuration actions.
-
-The existing project test approach may use AutoHotkey v1 parser facilities such as `/iLib`.
+Extract the embedded JScript block and parse it with the installed Windows Script Host `cscript.exe` without initializing the HTA or applying configuration actions.
 
 Parser success does not replace runtime UI testing.
 
@@ -170,8 +167,13 @@ Use a harmless executable.
 - enable Run as Admin
 - disable Run on startup
 - Apply Paths
-- confirm one UAC elevation request occurs
-- confirm the target starts
+- confirm the executable has a per-user `RUNASADMIN` value under AppCompatFlags `Layers`
+- switch to Apply mode and confirm the column remains labeled `Run as admin`
+- confirm the displayed `Yes`/`No` reflects the checkbox state
+- confirm the value is green when the Windows property matches and red when it differs
+- confirm the property status is shown without a helper console window
+- disable Run as Admin and apply again
+- confirm only the `RUNASADMIN` token is removed
 
 ### 7. Run on startup
 
@@ -215,8 +217,13 @@ Expected:
 - idle empty row is skipped
 - enabled path-dependent actions report errors
 - no invalid startup value is created
+- an empty path shows a neutral `N/A` administrator-property status rather than a green match
 
-### 11. Dynamic-tab regression
+### 11. Programs-tab Paths controls
+
+For every Programs tab, confirm the Paths section contains the same file path, Browse, Env var, Run as Admin, Run on startup, and row-delete controls as the fixed Paths tab. Save, reload, and apply a harmless row. Confirm older `_Name`/`_Val` rows load into Env var and file path without data loss.
+
+### 12. Dynamic-tab regression
 
 Verify:
 
@@ -232,8 +239,8 @@ Verify:
 
 Before completion, open the delivered source and test files and verify:
 
-- filenames
-- internal versions
+- `Path-Config.hta` internal and visible version
+- matching versioned PowerShell test filename
 - required controls
 - required methods
 - migration logic

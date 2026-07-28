@@ -1,4 +1,4 @@
-﻿# Path-Config Design Specification
+# Path-Config Design Specification
 
 ## User-facing modes
 
@@ -62,6 +62,12 @@ Recommended left-to-right control order:
 
 The exact widths may change to fit the window, but every row must remain aligned with its column headers.
 
+## Programs-tab path rows
+
+Every dynamic Programs tab uses the same file path, Browse, Env var, Run as Admin, Run on startup, and Delete controls. Rows are saved inside that tab's `_Paths` section. Legacy `_Name` and `_Val` keys migrate to the new Env var and file path fields.
+
+Program startup registry values use the dedicated `PathConfig_Program_` namespace so applying a program tab does not remove fixed Paths startup entries.
+
 ## Persistent row actions
 
 ### Environment-variable action
@@ -80,23 +86,29 @@ Write HKCU\Environment\<Env var> = <path>
 
 An empty Env var does nothing. It must not create a blank registry value name.
 
-### Immediate elevated launch
+### Windows administrator compatibility property
 
 Condition:
 
 ```text
-Run as Admin is checked
+A persistent row has a non-empty executable path
 ```
 
-Validation:
+Validation when Run as Admin is enabled:
 
-- path is non-empty
 - target exists
+- target is an `.exe` file
 
 Action:
 
-- launch target during apply
-- request elevation
+- add the `RUNASADMIN` token when enabled
+- remove only the `RUNASADMIN` token when disabled
+- preserve all other compatibility flags
+- query status without displaying a helper console window
+- keep the Apply-mode column label as `Run as admin`
+- display `Yes` or `No` from the configured Run as Admin checkbox
+- color the value green when the Windows property matches and red when it differs
+- show a neutral `N/A` status when the path is empty
 
 Failure increases the persistent apply error count.
 
@@ -144,7 +156,8 @@ Persistent apply should return structured information equivalent to:
 ```text
 {
     env_changed: true or false,
-    launched_count: integer,
+    admin_property_count: integer,
+    admin_removed_count: integer,
     startup_count: integer,
     error_count: integer
 }

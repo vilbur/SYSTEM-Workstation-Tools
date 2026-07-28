@@ -1,4 +1,45 @@
-﻿# Path-Config Changelog
+# Path-Config Changelog
+
+## 0.16
+
+Clarified the Run as Admin presentation in Apply mode.
+
+- the column label now remains `Run as admin`
+- displayed `Yes` or `No` always reflects the saved checkbox state
+- green still indicates that Windows matches the configured state
+- red still indicates a mismatch
+- empty paths remain neutral `N/A`
+- added `Test/Path-Config-Test_0.16.ps1` regression coverage for every match and mismatch combination
+
+## 0.15
+
+Corrected the Run as Admin status shown in Apply mode for empty path rows.
+
+- empty paths now display a neutral gray `N/A` status
+- prevents an empty configured value and absent Windows property from appearing as a green match
+- added `Test/Path-Config-Test_0.15.ps1` regression coverage
+
+## 0.14
+
+Added the fixed Paths row controls to every dynamic Programs tab.
+
+- Programs path rows now include file path, Browse, Env var, Run as Admin, Run on startup, and Delete controls
+- preserved the existing Environment Variables, Executables, and Links sections
+- migrated older Programs `_Name`/`_Val` path rows into the new fields
+- saved Programs path rows with path, environment-variable, administrator, and startup fields
+- applied the new controls per program tab, using scoped `PathConfig_Program_` startup entries
+- added `Path-Config-Test_0.14.ps1` coverage for the new controls, persistence, migration, and startup isolation
+
+## 0.13
+
+Prevented auxiliary console windows from appearing during executable and status checks.
+
+- replaced `WScript.Shell.Exec` status capture with synchronous hidden `WScript.Shell.Run`
+- captures standard output and error through an application-owned temporary file
+- guarantees temporary capture cleanup with `finally`
+- preserves intentionally visible configured-target launches and file/folder pickers
+- confirmed the existing executable is a generic launcher and requires no rebuild for HTA source updates
+- added `Path-Config-Test_0.13.ps1` with static, handler-reference, and Windows JScript parser checks
 
 ## 0.04
 

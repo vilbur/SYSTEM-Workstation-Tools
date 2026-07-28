@@ -1,25 +1,26 @@
-﻿# Path-Config Development Guide
+# Path-Config Development Guide
 
 ## Current baseline
 
-The latest approved version is `0.04`.
+The latest approved version is `0.16`.
 
 Primary files:
 
-- `Path-Config.ahk`
-- `Path-Config-Test_0.04.ahk`
+- `Path-Config.hta`
+- `Path-Config.exe` (generic HTA launcher)
+- `Test/Path-Config-Test_0.16.ps1`
 - `Path-Config.ini` at runtime
 
-The next code delivery must be version `0.05` unless another version has already been approved in the repository.
+The next code delivery must be version `0.17` unless another version has already been approved in the repository.
 
 ## Product purpose
 
-Path-Config is a Windows configuration manager written in AutoHotkey v1. It stores reusable path-related settings and applies them through a dark GUI.
+Path-Config is a Windows configuration manager implemented as a standalone HTA with Internet Explorer 9-compatible JScript. It stores reusable path-related settings and applies them through a dark GUI.
 
 There are two configuration areas:
 
 1. A fixed, non-dynamic first tab named `Paths`.
-2. Dynamic program tabs containing the older program-oriented path configuration system.
+2. Dynamic program tabs whose Paths section mirrors the fixed Paths row controls, followed by the existing environment-variable, executable, and link sections.
 
 ## High-level runtime flow
 
@@ -80,6 +81,10 @@ Rules:
 - The environment-variable name is optional.
 - Both checkboxes are independent.
 
+## Dynamic program path rows
+
+Each Programs tab stores path rows with the same four logical fields as a persistent row. Loading accepts the former `<row>_Name` and `<row>_Val` keys as migration sources for `env_var` and `path`. Program startup entries use the separate `PathConfig_Program_` prefix and are reconciled within the selected tab, or globally before Apply All.
+
 ## Apply scope
 
 ### Apply Paths
@@ -91,7 +96,7 @@ For every row:
 1. Read and trim all four fields.
 2. Write the environment variable when both name and path are non-empty.
 3. Create a managed startup entry when enabled and valid.
-4. Launch elevated when Run as Admin is enabled and valid.
+4. Set or remove the Windows `RUNASADMIN` compatibility property for configured executable paths.
 5. Accumulate success and error counts.
 6. Broadcast environment changes once after processing all rows.
 
@@ -139,13 +144,13 @@ The selected path is the registry value data.
 
 After one or more successful changes, broadcast `WM_SETTINGCHANGE` with `Environment` to notify Windows applications.
 
-## Elevation behavior
+## Administrator compatibility property and startup elevation
 
-Immediate apply launch:
+Apply behavior:
 
-- use AutoHotkey v1 `Run` with `*RunAs`
-- preserve the file working directory when possible
-- use `UseErrorLevel`
+- store per-user executable compatibility flags under `HKCU\Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers`
+- add or remove only the `RUNASADMIN` token while preserving unrelated flags
+- query, write, and delete compatibility values through hidden commands so status rendering does not flash a console window
 
 Elevated startup:
 
@@ -174,7 +179,7 @@ Loading must:
 For each requested update:
 
 1. Confirm the latest approved version in the actual files.
-2. Keep the source filename `Path-Config.ahk` and create the matching next-version test file.
+2. Keep the source filename `Path-Config.hta` and create the matching next-version PowerShell test file under `Test/`.
 3. Update internal and visible version markers.
 4. Implement the smallest coherent change.
 5. Update migration only when persistence changes.

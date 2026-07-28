@@ -1,4 +1,4 @@
-﻿# Path-Config Codex Development Files
+# Path-Config Codex Development Files
 
 This folder contains the development context Codex should read before changing Path-Config.
 
@@ -12,10 +12,11 @@ This folder contains the development context Codex should read before changing P
 
 ## Current approved baseline
 
-- `Path-Config.ahk`
-- `Path-Config-Test_0.04.ahk`
+- `Path-Config.hta` version `0.16`
+- `Path-Config.exe` generic launcher
+- `Test/Path-Config-Test_0.16.ps1`
 
-The next version is `0.05`, unless the project already contains a newer user-approved baseline.
+The next version is `0.17`, unless the project already contains a newer user-approved baseline.
 
 ## Codex start prompt
 
@@ -23,8 +24,8 @@ Use a prompt similar to:
 
 ```text
 Read AGENTS.md, DEVELOPMENT.md, DESIGN.md, TESTING.md and CHANGELOG.md first.
-Inspect the complete latest approved Path-Config source and matching test file.
-Implement the requested change in AutoHotkey v1, increment the version by 0.01,
+Inspect the complete latest approved Path-Config HTA source and matching test file.
+Implement the requested change in IE9-compatible JScript, increment the version by 0.01,
 update the test file and changelog, run all available checks, and return the complete files.
 Preserve all functionality not explicitly changed.
 ```

@@ -294,8 +294,9 @@ button, input, select {
 }
 </style>
 <script language="JScript" type="text/javascript">
-var VERSION = "0.12";
+var VERSION = "0.16";
 var STARTUP_PREFIX = "PathConfig_Path_";
+var PROGRAM_STARTUP_PREFIX = "PathConfig_Program_";
 var REG_ENV = "HKCU\\Environment\\";
 var REG_RUN = "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\\";
 var APP_COMPAT_KEY = "HKCU\\Software\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Layers";
@@ -463,7 +464,7 @@ function loadState() {
 
     if (!source) {
         state.tabs = ["PROGRAMS"];
-        state.data = {"PROGRAMS": {paths: [{name: "", val: ""}], envs: [], execs: [], links: []}};
+        state.data = {"PROGRAMS": {paths: [emptyPathRow()], envs: [], execs: [], links: []}};
         state.persistent = [{path: "", env_var: "", run_as_admin: 0, run_on_startup: 0}];
         return;
     }
@@ -523,13 +524,13 @@ function loadState() {
     for (i = 0; i < state.tabs.length; i++) {
         name = state.tabs[i];
         state.data[name] = {
-            paths: loadNameValueRows(ini, name + "_Paths"),
+            paths: loadProgramPathRows(ini, name + "_Paths"),
             envs: loadNameValueRows(ini, name + "_Envs"),
             execs: loadSimpleRows(ini, name + "_Execs"),
             links: loadLinkRows(ini, name + "_Links")
         };
         if (!state.data[name].paths.length) {
-            state.data[name].paths.push({name: "", val: ""});
+            state.data[name].paths.push(emptyPathRow());
         }
     }
 
@@ -553,6 +554,44 @@ function loadNameValueRows(ini, section) {
             value = iniValue(ini, section, i + "_Val", "");
             rows.push({name: name, val: value});
         }
+    }
+    return rows;
+}
+
+function emptyPathRow(path, envVar) {
+    return {
+        path: path || "",
+        env_var: envVar || "",
+        run_as_admin: 0,
+        run_on_startup: 0
+    };
+}
+
+function loadProgramPathRows(ini, section) {
+    var rows = [];
+    var i, path, envVar, legacy;
+    for (i = 1; ; i++) {
+        path = iniValue(ini, section, i + "_Path", null);
+        if (path === null) {
+            path = iniValue(ini, section, i + "_Val", null);
+        }
+        if (path === null) {
+            legacy = iniValue(ini, section, String(i), null);
+            if (legacy === null) {
+                break;
+            }
+            path = legacy;
+        }
+        envVar = iniValue(ini, section, i + "_EnvVar", null);
+        if (envVar === null) {
+            envVar = iniValue(ini, section, i + "_Name", "");
+        }
+        rows.push({
+            path: path || "",
+            env_var: envVar || "",
+            run_as_admin: asNumber(iniValue(ini, section, i + "_RunAsAdmin", "0"), 0) ? 1 : 0,
+            run_on_startup: asNumber(iniValue(ini, section, i + "_RunOnStartup", "0"), 0) ? 1 : 0
+        });
     }
     return rows;
 }
@@ -647,8 +686,11 @@ function saveState(showMessage, stateAlreadyCaptured) {
         data = state.data[name];
         section(lines, name + "_Paths");
         for (j = 0; j < data.paths.length; j++) {
-            entry(lines, (j + 1) + "_Name", data.paths[j].name);
-            entry(lines, (j + 1) + "_Val", data.paths[j].val);
+            row = data.paths[j];
+            entry(lines, (j + 1) + "_Path", row.path);
+            entry(lines, (j + 1) + "_EnvVar", row.env_var);
+            entry(lines, (j + 1) + "_RunAsAdmin", row.run_as_admin ? 1 : 0);
+            entry(lines, (j + 1) + "_RunOnStartup", row.run_on_startup ? 1 : 0);
         }
         lines.push("");
         if (data.envs.length) {
@@ -857,7 +899,7 @@ function renderPersistent() {
         '<col style="width:42%"><col style="width:9%"><col style="width:20%">' +
         '<col style="width:11%"><col style="width:12%"><col style="width:6%"></colgroup>' +
         '<thead><tr><th>File path</th><th></th><th>Environment variable</th>' +
-        '<th>' + (state.mode === "Apply" ? "Admin property matches" : "Run as admin") + '</th>' +
+        '<th>Run as admin</th>' +
         '<th>Run on startup</th><th></th></tr></thead><tbody>';
     var i, row;
     for (i = 0; i < state.persistent.length; i++) {
@@ -890,7 +932,7 @@ function renderPersistent() {
 function renderProgram(tabIndex) {
     var name = state.tabs[tabIndex];
     var data = state.data[name];
-    var out = renderNameValueSection(tabIndex, "paths", "Paths", data.paths, true);
+    var out = renderProgramPaths(tabIndex, data.paths);
     out += renderNameValueSection(tabIndex, "envs", "Environment Variables", data.envs, false);
     out += renderExecSection(tabIndex, data.execs);
     out += renderLinksSection(tabIndex, data.links);
@@ -899,6 +941,42 @@ function renderProgram(tabIndex) {
             html(name).toUpperCase() + '</button></div>';
     }
     return out;
+}
+
+function renderProgramPaths(tabIndex, rows) {
+    var out = '<div class="section"><div class="section-head"><span class="section-title">Paths</span>';
+    if (state.mode === "Config") {
+        out += '<button class="section-action" onclick="addDynamicRow(' + tabIndex + ',\'paths\')">+ Add file path</button>';
+    }
+    out += '</div><table class="data-table"><colgroup>' +
+        '<col style="width:42%"><col style="width:9%"><col style="width:20%">' +
+        '<col style="width:11%"><col style="width:12%"><col style="width:6%"></colgroup>' +
+        '<thead><tr><th>File path</th><th></th><th>Environment variable</th>' +
+        '<th>Run as admin</th>' +
+        '<th>Run on startup</th><th></th></tr></thead><tbody>';
+    var i, row;
+    for (i = 0; i < rows.length; i++) {
+        row = rows[i];
+        out += '<tr>';
+        if (state.mode === "Config") {
+            out += fieldInput("dynamic", "paths", i, "path", row.path, 'data-tab="' + tabIndex + '" data-pathcheck="1"');
+            out += '<td><button class="button button-small" onclick="browseDynamicPath(' + tabIndex + ',' + i + ')">Browse</button></td>';
+            out += fieldInput("dynamic", "paths", i, "env_var", row.env_var, 'data-tab="' + tabIndex + '"');
+            out += checkboxInput("dynamic", "paths", i, "run_as_admin", row.run_as_admin, tabIndex);
+            out += checkboxInput("dynamic", "paths", i, "run_on_startup", row.run_on_startup, tabIndex);
+            out += '<td>' + (i > 0 ? '<button class="button button-small button-danger" onclick="deleteDynamicRow(' +
+                tabIndex + ',\'paths\',' + i + ')">X</button>' : '') + '</td>';
+        } else {
+            out += readonlyCell(row.path, "pathcheck");
+            out += '<td></td>';
+            out += readonlyCell(row.env_var, "");
+            out += adminPropertyMatchCell(row.path, row.run_as_admin);
+            out += yesNoCell(row.run_on_startup);
+            out += '<td></td>';
+        }
+        out += '</tr>';
+    }
+    return out + '</tbody></table></div>';
 }
 
 function renderNameValueSection(tabIndex, kind, title, rows, keepFirst) {
@@ -1005,10 +1083,11 @@ function fieldInput(scope, kind, index, field, value, extra) {
         '" data-index="' + index + '" data-field="' + field + '" ' + extra + ' value="' + html(value) + '"></td>';
 }
 
-function checkboxInput(scope, kind, index, field, checked) {
+function checkboxInput(scope, kind, index, field, checked, tabIndex) {
+    var tabAttribute = typeof tabIndex === "number" ? ' data-tab="' + tabIndex + '"' : "";
     return '<td><label class="check-wrap"><input type="checkbox" data-scope="' + scope +
         '" data-kind="' + kind + '" data-index="' + index + '" data-field="' + field + '"' +
-        (checked ? ' checked="checked"' : '') + '> Yes</label></td>';
+        tabAttribute + (checked ? ' checked="checked"' : '') + '> Yes</label></td>';
 }
 
 function readonlyCell(value, checkType) {
@@ -1028,12 +1107,15 @@ function yesNoCell(value) {
 }
 
 function adminPropertyMatchCell(path, expected) {
+    if (!trimText(path)) {
+        return '<td><div class="readonly no" title="No path configured">N/A</div></td>';
+    }
     var actual = hasRunAsAdminProperty(path);
     var matches = actual === (expected ? true : false);
     var detail = "Configured: " + (expected ? "Yes" : "No") +
         "; Windows property: " + (actual ? "Yes" : "No");
     return '<td><div class="readonly ' + (matches ? "yes" : "mismatch") +
-        '" title="' + html(detail) + '">' + (matches ? "Yes" : "No") + '</div></td>';
+        '" title="' + html(detail) + '">' + (expected ? "Yes" : "No") + '</div></td>';
 }
 
 function hasRunAsAdminProperty(path) {
@@ -1145,7 +1227,7 @@ function addDynamicRow(tabIndex, kind) {
     captureState();
     var rows = state.data[state.tabs[tabIndex]][kind];
     if (kind === "paths" || kind === "envs") {
-        rows.push({name: "", val: ""});
+        rows.push(kind === "paths" ? emptyPathRow() : {name: "", val: ""});
     } else if (kind === "execs") {
         rows.push("");
     } else {
@@ -1164,6 +1246,15 @@ function deleteDynamicRow(tabIndex, kind, index) {
     rows.splice(index, 1);
     markDirty();
     render();
+}
+
+function browseDynamicPath(tabIndex, index) {
+    browseFile(function(path) {
+        captureState();
+        state.data[state.tabs[tabIndex]].paths[index].path = path;
+        markDirty();
+        render();
+    }, "");
 }
 
 function browseDynamic(tabIndex, kind, index, chooseFile) {
@@ -1261,7 +1352,7 @@ function addProgram() {
         tabName = candidate;
         state.tabs.push(tabName);
         state.data[tabName] = {
-            paths: [{name: baseName, val: exePath}],
+            paths: [emptyPathRow(exePath, baseName)],
             envs: [],
             execs: [],
             links: []
@@ -1394,9 +1485,12 @@ function applyAll() {
     var persistentResult = applyPersistentPaths();
     var envChanged = persistentResult.env_changed;
     var dynamicErrors = 0;
+    var programCleanup = {errors: 0};
+    cleanupProgramStartup(PROGRAM_STARTUP_PREFIX, programCleanup);
+    dynamicErrors += programCleanup.errors;
     var i, result;
     for (i = 0; i < state.tabs.length; i++) {
-        result = applyTabConfig(state.tabs[i]);
+        result = applyTabConfig(state.tabs[i], i, true);
         envChanged = envChanged || result.env_changed;
         dynamicErrors += result.errors;
     }
@@ -1418,7 +1512,7 @@ function applyCurrentProgram() {
     captureState();
     resetLog();
     var name = state.tabs[state.activeUiTab - 1];
-    var result = applyTabConfig(name);
+    var result = applyTabConfig(name, state.activeUiTab - 1, false);
     if (result.env_changed) {
         broadcastEnvironmentChange();
     }
@@ -1598,12 +1692,46 @@ function cleanupOwnedStartup(result) {
     }
 }
 
+function cleanupProgramStartup(prefix, result) {
+    var regExe = wsh.ExpandEnvironmentStrings("%SystemRoot%") + "\\System32\\reg.exe";
+    var command = quoteArg(regExe) + ' query "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run"';
+    var output = runCapture(command);
+    var lines = output.split(/\r?\n/);
+    var i, match, name;
+    for (i = 0; i < lines.length; i++) {
+        match = /^\s*(PathConfig_Program_[^\s]+)\s+REG_/i.exec(lines[i]);
+        if (match) {
+            name = match[1];
+            if (name.substr(0, prefix.length) === prefix) {
+                try {
+                    wsh.RegDelete(REG_RUN + name);
+                } catch (error) {
+                    result.errors++;
+                    appendLog("Could not remove program startup entry " + name + ": " + error.message, true);
+                }
+            }
+        }
+    }
+}
+
 function runCapture(command) {
+    var tempName = "PathConfig-Capture-" + new Date().valueOf() + "-" +
+        Math.floor(Math.random() * 1000000) + ".tmp";
+    var tempPath = fso.BuildPath(wsh.ExpandEnvironmentStrings("%TEMP%"), tempName);
+    var commandShell = wsh.ExpandEnvironmentStrings("%ComSpec%");
+    var hiddenCommand = quoteArg(commandShell) + ' /d /q /c "' + command +
+        " > " + quoteArg(tempPath) + ' 2>&1"';
     try {
-        var process = wsh.Exec(command);
-        return process.StdOut.ReadAll();
+        wsh.Run(hiddenCommand, 0, true);
+        return fso.FileExists(tempPath) ? readText(tempPath) : "";
     } catch (ignore) {
         return "";
+    } finally {
+        try {
+            if (fso.FileExists(tempPath)) {
+                fso.DeleteFile(tempPath, true);
+            }
+        } catch (ignoreCleanup) {}
     }
 }
 
@@ -1631,15 +1759,52 @@ function broadcastEnvironmentChange() {
     }
 }
 
-function applyTabConfig(tabName) {
+function programStartupPrefix(tabIndex) {
+    return PROGRAM_STARTUP_PREFIX + (tabIndex + 1) + "_";
+}
+
+function applyTabConfig(tabName, tabIndex, startupAlreadyCleaned) {
     var data = state.data[tabName];
-    var result = {env_changed: false, errors: 0};
-    var i, item;
+    var result = {
+        env_changed: false,
+        errors: 0,
+        error_count: 0,
+        success_count: 0,
+        admin_property_count: 0,
+        admin_removed_count: 0,
+        startup_count: 0
+    };
+    var i, item, path, envName, startupName, command;
     appendLog("Program tab: " + tabName, false);
+    if (!startupAlreadyCleaned) {
+        cleanupProgramStartup(programStartupPrefix(tabIndex), result);
+    }
     for (i = 0; i < data.paths.length; i++) {
         item = data.paths[i];
-        if (trimText(item.name) && trimText(item.val)) {
-            writeUserEnvironment(item.name, item.val, result);
+        path = trimText(item.path);
+        envName = trimText(item.env_var);
+        if (envName && path) {
+            writeUserEnvironment(envName, path, result);
+        }
+        if (item.run_on_startup) {
+            if (!path || !pathExists(path)) {
+                persistentError(result, tabName + " row " + (i + 1) + " startup target is missing: " + path);
+            } else {
+                startupName = programStartupPrefix(tabIndex) + (i + 1);
+                command = buildStartupCommand(path, item.run_as_admin);
+                try {
+                    wsh.RegWrite(REG_RUN + startupName, command, "REG_SZ");
+                    result.startup_count++;
+                    persistentSuccess(result, "Startup entry " + startupName + " configured.");
+                } catch (errorStartup) {
+                    persistentError(result, tabName + " row " + (i + 1) + " startup entry failed: " + errorStartup.message);
+                }
+            }
+        }
+        if (path) {
+            setRunAsAdminProperty(path, item.run_as_admin ? true : false, result, tabName + " row " + (i + 1));
+        } else if (item.run_as_admin) {
+            persistentError(result, tabName + " row " + (i + 1) + " administrator-property target is empty.");
         }
     }
     for (i = 0; i < data.envs.length; i++) {
@@ -1656,6 +1821,7 @@ function applyTabConfig(tabName) {
     for (i = 0; i < data.links.length; i++) {
         createConfiguredLink(data.links[i], result);
     }
+    result.errors += result.error_count;
     return result;
 }
 
