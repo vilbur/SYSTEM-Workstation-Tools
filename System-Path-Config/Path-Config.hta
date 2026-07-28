@@ -1,0 +1,1844 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=9" />
+<meta charset="utf-8" />
+<title>Path-Config</title>
+<HTA:APPLICATION
+    ID="PathConfigApplication"
+    APPLICATIONNAME="Path-Config"
+    BORDER="thin"
+    CAPTION="yes"
+    ICON="Path-Config.ico"
+    MAXIMIZEBUTTON="yes"
+    MINIMIZEBUTTON="yes"
+    SCROLL="yes"
+    SINGLEINSTANCE="yes"
+    SYSMENU="yes"
+    WINDOWSTATE="normal"
+/>
+<style type="text/css">
+html, body {
+    margin: 0;
+    min-width: 980px;
+    min-height: 680px;
+    background: #17181b;
+    color: #d8d9dc;
+    font-family: "Segoe UI", Arial, sans-serif;
+    font-size: 14px;
+}
+body {
+    overflow: auto;
+}
+button, input, select {
+    font: inherit;
+}
+.app {
+    padding: 16px 18px 22px 18px;
+}
+.topbar {
+    position: relative;
+    min-height: 64px;
+    padding: 14px 16px;
+    border: 1px solid #33363c;
+    background: #202226;
+    box-shadow: 0 2px 10px rgba(0,0,0,.35);
+}
+.brand {
+    float: left;
+    width: 260px;
+}
+.brand-title {
+    color: #fff;
+    font-size: 22px;
+    font-weight: 650;
+    letter-spacing: .2px;
+}
+.brand-version {
+    margin-top: 4px;
+    color: #858a93;
+    font-size: 12px;
+}
+.top-actions {
+    float: right;
+    padding-top: 3px;
+}
+.clear {
+    clear: both;
+}
+.button {
+    min-width: 126px;
+    height: 38px;
+    margin-left: 8px;
+    padding: 0 18px;
+    border: 1px solid #444850;
+    background: #2a2d32;
+    color: #f0f1f2;
+    cursor: pointer;
+}
+.button:hover {
+    border-color: #6b717b;
+    background: #33373d;
+}
+.button-primary.config {
+    border-color: #e58d19;
+    color: #ffad3e;
+}
+.button-primary.apply {
+    border-color: #397dd1;
+    color: #71b2ff;
+}
+.button-danger {
+    border-color: #713f46;
+    color: #ff9aa7;
+}
+.button-small {
+    min-width: 0;
+    height: 30px;
+    margin: 0 0 0 6px;
+    padding: 0 10px;
+    font-size: 12px;
+}
+.tabs-shell {
+    margin-top: 16px;
+    border: 1px solid #33363c;
+    background: #1d1f22;
+}
+.tabs {
+    min-height: 44px;
+    padding: 0 10px;
+    border-bottom: 1px solid #33363c;
+    background: #202226;
+    white-space: nowrap;
+    overflow-x: auto;
+}
+.tab {
+    display: inline-block;
+    height: 43px;
+    margin-right: 2px;
+    padding: 0 18px;
+    border: 0;
+    border-bottom: 3px solid transparent;
+    background: transparent;
+    color: #aeb2b9;
+    cursor: pointer;
+}
+.tab:hover {
+    color: #fff;
+    background: #272a2f;
+}
+.tab.active.config {
+    border-bottom-color: #f39a23;
+    color: #ffb552;
+}
+.tab.active.apply {
+    border-bottom-color: #438de5;
+    color: #85bfff;
+}
+.tab-tools {
+    min-height: 36px;
+    padding: 9px 14px 6px 14px;
+    border-bottom: 1px solid #2e3136;
+    text-align: right;
+}
+.tab-tools-left {
+    float: left;
+    padding: 6px 0 0 2px;
+    color: #858a93;
+    font-size: 12px;
+}
+.content {
+    min-height: 540px;
+    padding: 20px;
+}
+.section {
+    margin-bottom: 24px;
+}
+.section-head {
+    margin-bottom: 10px;
+}
+.section-title {
+    display: inline-block;
+    color: #fff;
+    font-size: 17px;
+    font-weight: 650;
+}
+.section-action {
+    margin-left: 12px;
+    border: 0;
+    background: transparent;
+    color: #f2a23a;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+.section-action:hover {
+    color: #ffc473;
+}
+.data-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 6px;
+    table-layout: fixed;
+}
+.data-table th {
+    padding: 0 7px 3px 7px;
+    color: #858a93;
+    font-size: 11px;
+    font-weight: 600;
+    text-align: left;
+    text-transform: uppercase;
+}
+.data-table td {
+    padding: 0 4px;
+    vertical-align: middle;
+}
+.field {
+    box-sizing: border-box;
+    width: 100%;
+    height: 32px;
+    padding: 5px 8px;
+    border: 1px solid #3b3f46;
+    background: #141518;
+    color: #d8d9dc;
+    outline: none;
+}
+.field:focus {
+    border-color: #727984;
+}
+.field.valid {
+    border-color: #34794c;
+    color: #76df96;
+}
+.field.invalid {
+    border-color: #80434b;
+    color: #ff8f9d;
+}
+.readonly {
+    min-height: 24px;
+    padding: 6px 8px;
+    border-bottom: 1px solid #2d3035;
+    color: #d8d9dc;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.readonly.valid {
+    color: #76df96;
+}
+.readonly.invalid {
+    color: #ff8f9d;
+}
+.yes {
+    color: #76df96;
+}
+.no {
+    color: #747983;
+}
+.mismatch {
+    color: #ff5f6d;
+    font-weight: 650;
+}
+.empty-state {
+    padding: 16px 8px;
+    border: 1px dashed #343840;
+    color: #737984;
+    text-align: center;
+}
+.check-wrap {
+    display: block;
+    padding: 6px 0;
+    text-align: center;
+    white-space: nowrap;
+}
+.check-wrap input {
+    vertical-align: middle;
+}
+.footer-actions {
+    margin-top: 28px;
+    padding-top: 18px;
+    border-top: 1px solid #303339;
+    text-align: right;
+}
+.status {
+    min-height: 18px;
+    margin-top: 10px;
+    color: #7f858f;
+    font-size: 12px;
+    text-align: right;
+}
+.context-menu {
+    position: absolute;
+    z-index: 9999;
+    display: none;
+    width: 190px;
+    padding: 5px;
+    border: 1px solid #454a52;
+    background: #25282d;
+    box-shadow: 0 5px 16px rgba(0,0,0,.45);
+}
+.context-menu button {
+    display: block;
+    width: 100%;
+    height: 32px;
+    padding: 0 10px;
+    border: 0;
+    background: transparent;
+    color: #d8d9dc;
+    text-align: left;
+    cursor: pointer;
+}
+.context-menu button:hover {
+    background: #34383e;
+}
+</style>
+<script language="JScript" type="text/javascript">
+var VERSION = "0.12";
+var STARTUP_PREFIX = "PathConfig_Path_";
+var REG_ENV = "HKCU\\Environment\\";
+var REG_RUN = "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\\";
+var APP_COMPAT_KEY = "HKCU\\Software\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Layers";
+var fso = null;
+var wsh = null;
+var shellApp = null;
+var appDir = "";
+var iniPath = "";
+var legacyIniPath = "";
+var logPath = "";
+var saveTimer = null;
+var sourcePath = "";
+var sourceSignature = "";
+var sourceChangeTime = 0;
+var sourceReloadPending = false;
+var hasUnsavedChanges = false;
+var state = {
+    mode: "Config",
+    activeUiTab: 0,
+    activeProgramTab: 0,
+    tabs: [],
+    data: {},
+    persistent: []
+};
+
+function trimText(value) {
+    return String(value == null ? "" : value).replace(/^\s+|\s+$/g, "");
+}
+
+function html(value) {
+    return String(value == null ? "" : value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
+function cleanIniValue(value) {
+    return String(value == null ? "" : value).replace(/[\r\n]+/g, " ");
+}
+
+function lower(value) {
+    return String(value).toLowerCase();
+}
+
+function pathExists(path) {
+    path = trimText(path);
+    if (!path) {
+        return false;
+    }
+    try {
+        return fso.FileExists(path) || fso.FolderExists(path);
+    } catch (ignore) {
+        return false;
+    }
+}
+
+function quoteArg(value) {
+    return '"' + String(value).replace(/"/g, '""') + '"';
+}
+
+function getAppDirectory() {
+    var path = decodeURIComponent(window.location.pathname).replace(/\//g, "\\");
+    if (/^\\[A-Za-z]:/.test(path)) {
+        path = path.substr(1);
+    }
+    return fso.GetParentFolderName(path);
+}
+
+function getApplicationPath() {
+    var path = decodeURIComponent(window.location.pathname).replace(/\//g, "\\");
+    if (/^\\[A-Za-z]:/.test(path)) {
+        path = path.substr(1);
+    }
+    return path;
+}
+
+function getSourceSignature() {
+    var source = fso.GetFile(sourcePath);
+    return String(source.DateLastModified) + "|" + String(source.Size);
+}
+
+function watchForSourceUpdate() {
+    try {
+        var currentSignature = getSourceSignature();
+        var now = new Date().valueOf();
+        if (currentSignature !== sourceSignature) {
+            sourceSignature = currentSignature;
+            sourceChangeTime = now;
+            sourceReloadPending = true;
+            return;
+        }
+        if (sourceReloadPending && now - sourceChangeTime >= 1500) {
+            sourceReloadPending = false;
+            if (hasUnsavedChanges) {
+                setStatus("Source updated; save or restart manually. Unsaved changes were preserved.");
+            } else {
+                window.location.reload(true);
+            }
+        }
+    } catch (ignoreSourceUpdate) {}
+}
+
+function readText(path) {
+    var stream = fso.OpenTextFile(path, 1, false, 0);
+    var value = stream.ReadAll();
+    stream.Close();
+    return value;
+}
+
+function writeText(path, value) {
+    var stream = fso.CreateTextFile(path, true, false);
+    stream.Write(value);
+    stream.Close();
+}
+
+function parseIni(text) {
+    var ini = {};
+    var current = "";
+    var lines = String(text).replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
+    var i, line, match, splitAt, key, value;
+    for (i = 0; i < lines.length; i++) {
+        line = lines[i];
+        if (!trimText(line) || /^\s*[;#]/.test(line)) {
+            continue;
+        }
+        match = /^\s*\[([^\]]+)\]\s*$/.exec(line);
+        if (match) {
+            current = match[1];
+            if (!ini[current]) {
+                ini[current] = {};
+            }
+            continue;
+        }
+        splitAt = line.indexOf("=");
+        if (current && splitAt >= 0) {
+            key = trimText(line.substr(0, splitAt));
+            value = line.substr(splitAt + 1);
+            ini[current][key] = value;
+        }
+    }
+    return ini;
+}
+
+function iniValue(ini, section, key, fallback) {
+    if (ini[section] && typeof ini[section][key] !== "undefined") {
+        return ini[section][key];
+    }
+    return fallback;
+}
+
+function asNumber(value, fallback) {
+    var parsed = parseInt(value, 10);
+    return isNaN(parsed) ? fallback : parsed;
+}
+
+function loadState() {
+    var source = "";
+    if (fso.FileExists(iniPath)) {
+        source = iniPath;
+    } else if (fso.FileExists(legacyIniPath)) {
+        source = legacyIniPath;
+    }
+
+    if (!source) {
+        state.tabs = ["PROGRAMS"];
+        state.data = {"PROGRAMS": {paths: [{name: "", val: ""}], envs: [], execs: [], links: []}};
+        state.persistent = [{path: "", env_var: "", run_as_admin: 0, run_on_startup: 0}];
+        return;
+    }
+
+    var ini = parseIni(readText(source));
+    var tabText = iniValue(ini, "Settings", "Tabs", "");
+    var candidateTabs = tabText.split("|");
+    var i, name;
+    state.tabs = [];
+    for (i = 0; i < candidateTabs.length; i++) {
+        name = trimText(candidateTabs[i]);
+        if (name && lower(name) !== "paths" && name !== "WINDOWS") {
+            state.tabs.push(name);
+        }
+    }
+    if (!state.tabs.length) {
+        state.tabs.push("PROGRAMS");
+    }
+
+    state.mode = lower(iniValue(ini, "Settings", "Mode", "Config")) === "apply" ? "Apply" : "Config";
+    state.activeUiTab = asNumber(iniValue(ini, "Settings", "ActiveTab", "1"), 1) - 1;
+    state.activeProgramTab = asNumber(iniValue(ini, "Settings", "ActiveProgramTab", "1"), 1) - 1;
+    if (state.activeUiTab < 0 || state.activeUiTab > state.tabs.length) {
+        state.activeUiTab = 0;
+    }
+    if (state.activeProgramTab < 0 || state.activeProgramTab >= state.tabs.length) {
+        state.activeProgramTab = 0;
+    }
+    if (state.activeUiTab > 0) {
+        state.activeProgramTab = state.activeUiTab - 1;
+    }
+
+    state.persistent = [];
+    for (i = 1; ; i++) {
+        var pathKey = i + "_Path";
+        var legacyKey = String(i);
+        var pathValue = iniValue(ini, "PersistentPaths", pathKey, null);
+        var legacyValue = iniValue(ini, "PersistentPaths", legacyKey, null);
+        if (pathValue === null && legacyValue === null) {
+            break;
+        }
+        if (pathValue === null) {
+            pathValue = legacyValue;
+        }
+        state.persistent.push({
+            path: pathValue || "",
+            env_var: iniValue(ini, "PersistentPaths", i + "_EnvVar", ""),
+            run_as_admin: asNumber(iniValue(ini, "PersistentPaths", i + "_RunAsAdmin", "0"), 0) ? 1 : 0,
+            run_on_startup: asNumber(iniValue(ini, "PersistentPaths", i + "_RunOnStartup", "0"), 0) ? 1 : 0
+        });
+    }
+    if (!state.persistent.length) {
+        state.persistent.push({path: "", env_var: "", run_as_admin: 0, run_on_startup: 0});
+    }
+
+    state.data = {};
+    for (i = 0; i < state.tabs.length; i++) {
+        name = state.tabs[i];
+        state.data[name] = {
+            paths: loadNameValueRows(ini, name + "_Paths"),
+            envs: loadNameValueRows(ini, name + "_Envs"),
+            execs: loadSimpleRows(ini, name + "_Execs"),
+            links: loadLinkRows(ini, name + "_Links")
+        };
+        if (!state.data[name].paths.length) {
+            state.data[name].paths.push({name: "", val: ""});
+        }
+    }
+
+    if (source !== iniPath) {
+        hasUnsavedChanges = true;
+    }
+}
+
+function loadNameValueRows(ini, section) {
+    var rows = [];
+    var i, name, value, legacy;
+    for (i = 1; ; i++) {
+        name = iniValue(ini, section, i + "_Name", null);
+        if (name === null) {
+            legacy = iniValue(ini, section, String(i), null);
+            if (legacy === null) {
+                break;
+            }
+            rows.push({name: "", val: legacy});
+        } else {
+            value = iniValue(ini, section, i + "_Val", "");
+            rows.push({name: name, val: value});
+        }
+    }
+    return rows;
+}
+
+function loadSimpleRows(ini, section) {
+    var rows = [];
+    var i, value;
+    for (i = 1; ; i++) {
+        value = iniValue(ini, section, String(i), null);
+        if (value === null) {
+            break;
+        }
+        rows.push(value);
+    }
+    return rows;
+}
+
+function loadLinkRows(ini, section) {
+    var rows = [];
+    var i, src, legacy, target, split;
+    for (i = 1; ; i++) {
+        src = iniValue(ini, section, i + "_Src", null);
+        if (src === null) {
+            legacy = iniValue(ini, section, String(i), null);
+            if (legacy === null) {
+                break;
+            }
+            rows.push({src: legacy, tgt_dir: "", tgt_name: "", type: "Shortcut"});
+            continue;
+        }
+        var targetDir = iniValue(ini, section, i + "_TgtDir", "");
+        var targetName = iniValue(ini, section, i + "_TgtName", "");
+        if (!targetDir && !targetName) {
+            target = iniValue(ini, section, i + "_Tgt", "");
+            if (target) {
+                split = splitPath(target);
+                targetDir = split.dir;
+                targetName = split.name;
+            }
+        }
+        rows.push({
+            src: src,
+            tgt_dir: targetDir,
+            tgt_name: targetName,
+            type: iniValue(ini, section, i + "_Type", "Shortcut") || "Shortcut"
+        });
+    }
+    return rows;
+}
+
+function splitPath(path) {
+    return {
+        dir: fso.GetParentFolderName(path),
+        name: fso.GetFileName(path)
+    };
+}
+
+function section(lines, name) {
+    lines.push("[" + name + "]");
+}
+
+function entry(lines, key, value) {
+    lines.push(key + "=" + cleanIniValue(value));
+}
+
+function saveState(showMessage, stateAlreadyCaptured) {
+    if (!stateAlreadyCaptured) {
+        captureState();
+    }
+    var lines = [];
+    var i, j, name, data, row;
+    section(lines, "Settings");
+    entry(lines, "Tabs", state.tabs.join("|"));
+    entry(lines, "SchemaVersion", VERSION);
+    entry(lines, "ActiveTab", state.activeUiTab + 1);
+    entry(lines, "ActiveProgramTab", state.activeProgramTab + 1);
+    entry(lines, "Mode", state.mode);
+    lines.push("");
+
+    section(lines, "PersistentPaths");
+    for (i = 0; i < state.persistent.length; i++) {
+        row = state.persistent[i];
+        entry(lines, (i + 1) + "_Path", row.path);
+        entry(lines, (i + 1) + "_EnvVar", row.env_var);
+        entry(lines, (i + 1) + "_RunAsAdmin", row.run_as_admin ? 1 : 0);
+        entry(lines, (i + 1) + "_RunOnStartup", row.run_on_startup ? 1 : 0);
+    }
+    lines.push("");
+
+    for (i = 0; i < state.tabs.length; i++) {
+        name = state.tabs[i];
+        data = state.data[name];
+        section(lines, name + "_Paths");
+        for (j = 0; j < data.paths.length; j++) {
+            entry(lines, (j + 1) + "_Name", data.paths[j].name);
+            entry(lines, (j + 1) + "_Val", data.paths[j].val);
+        }
+        lines.push("");
+        if (data.envs.length) {
+            section(lines, name + "_Envs");
+            for (j = 0; j < data.envs.length; j++) {
+                entry(lines, (j + 1) + "_Name", data.envs[j].name);
+                entry(lines, (j + 1) + "_Val", data.envs[j].val);
+            }
+            lines.push("");
+        }
+        if (data.execs.length) {
+            section(lines, name + "_Execs");
+            for (j = 0; j < data.execs.length; j++) {
+                entry(lines, j + 1, data.execs[j]);
+            }
+            lines.push("");
+        }
+        if (data.links.length) {
+            section(lines, name + "_Links");
+            for (j = 0; j < data.links.length; j++) {
+                row = data.links[j];
+                entry(lines, (j + 1) + "_Src", row.src);
+                entry(lines, (j + 1) + "_TgtDir", row.tgt_dir);
+                entry(lines, (j + 1) + "_TgtName", row.tgt_name);
+                entry(lines, (j + 1) + "_Type", row.type);
+            }
+            lines.push("");
+        }
+    }
+
+    var temporary = iniPath + ".tmp";
+    try {
+        writeText(temporary, lines.join("\r\n"));
+        if (fso.FileExists(iniPath)) {
+            fso.DeleteFile(iniPath, true);
+        }
+        fso.MoveFile(temporary, iniPath);
+        hasUnsavedChanges = false;
+        setStatus("Saved to Path-Config.ini");
+        if (showMessage) {
+            alert("Persistent paths and dynamic configurations were saved.");
+        }
+        return true;
+    } catch (error) {
+        try {
+            if (fso.FileExists(temporary)) {
+                fso.DeleteFile(temporary, true);
+            }
+        } catch (ignore) {}
+        alert("Could not save Path-Config.ini.\n\n" + error.message);
+        return false;
+    }
+}
+
+function captureState() {
+    var inputs = document.getElementsByTagName("input");
+    var selects = document.getElementsByTagName("select");
+    var i, changed;
+    var anyChanged = false;
+    for (i = 0; i < inputs.length; i++) {
+        changed = captureElement(inputs[i]);
+        anyChanged = anyChanged || changed;
+    }
+    for (i = 0; i < selects.length; i++) {
+        changed = captureElement(selects[i]);
+        anyChanged = anyChanged || changed;
+    }
+    if (anyChanged) {
+        markDirty();
+    }
+}
+
+function captureElement(element) {
+    var scope = element.getAttribute("data-scope");
+    if (!scope) {
+        return false;
+    }
+    var field = element.getAttribute("data-field");
+    var index = asNumber(element.getAttribute("data-index"), -1);
+    var value = element.type === "checkbox" ? (element.checked ? 1 : 0) : element.value;
+    var oldValue;
+    if (scope === "persistent" && index >= 0 && state.persistent[index]) {
+        oldValue = state.persistent[index][field];
+        state.persistent[index][field] = value;
+        return String(oldValue) !== String(value);
+    }
+    var kind = element.getAttribute("data-kind");
+    var tabIndex = asNumber(element.getAttribute("data-tab"), -1);
+    if (tabIndex < 0 || !state.tabs[tabIndex]) {
+        return false;
+    }
+    var rows = state.data[state.tabs[tabIndex]][kind];
+    if (kind === "execs") {
+        oldValue = rows[index];
+        rows[index] = value;
+        return String(oldValue) !== String(value);
+    }
+    if (rows[index]) {
+        oldValue = rows[index][field];
+        rows[index][field] = value;
+        return String(oldValue) !== String(value);
+    }
+    return false;
+}
+
+function markDirty() {
+    hasUnsavedChanges = true;
+    setStatus("Unsaved changes");
+}
+
+function trackInputChange() {
+    var eventObject = window.event;
+    var target = eventObject ? eventObject.srcElement : null;
+    if (target && target.getAttribute && target.getAttribute("data-scope")) {
+        markDirty();
+    }
+}
+
+function showDirtyStatus() {
+    if (hasUnsavedChanges) {
+        setStatus("Unsaved changes");
+    }
+}
+
+function render() {
+    document.title = "Path-Config v" + VERSION;
+    var modeClass = lower(state.mode);
+    var top = '<div class="topbar">' +
+        '<div class="brand"><div class="brand-title">Path-Config</div>' +
+        '<div class="brand-version">HTA edition &middot; v' + VERSION + '</div></div>' +
+        '<div class="top-actions">' +
+        '<button class="button button-primary ' + modeClass + '" onclick="toggleMode()">MODE: ' + state.mode.toUpperCase() + '</button>';
+    if (state.mode === "Config") {
+        top += '<button class="button" onclick="saveState(true)">SAVE STATE</button>';
+    } else {
+        top += '<button class="button" onclick="applyAll()">APPLY ALL</button>';
+    }
+    top += '</div><div class="clear"></div></div>';
+
+    var tabs = '<div class="tabs" id="tabs" oncontextmenu="return tabContextMenu()">';
+    tabs += tabButton(0, "Paths");
+    var i;
+    for (i = 0; i < state.tabs.length; i++) {
+        tabs += tabButton(i + 1, state.tabs[i]);
+    }
+    tabs += '</div>';
+
+    var tools = '<div class="tab-tools"><div class="tab-tools-left">';
+    tools += state.activeUiTab === 0 ? "Fixed system tab" : "Program configuration";
+    tools += '</div>';
+    if (state.mode === "Config") {
+        tools += '<button class="button button-small" onclick="addProgram()">+ PROGRAM TAB</button>';
+        if (state.activeUiTab > 0) {
+            tools += '<button class="button button-small" onclick="renameProgram()">RENAME</button>';
+            tools += '<button class="button button-small button-danger" onclick="deleteProgram()">DELETE</button>';
+        }
+    }
+    tools += '<div class="clear"></div></div>';
+
+    var content = state.activeUiTab === 0 ? renderPersistent() : renderProgram(state.activeUiTab - 1);
+    document.getElementById("app").innerHTML = top +
+        '<div class="tabs-shell">' + tabs + tools + '<div class="content">' + content + '</div></div>' +
+        '<div class="status" id="status">Ready</div>';
+    validateInputs();
+    showDirtyStatus();
+    window.setTimeout(fitWindowToContent, 0);
+}
+
+function fitWindowToContent() {
+    try {
+        var availableWidth = screen.availWidth;
+        var availableHeight = screen.availHeight;
+        var desiredWidth = Math.min(1220, availableWidth);
+        var viewportHeight = document.documentElement.clientHeight || document.body.clientHeight;
+        var currentOuterHeight = window.outerHeight || (viewportHeight + 48);
+        var chromeHeight = Math.max(0, currentOuterHeight - viewportHeight);
+        var previousOverflow = document.body.style.overflowY;
+        document.body.style.overflowY = "hidden";
+        var contentHeight = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
+        var minimumHeight = Math.min(720, availableHeight);
+        var desiredHeight = Math.min(availableHeight, Math.max(minimumHeight, contentHeight + chromeHeight + 4));
+
+        window.resizeTo(desiredWidth, desiredHeight);
+        window.moveTo(
+            Math.max(0, (availableWidth - desiredWidth) / 2),
+            Math.max(0, (availableHeight - desiredHeight) / 2)
+        );
+        document.body.style.overflowY = previousOverflow || "auto";
+    } catch (ignoreSize) {
+        document.body.style.overflowY = "auto";
+    }
+}
+
+function tabButton(index, label) {
+    var active = state.activeUiTab === index ? " active " + lower(state.mode) : "";
+    return '<button class="tab' + active + '" data-tab-index="' + index +
+        '" onclick="selectTab(' + index + ')">' + html(label) + '</button>';
+}
+
+function renderPersistent() {
+    var out = '<div class="section"><div class="section-head"><span class="section-title">Persistent Paths</span>';
+    if (state.mode === "Config") {
+        out += '<button class="section-action" onclick="addPersistent()">+ Add file path</button>';
+    }
+    out += '</div><table class="data-table"><colgroup>' +
+        '<col style="width:42%"><col style="width:9%"><col style="width:20%">' +
+        '<col style="width:11%"><col style="width:12%"><col style="width:6%"></colgroup>' +
+        '<thead><tr><th>File path</th><th></th><th>Environment variable</th>' +
+        '<th>' + (state.mode === "Apply" ? "Admin property matches" : "Run as admin") + '</th>' +
+        '<th>Run on startup</th><th></th></tr></thead><tbody>';
+    var i, row;
+    for (i = 0; i < state.persistent.length; i++) {
+        row = state.persistent[i];
+        out += '<tr>';
+        if (state.mode === "Config") {
+            out += fieldInput("persistent", "", i, "path", row.path, 'data-pathcheck="1"');
+            out += '<td><button class="button button-small" onclick="browsePersistent(' + i + ')">Browse</button></td>';
+            out += fieldInput("persistent", "", i, "env_var", row.env_var, "");
+            out += checkboxInput("persistent", "", i, "run_as_admin", row.run_as_admin);
+            out += checkboxInput("persistent", "", i, "run_on_startup", row.run_on_startup);
+            out += '<td>' + (i > 0 ? '<button class="button button-small button-danger" onclick="deletePersistent(' + i + ')">X</button>' : '') + '</td>';
+        } else {
+            out += readonlyCell(row.path, "pathcheck");
+            out += '<td></td>';
+            out += readonlyCell(row.env_var, "");
+            out += adminPropertyMatchCell(row.path, row.run_as_admin);
+            out += yesNoCell(row.run_on_startup);
+            out += '<td></td>';
+        }
+        out += '</tr>';
+    }
+    out += '</tbody></table></div>';
+    if (state.mode === "Apply") {
+        out += '<div class="footer-actions"><button class="button button-primary apply" onclick="applyPaths()">APPLY PATHS</button></div>';
+    }
+    return out;
+}
+
+function renderProgram(tabIndex) {
+    var name = state.tabs[tabIndex];
+    var data = state.data[name];
+    var out = renderNameValueSection(tabIndex, "paths", "Paths", data.paths, true);
+    out += renderNameValueSection(tabIndex, "envs", "Environment Variables", data.envs, false);
+    out += renderExecSection(tabIndex, data.execs);
+    out += renderLinksSection(tabIndex, data.links);
+    if (state.mode === "Apply") {
+        out += '<div class="footer-actions"><button class="button button-primary apply" onclick="applyCurrentProgram()">APPLY ' +
+            html(name).toUpperCase() + '</button></div>';
+    }
+    return out;
+}
+
+function renderNameValueSection(tabIndex, kind, title, rows, keepFirst) {
+    var out = '<div class="section"><div class="section-head"><span class="section-title">' + html(title) + '</span>';
+    if (state.mode === "Config") {
+        out += '<button class="section-action" onclick="addDynamicRow(' + tabIndex + ',\'' + kind + '\')">+ Add</button>';
+    }
+    out += '</div>';
+    if (!rows.length) {
+        out += '<div class="empty-state">No entries configured.</div></div>';
+        return out;
+    }
+    out += '<table class="data-table"><colgroup><col style="width:22%"><col style="width:61%">' +
+        '<col style="width:11%"><col style="width:6%"></colgroup><thead><tr><th>Name</th><th>Value / path</th><th></th><th></th></tr></thead><tbody>';
+    var i, row, check;
+    for (i = 0; i < rows.length; i++) {
+        row = rows[i];
+        check = kind === "paths" ? 'data-pathcheck="1"' : 'data-smartcheck="1"';
+        out += '<tr>';
+        if (state.mode === "Config") {
+            out += fieldInput("dynamic", kind, i, "name", row.name, 'data-tab="' + tabIndex + '"');
+            out += fieldInput("dynamic", kind, i, "val", row.val, 'data-tab="' + tabIndex + '" ' + check);
+            out += '<td><button class="button button-small" onclick="browseDynamic(' + tabIndex + ',\'' + kind + '\',' + i + ',false)">D</button>' +
+                '<button class="button button-small" onclick="browseDynamic(' + tabIndex + ',\'' + kind + '\',' + i + ',true)">F</button></td>';
+            out += '<td>' + ((!keepFirst || i > 0) ? '<button class="button button-small button-danger" onclick="deleteDynamicRow(' +
+                tabIndex + ',\'' + kind + '\',' + i + ')">X</button>' : '') + '</td>';
+        } else {
+            out += readonlyCell(row.name, kind === "envs" ? "envcheck" : "");
+            out += readonlyCell(row.val, kind === "paths" ? "pathcheck" : "smartcheck");
+            out += '<td></td><td></td>';
+        }
+        out += '</tr>';
+    }
+    out += '</tbody></table></div>';
+    return out;
+}
+
+function renderExecSection(tabIndex, rows) {
+    var out = '<div class="section"><div class="section-head"><span class="section-title">Executables</span>';
+    if (state.mode === "Config") {
+        out += '<button class="section-action" onclick="addDynamicRow(' + tabIndex + ',\'execs\')">+ Add</button>';
+    }
+    out += '</div>';
+    if (!rows.length) {
+        return out + '<div class="empty-state">No executables configured.</div></div>';
+    }
+    out += '<table class="data-table"><colgroup><col style="width:78%"><col style="width:16%"><col style="width:6%"></colgroup><tbody>';
+    var i;
+    for (i = 0; i < rows.length; i++) {
+        out += '<tr>';
+        if (state.mode === "Config") {
+            out += '<td><input class="field" data-scope="dynamic" data-kind="execs" data-index="' + i +
+                '" data-tab="' + tabIndex + '" data-field="value" data-pathcheck="1" value="' + html(rows[i]) + '"></td>';
+            out += '<td><button class="button button-small" onclick="browseDynamic(' + tabIndex + ',\'execs\',' + i + ',false)">D</button>' +
+                '<button class="button button-small" onclick="browseDynamic(' + tabIndex + ',\'execs\',' + i + ',true)">F</button></td>';
+            out += '<td><button class="button button-small button-danger" onclick="deleteDynamicRow(' + tabIndex + ',\'execs\',' + i + ')">X</button></td>';
+        } else {
+            out += readonlyCell(rows[i], "pathcheck") + '<td></td><td></td>';
+        }
+        out += '</tr>';
+    }
+    return out + '</tbody></table></div>';
+}
+
+function renderLinksSection(tabIndex, rows) {
+    var out = '<div class="section"><div class="section-head"><span class="section-title">Links</span>';
+    if (state.mode === "Config") {
+        out += '<button class="section-action" onclick="addDynamicRow(' + tabIndex + ',\'links\')">+ Add</button>';
+    }
+    out += '</div>';
+    if (!rows.length) {
+        return out + '<div class="empty-state">No links configured.</div></div>';
+    }
+    out += '<table class="data-table"><colgroup><col style="width:26%"><col style="width:8%"><col style="width:26%">' +
+        '<col style="width:8%"><col style="width:15%"><col style="width:11%"><col style="width:6%"></colgroup>' +
+        '<thead><tr><th>Source</th><th></th><th>Target folder</th><th></th><th>Target name</th><th>Type</th><th></th></tr></thead><tbody>';
+    var i, row, target;
+    for (i = 0; i < rows.length; i++) {
+        row = rows[i];
+        out += '<tr>';
+        if (state.mode === "Config") {
+            out += fieldInput("dynamic", "links", i, "src", row.src, 'data-tab="' + tabIndex + '" data-pathcheck="1"');
+            out += '<td><button class="button button-small" onclick="browseLinkSource(' + tabIndex + ',' + i + ',false)">D</button>' +
+                '<button class="button button-small" onclick="browseLinkSource(' + tabIndex + ',' + i + ',true)">F</button></td>';
+            out += fieldInput("dynamic", "links", i, "tgt_dir", row.tgt_dir, 'data-tab="' + tabIndex + '" data-pathcheck="1"');
+            out += '<td><button class="button button-small" onclick="browseLinkTarget(' + tabIndex + ',' + i + ')">D</button></td>';
+            out += fieldInput("dynamic", "links", i, "tgt_name", row.tgt_name, 'data-tab="' + tabIndex + '"');
+            out += '<td><select class="field" data-scope="dynamic" data-kind="links" data-index="' + i +
+                '" data-tab="' + tabIndex + '" data-field="type">' +
+                option("Shortcut", row.type) + option("Symlink", row.type) + option("Hardlink", row.type) + '</select></td>';
+            out += '<td><button class="button button-small button-danger" onclick="deleteDynamicRow(' + tabIndex + ',\'links\',' + i + ')">X</button></td>';
+        } else {
+            target = joinPath(row.tgt_dir, row.tgt_name + (row.type === "Shortcut" && !/\.lnk$/i.test(row.tgt_name) ? ".lnk" : ""));
+            out += readonlyCell(row.src, "pathcheck") + '<td></td>' + readonlyCell(target, "") + '<td></td>' +
+                readonlyCell("", "") + readonlyCell(row.type, "") + '<td></td>';
+        }
+        out += '</tr>';
+    }
+    return out + '</tbody></table></div>';
+}
+
+function fieldInput(scope, kind, index, field, value, extra) {
+    return '<td><input class="field" data-scope="' + scope + '" data-kind="' + kind +
+        '" data-index="' + index + '" data-field="' + field + '" ' + extra + ' value="' + html(value) + '"></td>';
+}
+
+function checkboxInput(scope, kind, index, field, checked) {
+    return '<td><label class="check-wrap"><input type="checkbox" data-scope="' + scope +
+        '" data-kind="' + kind + '" data-index="' + index + '" data-field="' + field + '"' +
+        (checked ? ' checked="checked"' : '') + '> Yes</label></td>';
+}
+
+function readonlyCell(value, checkType) {
+    var className = "readonly";
+    if (checkType === "pathcheck" && trimText(value)) {
+        className += pathExists(value) ? " valid" : " invalid";
+    } else if (checkType === "smartcheck" && looksLikePath(value)) {
+        className += pathExists(value) ? " valid" : " invalid";
+    } else if (checkType === "envcheck" && trimText(value)) {
+        className += environmentExists(value) ? " valid" : " invalid";
+    }
+    return '<td><div class="' + className + '" title="' + html(value) + '">' + (html(value) || '&nbsp;') + '</div></td>';
+}
+
+function yesNoCell(value) {
+    return '<td><div class="readonly ' + (value ? "yes" : "no") + '">' + (value ? "Yes" : "No") + '</div></td>';
+}
+
+function adminPropertyMatchCell(path, expected) {
+    var actual = hasRunAsAdminProperty(path);
+    var matches = actual === (expected ? true : false);
+    var detail = "Configured: " + (expected ? "Yes" : "No") +
+        "; Windows property: " + (actual ? "Yes" : "No");
+    return '<td><div class="readonly ' + (matches ? "yes" : "mismatch") +
+        '" title="' + html(detail) + '">' + (matches ? "Yes" : "No") + '</div></td>';
+}
+
+function hasRunAsAdminProperty(path) {
+    if (!trimText(path)) {
+        return false;
+    }
+    var current = readRunAsAdminFlags(path);
+    if (!current.exists) {
+        return false;
+    }
+    var tokens = trimText(current.value) ? trimText(current.value).split(/\s+/) : [];
+    var i;
+    for (i = 0; i < tokens.length; i++) {
+        if (lower(trimText(tokens[i])) === "runasadmin") {
+            return true;
+        }
+    }
+    return false;
+}
+
+function option(value, selected) {
+    return '<option value="' + value + '"' + (value === selected ? ' selected="selected"' : '') + '>' + value + '</option>';
+}
+
+function looksLikePath(value) {
+    value = String(value || "");
+    return /^[A-Za-z]:\\/.test(value) || /^\\\\/.test(value);
+}
+
+function environmentExists(name) {
+    name = trimText(name);
+    if (!name) {
+        return false;
+    }
+    try {
+        return wsh.ExpandEnvironmentStrings("%" + name + "%") !== "%" + name + "%";
+    } catch (ignore) {
+        return false;
+    }
+}
+
+function validateInputs() {
+    var inputs = document.getElementsByTagName("input");
+    var i, value, className;
+    for (i = 0; i < inputs.length; i++) {
+        value = trimText(inputs[i].value);
+        className = "field";
+        if (inputs[i].getAttribute("data-pathcheck") === "1" && value) {
+            className += pathExists(value) ? " valid" : " invalid";
+        } else if (inputs[i].getAttribute("data-smartcheck") === "1" && looksLikePath(value)) {
+            className += pathExists(value) ? " valid" : " invalid";
+        }
+        if (inputs[i].className.indexOf("field") >= 0) {
+            inputs[i].className = className;
+        }
+    }
+}
+
+function setStatus(message) {
+    var target = document.getElementById("status");
+    if (target) {
+        target.innerText = message;
+    }
+}
+
+function selectTab(index) {
+    captureState();
+    state.activeUiTab = index;
+    if (index > 0) {
+        state.activeProgramTab = index - 1;
+    }
+    render();
+}
+
+function toggleMode() {
+    captureState();
+    state.mode = state.mode === "Config" ? "Apply" : "Config";
+    render();
+}
+
+function addPersistent() {
+    captureState();
+    state.persistent.push({path: "", env_var: "", run_as_admin: 0, run_on_startup: 0});
+    state.activeUiTab = 0;
+    markDirty();
+    render();
+}
+
+function deletePersistent(index) {
+    if (index <= 0) {
+        return;
+    }
+    captureState();
+    state.persistent.splice(index, 1);
+    markDirty();
+    render();
+}
+
+function browsePersistent(index) {
+    browseFile(function(path) {
+        captureState();
+        state.persistent[index].path = path;
+        markDirty();
+        render();
+    }, "");
+}
+
+function addDynamicRow(tabIndex, kind) {
+    captureState();
+    var rows = state.data[state.tabs[tabIndex]][kind];
+    if (kind === "paths" || kind === "envs") {
+        rows.push({name: "", val: ""});
+    } else if (kind === "execs") {
+        rows.push("");
+    } else {
+        rows.push({src: "", tgt_dir: "", tgt_name: "", type: "Shortcut"});
+    }
+    markDirty();
+    render();
+}
+
+function deleteDynamicRow(tabIndex, kind, index) {
+    captureState();
+    var rows = state.data[state.tabs[tabIndex]][kind];
+    if (kind === "paths" && index === 0) {
+        return;
+    }
+    rows.splice(index, 1);
+    markDirty();
+    render();
+}
+
+function browseDynamic(tabIndex, kind, index, chooseFile) {
+    var done = function(path) {
+        captureState();
+        var rows = state.data[state.tabs[tabIndex]][kind];
+        if (kind === "execs") {
+            rows[index] = path;
+        } else {
+            rows[index].val = path;
+        }
+        markDirty();
+        render();
+    };
+    if (chooseFile) {
+        browseFile(done, kind === "execs" ? ".exe" : "");
+    } else {
+        browseFolder(done, "Select folder");
+    }
+}
+
+function browseLinkSource(tabIndex, index, chooseFile) {
+    var done = function(path) {
+        captureState();
+        var row = state.data[state.tabs[tabIndex]].links[index];
+        row.src = path;
+        row.tgt_name = fso.GetFileName(path);
+        markDirty();
+        render();
+    };
+    if (chooseFile) {
+        browseFile(done, "");
+    } else {
+        browseFolder(done, "Select source folder");
+    }
+}
+
+function browseLinkTarget(tabIndex, index) {
+    browseFolder(function(path) {
+        captureState();
+        state.data[state.tabs[tabIndex]].links[index].tgt_dir = path;
+        markDirty();
+        render();
+    }, "Select target folder");
+}
+
+function browseFolder(callback, title) {
+    try {
+        var selected = shellApp.BrowseForFolder(0, title, 0x51, appDir);
+        if (selected) {
+            callback(selected.Self.Path);
+        }
+    } catch (error) {
+        alert("Folder picker could not be opened.\n\n" + error.message);
+    }
+}
+
+function browseFile(callback, accept) {
+    var input = document.createElement("input");
+    input.type = "file";
+    if (accept) {
+        input.setAttribute("accept", accept);
+    }
+    input.style.position = "absolute";
+    input.style.left = "-10000px";
+    input.attachEvent("onchange", function() {
+        var path = input.value;
+        if (path) {
+            callback(path);
+        }
+        try {
+            document.body.removeChild(input);
+        } catch (ignore) {}
+    });
+    document.body.appendChild(input);
+    input.click();
+}
+
+function addProgram() {
+    browseFile(function(exePath) {
+        captureState();
+        var fileName = fso.GetFileName(exePath);
+        var baseName = fso.GetBaseName(exePath);
+        var parent = fso.GetParentFolderName(exePath);
+        var tabName = fso.GetFileName(parent) || baseName;
+        if (lower(tabName) === "paths") {
+            tabName += "_Program";
+        }
+        var candidate = tabName;
+        var suffix = 2;
+        while (tabNameExists(candidate, -1)) {
+            candidate = tabName + "_" + suffix;
+            suffix++;
+        }
+        tabName = candidate;
+        state.tabs.push(tabName);
+        state.data[tabName] = {
+            paths: [{name: baseName, val: exePath}],
+            envs: [],
+            execs: [],
+            links: []
+        };
+        state.activeProgramTab = state.tabs.length - 1;
+        state.activeUiTab = state.activeProgramTab + 1;
+        markDirty();
+        render();
+    }, ".exe");
+}
+
+function renameProgram() {
+    if (state.activeUiTab === 0) {
+        return;
+    }
+    captureState();
+    var index = state.activeUiTab - 1;
+    var oldName = state.tabs[index];
+    var newName = prompt("Enter a new program-tab name:", oldName);
+    if (newName === null) {
+        return;
+    }
+    newName = trimText(newName);
+    if (!newName || newName === oldName) {
+        return;
+    }
+    if (lower(newName) === "paths" || /[\|\[\]\r\n]/.test(newName)) {
+        alert("Paths is reserved, and tab names cannot contain |, [, ], or line breaks.");
+        return;
+    }
+    if (tabNameExists(newName, index)) {
+        alert("A program tab with that name already exists.");
+        return;
+    }
+    state.tabs[index] = newName;
+    state.data[newName] = state.data[oldName];
+    delete state.data[oldName];
+    markDirty();
+    render();
+}
+
+function tabNameExists(name, exceptIndex) {
+    var i;
+    for (i = 0; i < state.tabs.length; i++) {
+        if (i !== exceptIndex && lower(state.tabs[i]) === lower(name)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function deleteProgram() {
+    if (state.activeUiTab === 0) {
+        return;
+    }
+    if (state.tabs.length <= 1) {
+        alert("At least one program tab must remain.");
+        return;
+    }
+    var index = state.activeUiTab - 1;
+    var name = state.tabs[index];
+    if (!confirm('Delete the program tab "' + name + '"?')) {
+        return;
+    }
+    captureState();
+    delete state.data[name];
+    state.tabs.splice(index, 1);
+    state.activeProgramTab = 0;
+    state.activeUiTab = 1;
+    markDirty();
+    render();
+}
+
+function tabContextMenu() {
+    var eventObject = window.event;
+    var target = eventObject.srcElement;
+    var index = asNumber(target.getAttribute("data-tab-index"), -1);
+    if (index <= 0 || state.mode !== "Config") {
+        hideContextMenu();
+        return false;
+    }
+    selectTab(index);
+    var menu = document.getElementById("contextMenu");
+    menu.style.left = eventObject.clientX + document.body.scrollLeft + "px";
+    menu.style.top = eventObject.clientY + document.body.scrollTop + "px";
+    menu.style.display = "block";
+    eventObject.returnValue = false;
+    return false;
+}
+
+function hideContextMenu() {
+    var menu = document.getElementById("contextMenu");
+    if (menu) {
+        menu.style.display = "none";
+    }
+}
+
+function joinPath(dir, name) {
+    if (!dir) {
+        return name || "";
+    }
+    return dir.replace(/[\\\/]+$/, "") + "\\" + (name || "");
+}
+
+function resetLog() {
+    var now = new Date();
+    writeText(logPath, "# Apply Execution Log - " + now.toLocaleString() + "\r\n\r\n");
+}
+
+function appendLog(message, failed) {
+    var stream = fso.OpenTextFile(logPath, 8, true, 0);
+    stream.Write((failed ? "- FAILED: " : "- OK: ") + message + "\r\n\r\n");
+    stream.Close();
+}
+
+function applyPaths() {
+    captureState();
+    resetLog();
+    var result = applyPersistentPaths();
+    if (result.env_changed) {
+        broadcastEnvironmentChange();
+    }
+    render();
+    alert(persistentSummary("Apply Paths", result));
+}
+
+function applyAll() {
+    captureState();
+    resetLog();
+    var persistentResult = applyPersistentPaths();
+    var envChanged = persistentResult.env_changed;
+    var dynamicErrors = 0;
+    var i, result;
+    for (i = 0; i < state.tabs.length; i++) {
+        result = applyTabConfig(state.tabs[i]);
+        envChanged = envChanged || result.env_changed;
+        dynamicErrors += result.errors;
+    }
+    if (envChanged) {
+        broadcastEnvironmentChange();
+    }
+    render();
+    alert("Apply All\n\nPersistent actions completed: " + persistentResult.success_count +
+        "\nPersistent errors: " + persistentResult.error_count +
+        "\nDynamic program tabs applied: " + state.tabs.length +
+        "\nDynamic errors: " + dynamicErrors);
+}
+
+function applyCurrentProgram() {
+    if (state.activeUiTab === 0) {
+        applyPaths();
+        return;
+    }
+    captureState();
+    resetLog();
+    var name = state.tabs[state.activeUiTab - 1];
+    var result = applyTabConfig(name);
+    if (result.env_changed) {
+        broadcastEnvironmentChange();
+    }
+    alert("Apply " + name + "\n\nCompleted with " + result.errors + " error(s).");
+}
+
+function persistentSummary(title, result) {
+    return title + "\n\nCompleted: " + result.success_count +
+        "\nEnvironment updates: " + (result.env_changed ? "Yes" : "No") +
+        "\nAdministrator properties set: " + result.admin_property_count +
+        "\nAdministrator properties removed: " + result.admin_removed_count +
+        "\nStartup entries: " + result.startup_count +
+        "\nErrors: " + result.error_count;
+}
+
+function applyPersistentPaths() {
+    var result = {
+        env_changed: false,
+        admin_property_count: 0,
+        admin_removed_count: 0,
+        startup_count: 0,
+        success_count: 0,
+        error_count: 0
+    };
+    appendLog("Persistent Paths", false);
+    cleanupOwnedStartup(result);
+    var i, row, path, envName, startupName, command;
+    for (i = 0; i < state.persistent.length; i++) {
+        row = state.persistent[i];
+        path = trimText(row.path);
+        envName = trimText(row.env_var);
+        if (envName && path) {
+            try {
+                wsh.RegWrite(REG_ENV + envName, path, "REG_SZ");
+                result.env_changed = true;
+                persistentSuccess(result, "Environment variable " + envName + " = " + path);
+            } catch (errorEnv) {
+                persistentError(result, "Row " + (i + 1) + " environment write failed: " + errorEnv.message);
+            }
+        }
+        if (row.run_on_startup) {
+            if (!path || !pathExists(path)) {
+                persistentError(result, "Row " + (i + 1) + " startup target is missing: " + path);
+            } else {
+                startupName = STARTUP_PREFIX + (i + 1);
+                command = buildStartupCommand(path, row.run_as_admin);
+                try {
+                    wsh.RegWrite(REG_RUN + startupName, command, "REG_SZ");
+                    result.startup_count++;
+                    persistentSuccess(result, "Startup entry " + startupName + " configured.");
+                } catch (errorStartup) {
+                    persistentError(result, "Row " + (i + 1) + " startup entry failed: " + errorStartup.message);
+                }
+            }
+        }
+        if (path) {
+            setRunAsAdminProperty(path, row.run_as_admin ? true : false, result, i + 1);
+        } else if (row.run_as_admin) {
+            persistentError(result, "Row " + (i + 1) + " administrator-property target is empty.");
+        }
+    }
+    return result;
+}
+
+function setRunAsAdminProperty(path, enabled, result, rowNumber) {
+    var extension = lower(fso.GetExtensionName(path));
+    if (enabled && (!pathExists(path) || extension !== "exe")) {
+        persistentError(result, "Row " + rowNumber + " administrator property requires an existing .exe file: " + path);
+        return;
+    }
+
+    var current = readRunAsAdminFlags(path);
+    var rawTokens = trimText(current.value) ? trimText(current.value).split(/\s+/) : [];
+    var tokens = [];
+    var hadRunAsAdmin = false;
+    var i, token;
+    for (i = 0; i < rawTokens.length; i++) {
+        token = trimText(rawTokens[i]);
+        if (lower(token) === "runasadmin") {
+            hadRunAsAdmin = true;
+        } else if (token) {
+            tokens.push(token);
+        }
+    }
+
+    if (enabled) {
+        if (!tokens.length) {
+            tokens.push("~");
+        }
+        tokens.push("RUNASADMIN");
+        if (writeRunAsAdminFlags(path, tokens.join(" "))) {
+            result.admin_property_count++;
+            persistentSuccess(result, 'Enabled "Run this program as an administrator": ' + path);
+        } else {
+            persistentError(result, "Row " + rowNumber + " could not set the administrator property: " + path);
+        }
+        return;
+    }
+
+    if (!current.exists || !hadRunAsAdmin) {
+        return;
+    }
+    if (tokens.length === 1 && tokens[0] === "~") {
+        tokens = [];
+    }
+    if (tokens.length ? writeRunAsAdminFlags(path, tokens.join(" ")) : deleteRunAsAdminFlags(path)) {
+        result.admin_removed_count++;
+        persistentSuccess(result, 'Disabled "Run this program as an administrator": ' + path);
+    } else {
+        persistentError(result, "Row " + rowNumber + " could not remove the administrator property: " + path);
+    }
+}
+
+function readRunAsAdminFlags(path) {
+    var regExe = wsh.ExpandEnvironmentStrings("%SystemRoot%") + "\\System32\\reg.exe";
+    var command = quoteArg(regExe) + " query " + quoteArg(APP_COMPAT_KEY) + " /v " + quoteArg(path);
+    var output = runCapture(command);
+    var lines = output.split(/\r?\n/);
+    var i, match;
+    for (i = 0; i < lines.length; i++) {
+        match = /^\s*.+?\s+REG_SZ\s+(.*)$/i.exec(lines[i]);
+        if (match) {
+            return {exists: true, value: trimText(match[1])};
+        }
+    }
+    return {exists: false, value: ""};
+}
+
+function writeRunAsAdminFlags(path, flags) {
+    var regExe = wsh.ExpandEnvironmentStrings("%SystemRoot%") + "\\System32\\reg.exe";
+    var command = quoteArg(regExe) + " add " + quoteArg(APP_COMPAT_KEY) +
+        " /v " + quoteArg(path) + " /t REG_SZ /d " + quoteArg(flags) + " /f";
+    try {
+        return wsh.Run(command, 0, true) === 0;
+    } catch (ignoreWrite) {
+        return false;
+    }
+}
+
+function deleteRunAsAdminFlags(path) {
+    var regExe = wsh.ExpandEnvironmentStrings("%SystemRoot%") + "\\System32\\reg.exe";
+    var command = quoteArg(regExe) + " delete " + quoteArg(APP_COMPAT_KEY) +
+        " /v " + quoteArg(path) + " /f";
+    try {
+        return wsh.Run(command, 0, true) === 0;
+    } catch (ignoreDelete) {
+        return false;
+    }
+}
+
+function persistentError(result, message) {
+    result.error_count++;
+    appendLog(message, true);
+}
+
+function persistentSuccess(result, message) {
+    result.success_count++;
+    appendLog(message, false);
+}
+
+function cleanupOwnedStartup(result) {
+    var regExe = wsh.ExpandEnvironmentStrings("%SystemRoot%") + "\\System32\\reg.exe";
+    var command = quoteArg(regExe) + ' query "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run"';
+    var output = runCapture(command);
+    var lines = output.split(/\r?\n/);
+    var i, match, name;
+    for (i = 0; i < lines.length; i++) {
+        match = /^\s*(PathConfig_Path_[^\s]+)\s+REG_/i.exec(lines[i]);
+        if (match) {
+            name = match[1];
+            try {
+                wsh.RegDelete(REG_RUN + name);
+            } catch (error) {
+                persistentError(result, "Could not remove owned startup entry " + name + ": " + error.message);
+            }
+        }
+    }
+}
+
+function runCapture(command) {
+    try {
+        var process = wsh.Exec(command);
+        return process.StdOut.ReadAll();
+    } catch (ignore) {
+        return "";
+    }
+}
+
+function buildStartupCommand(path, elevate) {
+    if (!elevate) {
+        return quoteArg(path);
+    }
+    var escaped = String(path).replace(/'/g, "''");
+    return 'powershell.exe -NoProfile -WindowStyle Hidden -Command "Start-Process -FilePath \'' +
+        escaped + '\' -Verb RunAs"';
+}
+
+function broadcastEnvironmentChange() {
+    var ps = "$sig='[DllImport(\\\"user32.dll\\\",SetLastError=true,CharSet=CharSet.Auto)]" +
+        "public static extern IntPtr SendMessageTimeout(IntPtr hWnd,uint Msg,UIntPtr wParam,string lParam," +
+        "uint flags,uint timeout,out UIntPtr result);';" +
+        "Add-Type -MemberDefinition $sig -Name NativeMethods -Namespace PathConfig;" +
+        "$r=[UIntPtr]::Zero;" +
+        "[PathConfig.NativeMethods]::SendMessageTimeout([IntPtr]0xffff,0x1a,[UIntPtr]::Zero," +
+        "'Environment',2,5000,[ref]$r)|Out-Null";
+    try {
+        wsh.Run('powershell.exe -NoProfile -WindowStyle Hidden -Command "' + ps + '"', 0, true);
+    } catch (error) {
+        appendLog("Environment notification failed: " + error.message, true);
+    }
+}
+
+function applyTabConfig(tabName) {
+    var data = state.data[tabName];
+    var result = {env_changed: false, errors: 0};
+    var i, item;
+    appendLog("Program tab: " + tabName, false);
+    for (i = 0; i < data.paths.length; i++) {
+        item = data.paths[i];
+        if (trimText(item.name) && trimText(item.val)) {
+            writeUserEnvironment(item.name, item.val, result);
+        }
+    }
+    for (i = 0; i < data.envs.length; i++) {
+        item = data.envs[i];
+        if (trimText(item.name) && trimText(item.val)) {
+            writeUserEnvironment(item.name, item.val, result);
+        }
+    }
+    for (i = 0; i < data.execs.length; i++) {
+        if (trimText(data.execs[i])) {
+            runConfiguredTarget(data.execs[i], result);
+        }
+    }
+    for (i = 0; i < data.links.length; i++) {
+        createConfiguredLink(data.links[i], result);
+    }
+    return result;
+}
+
+function writeUserEnvironment(name, value, result) {
+    try {
+        wsh.RegWrite(REG_ENV + trimText(name), trimText(value), "REG_SZ");
+        result.env_changed = true;
+        appendLog("Environment variable " + trimText(name) + " = " + trimText(value), false);
+    } catch (error) {
+        result.errors++;
+        appendLog("Environment variable " + trimText(name) + " failed: " + error.message, true);
+    }
+}
+
+function runConfiguredTarget(path, result) {
+    path = trimText(path);
+    try {
+        if (fso.FolderExists(path)) {
+            var folder = fso.GetFolder(path);
+            var files = new Enumerator(folder.Files);
+            var oldDirectory = wsh.CurrentDirectory;
+            wsh.CurrentDirectory = path;
+            for (; !files.atEnd(); files.moveNext()) {
+                var file = files.item();
+                var extension = lower(fso.GetExtensionName(file.Name));
+                if (extension === "exe" || extension === "bat") {
+                    wsh.Run(quoteArg(file.Path), 1, false);
+                }
+            }
+            wsh.CurrentDirectory = oldDirectory;
+        } else if (fso.FileExists(path)) {
+            var oldDir = wsh.CurrentDirectory;
+            wsh.CurrentDirectory = fso.GetParentFolderName(path);
+            wsh.Run(quoteArg(path), 1, false);
+            wsh.CurrentDirectory = oldDir;
+        } else {
+            throw new Error("Target does not exist");
+        }
+        appendLog("Executed " + path, false);
+    } catch (error) {
+        result.errors++;
+        appendLog("Execution failed for " + path + ": " + error.message, true);
+    }
+}
+
+function createConfiguredLink(link, result) {
+    var src = trimText(link.src);
+    var targetDir = trimText(link.tgt_dir);
+    var targetName = trimText(link.tgt_name);
+    if (!src || !targetDir || !targetName) {
+        return;
+    }
+    try {
+        if (link.type === "Shortcut") {
+            if (!/\.lnk$/i.test(targetName)) {
+                targetName += ".lnk";
+            }
+            var shortcutPath = joinPath(targetDir, targetName);
+            if (fso.FileExists(shortcutPath)) {
+                fso.DeleteFile(shortcutPath, true);
+            }
+            var shortcut = wsh.CreateShortcut(shortcutPath);
+            shortcut.TargetPath = src;
+            shortcut.WorkingDirectory = fso.FolderExists(src) ? src : fso.GetParentFolderName(src);
+            shortcut.Save();
+            appendLog("Shortcut created: " + shortcutPath, false);
+            return;
+        }
+        var targetPath = joinPath(targetDir, targetName);
+        prepareLinkTarget(targetPath);
+        var isDirectory = fso.FolderExists(src);
+        var command;
+        if (link.type === "Symlink") {
+            command = 'cmd.exe /d /c mklink ' + (isDirectory ? "/D " : "") + quoteArg(targetPath) + " " + quoteArg(src);
+        } else {
+            if (isDirectory) {
+                throw new Error("Hard links can only target files");
+            }
+            command = 'cmd.exe /d /c mklink /H ' + quoteArg(targetPath) + " " + quoteArg(src);
+        }
+        var exitCode = wsh.Run(command, 0, true);
+        if (exitCode !== 0) {
+            throw new Error("mklink returned exit code " + exitCode);
+        }
+        appendLog(link.type + " created: " + targetPath, false);
+    } catch (error) {
+        result.errors++;
+        appendLog(link.type + " failed for " + src + ": " + error.message, true);
+    }
+}
+
+function prepareLinkTarget(path) {
+    var backup = path + ".default";
+    if (fso.FileExists(path)) {
+        var file = fso.GetFile(path);
+        if ((file.Attributes & 1024) === 1024) {
+            fso.DeleteFile(path, true);
+        } else {
+            if (fso.FileExists(backup) || fso.FolderExists(backup)) {
+                throw new Error("Backup target already exists: " + backup);
+            }
+            fso.MoveFile(path, backup);
+        }
+    } else if (fso.FolderExists(path)) {
+        var folder = fso.GetFolder(path);
+        if ((folder.Attributes & 1024) === 1024) {
+            fso.DeleteFolder(path, true);
+        } else {
+            if (fso.FileExists(backup) || fso.FolderExists(backup)) {
+                throw new Error("Backup target already exists: " + backup);
+            }
+            fso.MoveFolder(path, backup);
+        }
+    }
+}
+
+function handleBeforeUnload() {
+    try {
+        captureState();
+        if (!hasUnsavedChanges) {
+            return;
+        }
+        var choice = wsh.Popup(
+            "Save changes before exiting Path-Config?\n\nYes: Save and exit\nNo: Exit without saving\nCancel: Keep Path-Config open",
+            0,
+            "Path-Config - Unsaved Changes",
+            35
+        );
+        if (choice === 6) {
+            if (!saveState(false, true)) {
+                window.event.returnValue = "Save failed.";
+                return "Save failed.";
+            }
+        } else if (choice === 2 || choice === -1) {
+            window.event.returnValue = "Exit cancelled.";
+            return "Exit cancelled.";
+        }
+    } catch (error) {
+        window.event.returnValue = "Unsaved changes could not be checked.";
+        return "Unsaved changes could not be checked.";
+    }
+}
+
+function initialize() {
+    try {
+        fso = new ActiveXObject("Scripting.FileSystemObject");
+        wsh = new ActiveXObject("WScript.Shell");
+        shellApp = new ActiveXObject("Shell.Application");
+        sourcePath = getApplicationPath();
+        sourceSignature = getSourceSignature();
+        appDir = getAppDirectory();
+        iniPath = fso.BuildPath(appDir, "Path-Config.ini");
+        legacyIniPath = fso.BuildPath(appDir, "System-Config.ini");
+        logPath = fso.BuildPath(appDir, "Path-Config-Apply-Log.md");
+        loadState();
+        try {
+            var initialWidth = Math.min(1220, screen.availWidth);
+            var initialHeight = Math.min(720, screen.availHeight);
+            window.resizeTo(initialWidth, initialHeight);
+            window.moveTo(
+                Math.max(0, (screen.availWidth - initialWidth) / 2),
+                Math.max(0, (screen.availHeight - initialHeight) / 2)
+            );
+        } catch (ignoreInitialSize) {}
+        render();
+        window.setInterval(validateInputs, 700);
+        window.setInterval(watchForSourceUpdate, 500);
+        document.attachEvent("onclick", function() { hideContextMenu(); });
+        document.attachEvent("oninput", trackInputChange);
+        document.attachEvent("onchange", trackInputChange);
+        window.attachEvent("onbeforeunload", handleBeforeUnload);
+    } catch (error) {
+        document.getElementById("app").innerHTML =
+            '<div style="padding:30px;color:#ff9aa7">Path-Config could not start.<br><br>' + html(error.message) + '</div>';
+    }
+}
+</script>
+</head>
+<body onload="initialize()">
+<div class="app" id="app"></div>
+<div class="context-menu" id="contextMenu">
+    <button onclick="renameProgram()">Rename current tab</button>
+    <button onclick="deleteProgram()">Delete current tab</button>
+</div>
+</body>
+</html>
