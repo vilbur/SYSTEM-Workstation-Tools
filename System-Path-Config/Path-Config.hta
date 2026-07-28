@@ -194,6 +194,13 @@ button, input, select {
     padding: 0 4px;
     vertical-align: middle;
 }
+.path-table td {
+    padding-right: 8px;
+    padding-left: 8px;
+}
+.path-table .button-small {
+    margin-left: 0;
+}
 .field {
     box-sizing: border-box;
     width: 100%;
@@ -252,8 +259,26 @@ button, input, select {
     text-align: center;
     white-space: nowrap;
 }
-.check-wrap input {
+.path-table .check-wrap input {
+    width: 20px;
+    height: 20px;
+    margin: 0;
     vertical-align: middle;
+}
+.move-cell {
+    padding-left: 0 !important;
+    text-align: left;
+}
+.move-cell .button {
+    margin-left: 0;
+}
+.row-menu-button {
+    width: 30px;
+    padding: 0;
+}
+.row-menu-cell {
+    padding-right: 0 !important;
+    text-align: right;
 }
 .footer-actions {
     margin-top: 28px;
@@ -292,9 +317,15 @@ button, input, select {
 .context-menu button:hover {
     background: #34383e;
 }
+.context-menu button[disabled],
+.context-menu button[disabled]:hover {
+    background: transparent;
+    color: #62666e;
+    cursor: default;
+}
 </style>
 <script language="JScript" type="text/javascript">
-var VERSION = "0.16";
+var VERSION = "0.29";
 var STARTUP_PREFIX = "PathConfig_Path_";
 var PROGRAM_STARTUP_PREFIX = "PathConfig_Program_";
 var REG_ENV = "HKCU\\Environment\\";
@@ -302,8 +333,8 @@ var REG_RUN = "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\\";
 var APP_COMPAT_KEY = "HKCU\\Software\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Layers";
 var fso = null;
 var wsh = null;
-var shellApp = null;
 var appDir = "";
+var lastBrowseDirectory = "C:\\";
 var iniPath = "";
 var legacyIniPath = "";
 var logPath = "";
@@ -312,6 +343,10 @@ var sourcePath = "";
 var sourceSignature = "";
 var sourceChangeTime = 0;
 var sourceReloadPending = false;
+var isRestarting = false;
+var heartbeatPath = "";
+var relaunchRequestPath = "";
+var persistentMenuIndex = -1;
 var hasUnsavedChanges = false;
 var state = {
     mode: "Config",
@@ -391,16 +426,57 @@ function watchForSourceUpdate() {
             return;
         }
         if (sourceReloadPending && now - sourceChangeTime >= 1500) {
-            sourceReloadPending = false;
             if (hasUnsavedChanges) {
-                setStatus("Source updated; save or restart manually. Unsaved changes were preserved.");
-            } else {
-                window.location.reload(true);
+                setStatus("New version detected; save changes to restart automatically.");
+                return;
             }
+            restartApplication();
         }
     } catch (ignoreSourceUpdate) {}
 }
 
+function restartApplication() {
+    try {
+        if (hasUnsavedChanges && !saveState(false)) {
+            sourceReloadPending = false;
+            setStatus("Relaunch cancelled because current changes could not be saved.");
+            return;
+        }
+        sourceReloadPending = false;
+        isRestarting = true;
+        hasUnsavedChanges = false;
+        window.location.reload(true);
+    } catch (errorRestart) {
+        isRestarting = false;
+        sourceReloadPending = false;
+        setStatus("Could not restart Path-Config: " + errorRestart.message);
+    }
+}
+
+function maintainLauncherBridge() {
+    try {
+        writeText(heartbeatPath, String(new Date().valueOf()));
+        if (!fso.FileExists(relaunchRequestPath)) {
+            return;
+        }
+        fso.DeleteFile(relaunchRequestPath, true);
+        restartApplication();
+    } catch (ignoreLauncherBridge) {}
+}
+
+function cleanupLauncherBridge() {
+    if (isRestarting) {
+        return;
+    }
+    try {
+        if (fso.FileExists(heartbeatPath)) {
+            fso.DeleteFile(heartbeatPath, true);
+        }
+        if (fso.FileExists(relaunchRequestPath)) {
+            fso.DeleteFile(relaunchRequestPath, true);
+        }
+    } catch (ignoreLauncherCleanup) {}
+}
 function readText(path) {
     var stream = fso.OpenTextFile(path, 1, false, 0);
     var value = stream.ReadAll();
@@ -895,10 +971,10 @@ function renderPersistent() {
     if (state.mode === "Config") {
         out += '<button class="section-action" onclick="addPersistent()">+ Add file path</button>';
     }
-    out += '</div><table class="data-table"><colgroup>' +
-        '<col style="width:42%"><col style="width:9%"><col style="width:20%">' +
-        '<col style="width:11%"><col style="width:12%"><col style="width:6%"></colgroup>' +
-        '<thead><tr><th>File path</th><th></th><th>Environment variable</th>' +
+    out += '</div><table class="data-table path-table"><colgroup>' +
+        '<col style="width:4%"><col style="width:46%"><col style="width:9%"><col style="width:20%">' +
+        '<col style="width:8%"><col style="width:9%"><col style="width:4%"></colgroup>' +
+        '<thead><tr><th></th><th>File path</th><th></th><th>Environment variable</th>' +
         '<th>Run as admin</th>' +
         '<th>Run on startup</th><th></th></tr></thead><tbody>';
     var i, row;
@@ -906,13 +982,19 @@ function renderPersistent() {
         row = state.persistent[i];
         out += '<tr>';
         if (state.mode === "Config") {
+            out += '<td class="move-cell"><button class="button button-small" id="persistentMove_' + i +
+                '" title="Left click: move down; right click: move up" onclick="movePersistent(' + i +
+                ',1)" oncontextmenu="return movePersistentUp(' + i + ')">&#8597;</button></td>';
             out += fieldInput("persistent", "", i, "path", row.path, 'data-pathcheck="1"');
             out += '<td><button class="button button-small" onclick="browsePersistent(' + i + ')">Browse</button></td>';
             out += fieldInput("persistent", "", i, "env_var", row.env_var, "");
             out += checkboxInput("persistent", "", i, "run_as_admin", row.run_as_admin);
             out += checkboxInput("persistent", "", i, "run_on_startup", row.run_on_startup);
-            out += '<td>' + (i > 0 ? '<button class="button button-small button-danger" onclick="deletePersistent(' + i + ')">X</button>' : '') + '</td>';
+            out += '<td class="row-menu-cell"><button class="button button-small row-menu-button" id="persistentMenu_' + i +
+                '" title="Row menu" onclick="return showPersistentRowMenu(' + i + ',this)"' +
+                ' oncontextmenu="return showPersistentRowMenu(' + i + ',this)">&#9776;</button></td>';
         } else {
+            out += '<td></td>';
             out += readonlyCell(row.path, "pathcheck");
             out += '<td></td>';
             out += readonlyCell(row.env_var, "");
@@ -948,9 +1030,9 @@ function renderProgramPaths(tabIndex, rows) {
     if (state.mode === "Config") {
         out += '<button class="section-action" onclick="addDynamicRow(' + tabIndex + ',\'paths\')">+ Add file path</button>';
     }
-    out += '</div><table class="data-table"><colgroup>' +
-        '<col style="width:42%"><col style="width:9%"><col style="width:20%">' +
-        '<col style="width:11%"><col style="width:12%"><col style="width:6%"></colgroup>' +
+    out += '</div><table class="data-table path-table"><colgroup>' +
+        '<col style="width:48%"><col style="width:9%"><col style="width:20%">' +
+        '<col style="width:8%"><col style="width:9%"><col style="width:6%"></colgroup>' +
         '<thead><tr><th>File path</th><th></th><th>Environment variable</th>' +
         '<th>Run as admin</th>' +
         '<th>Run on startup</th><th></th></tr></thead><tbody>';
@@ -1087,7 +1169,7 @@ function checkboxInput(scope, kind, index, field, checked, tabIndex) {
     var tabAttribute = typeof tabIndex === "number" ? ' data-tab="' + tabIndex + '"' : "";
     return '<td><label class="check-wrap"><input type="checkbox" data-scope="' + scope +
         '" data-kind="' + kind + '" data-index="' + index + '" data-field="' + field + '"' +
-        tabAttribute + (checked ? ' checked="checked"' : '') + '> Yes</label></td>';
+        tabAttribute + (checked ? ' checked="checked"' : '') + '></label></td>';
 }
 
 function readonlyCell(value, checkType) {
@@ -1214,6 +1296,123 @@ function deletePersistent(index) {
     render();
 }
 
+function movePersistent(index, direction) {
+    var cursorState = null;
+    var eventObject = typeof window !== "undefined" ? window.event : null;
+    var source = eventObject ? eventObject.srcElement : null;
+    if (source && source.getBoundingClientRect && typeof eventObject.screenX === "number") {
+        var sourceRect = source.getBoundingClientRect();
+        cursorState = {
+            screen_x: eventObject.screenX,
+            screen_y: eventObject.screenY,
+            control_left: sourceRect.left,
+            control_top: sourceRect.top,
+            window_left: typeof window.screenLeft === "number" ? window.screenLeft : 0,
+            window_top: typeof window.screenTop === "number" ? window.screenTop : 0
+        };
+    }
+    captureState();
+    var targetIndex = index + direction;
+    if (index < 0 || index >= state.persistent.length ||
+            targetIndex < 0 || targetIndex >= state.persistent.length) {
+        return;
+    }
+    var row = state.persistent[index];
+    state.persistent[index] = state.persistent[targetIndex];
+    state.persistent[targetIndex] = row;
+    markDirty();
+    render();
+    queuePersistentMoveCursor(targetIndex, cursorState);
+}
+
+function movePersistentUp(index) {
+    var eventObject = typeof window !== "undefined" ? window.event : null;
+    movePersistent(index, -1);
+    if (eventObject) {
+        eventObject.returnValue = false;
+    }
+    return false;
+}
+
+function queuePersistentMoveCursor(index, cursorState) {
+    if (!cursorState || typeof window === "undefined") {
+        return;
+    }
+    window.setTimeout(function() {
+        var target = document.getElementById("persistentMove_" + index);
+        if (!target || !target.getBoundingClientRect) {
+            return;
+        }
+        var targetRect = target.getBoundingClientRect();
+        var currentWindowLeft = typeof window.screenLeft === "number" ? window.screenLeft : 0;
+        var currentWindowTop = typeof window.screenTop === "number" ? window.screenTop : 0;
+        var x = Math.round(cursorState.screen_x + currentWindowLeft - cursorState.window_left +
+            targetRect.left - cursorState.control_left);
+        var y = Math.round(cursorState.screen_y + currentWindowTop - cursorState.window_top +
+            targetRect.top - cursorState.control_top);
+        var command = 'powershell.exe -NoProfile -WindowStyle Hidden -Command "' +
+            'Add-Type -AssemblyName System.Windows.Forms;' +
+            '[System.Windows.Forms.Cursor]::Position=(New-Object System.Drawing.Point -ArgumentList ' +
+            x + ',' + y + ')"';
+        try {
+            wsh.Run(command, 0, false);
+        } catch (ignoreCursorMove) {}
+    }, 60);
+}
+
+function persistentTabName(row) {
+    var baseName = "";
+    var path = trimText(row.path);
+    if (path) {
+        try {
+            baseName = trimText(fso.GetBaseName(path));
+        } catch (ignoreBaseName) {}
+    }
+    if (!baseName) {
+        baseName = trimText(row.env_var) || "PROGRAM";
+    }
+    baseName = baseName.replace(/[\|\[\]\r\n]/g, "_");
+    if (lower(baseName) === "paths") {
+        baseName += "_Program";
+    }
+    var candidate = baseName;
+    var suffix = 2;
+    while (tabNameExists(candidate, -1)) {
+        candidate = baseName + "_" + suffix;
+        suffix++;
+    }
+    return candidate;
+}
+
+function movePersistentToNewTab(index) {
+    captureState();
+    if (index < 0 || index >= state.persistent.length) {
+        return;
+    }
+    var row = state.persistent[index];
+    var tabName = persistentTabName(row);
+    state.tabs.push(tabName);
+    state.data[tabName] = {
+        paths: [{
+            path: row.path,
+            env_var: row.env_var,
+            run_as_admin: row.run_as_admin ? 1 : 0,
+            run_on_startup: row.run_on_startup ? 1 : 0
+        }],
+        envs: [],
+        execs: [],
+        links: []
+    };
+    state.persistent.splice(index, 1);
+    if (!state.persistent.length) {
+        state.persistent.push({path: "", env_var: "", run_as_admin: 0, run_on_startup: 0});
+    }
+    state.activeProgramTab = state.tabs.length - 1;
+    state.activeUiTab = state.activeProgramTab + 1;
+    markDirty();
+    render();
+}
+
 function browsePersistent(index) {
     browseFile(function(path) {
         captureState();
@@ -1301,36 +1500,82 @@ function browseLinkTarget(tabIndex, index) {
     }, "Select target folder");
 }
 
-function browseFolder(callback, title) {
+function powerShellLiteral(value) {
+    return "'" + String(value).replace(/'/g, "''") + "'";
+}
+
+function currentBrowseDirectory() {
     try {
-        var selected = shellApp.BrowseForFolder(0, title, 0x51, appDir);
-        if (selected) {
-            callback(selected.Self.Path);
+        if (lastBrowseDirectory && fso.FolderExists(lastBrowseDirectory)) {
+            return lastBrowseDirectory;
         }
-    } catch (error) {
-        alert("Folder picker could not be opened.\n\n" + error.message);
+    } catch (ignoreBrowseDirectory) {}
+    lastBrowseDirectory = "C:\\";
+    return lastBrowseDirectory;
+}
+
+function rememberBrowseDirectory(path) {
+    path = trimText(path);
+    if (!path) {
+        return;
+    }
+    try {
+        var directory = fso.FolderExists(path) ? path : fso.GetParentFolderName(path);
+        if (directory && fso.FolderExists(directory)) {
+            lastBrowseDirectory = directory;
+        }
+    } catch (ignoreRememberBrowse) {}
+}
+
+function runPickerScript(script) {
+    var errorMarker = "PATHCONFIG_PICKER_ERROR:";
+    var pathMarker = "PATHCONFIG_PICKER:";
+    var wrapped = "$ErrorActionPreference='Stop';try{" + script +
+        "}catch{[Console]::Out.Write('" + errorMarker + "'+$_.Exception.Message)}";
+    var command = 'powershell.exe -NoProfile -STA -WindowStyle Hidden -Command "' + wrapped + '"';
+    var output = runCapture(command);
+    var errorAt = output.indexOf(errorMarker);
+    if (errorAt >= 0) {
+        alert("Path picker could not be opened.\n\n" + trimText(output.substr(errorAt + errorMarker.length)));
+        return "";
+    }
+    var pathAt = output.indexOf(pathMarker);
+    return pathAt >= 0 ? trimText(output.substr(pathAt + pathMarker.length)) : "";
+}
+
+function browseFolder(callback, title) {
+    var script = "Add-Type -AssemblyName System.Windows.Forms;" +
+        "$dialog=New-Object System.Windows.Forms.FolderBrowserDialog;" +
+        "$dialog.Description=" + powerShellLiteral(title || "Select folder") + ";" +
+        "$dialog.RootFolder=[System.Environment+SpecialFolder]::Desktop;" +
+        "$dialog.SelectedPath=" + powerShellLiteral(currentBrowseDirectory()) + ";" +
+        "$dialog.ShowNewFolderButton=$true;" +
+        "if($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK){" +
+        "[Console]::Out.Write('PATHCONFIG_PICKER:'+$dialog.SelectedPath)}";
+    var path = runPickerScript(script);
+    if (path) {
+        rememberBrowseDirectory(path);
+        callback(path);
     }
 }
 
 function browseFile(callback, accept) {
-    var input = document.createElement("input");
-    input.type = "file";
-    if (accept) {
-        input.setAttribute("accept", accept);
+    var filter = lower(accept) === ".exe" ?
+        "Executable files (*.exe)|*.exe|All files (*.*)|*.*" : "All files (*.*)|*.*";
+    var script = "Add-Type -AssemblyName System.Windows.Forms;" +
+        "$dialog=New-Object System.Windows.Forms.OpenFileDialog;" +
+        "$dialog.InitialDirectory=" + powerShellLiteral(currentBrowseDirectory()) + ";" +
+        "$dialog.Filter=" + powerShellLiteral(filter) + ";" +
+        "$dialog.CheckFileExists=$true;" +
+        "$dialog.Multiselect=$false;" +
+        "$dialog.RestoreDirectory=$true;" +
+        "if($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK){" +
+        "[Console]::Out.Write('PATHCONFIG_PICKER:'+$dialog.FileName)}";
+    var path = runPickerScript(script);
+    if (path) {
+        rememberBrowseDirectory(path);
+        callback(path);
     }
-    input.style.position = "absolute";
-    input.style.left = "-10000px";
-    input.attachEvent("onchange", function() {
-        var path = input.value;
-        if (path) {
-            callback(path);
-        }
-        try {
-            document.body.removeChild(input);
-        } catch (ignore) {}
-    });
-    document.body.appendChild(input);
-    input.click();
 }
 
 function addProgram() {
@@ -1426,7 +1671,56 @@ function deleteProgram() {
     render();
 }
 
+function showPersistentRowMenu(index, button) {
+    captureState();
+    persistentMenuIndex = index;
+    hideContextMenu();
+    var menu = document.getElementById("persistentRowMenu");
+    var deleteButton = document.getElementById("persistentRowDelete");
+    deleteButton.disabled = index <= 0;
+    menu.style.display = "block";
+    var rect = button.getBoundingClientRect();
+    menu.style.left = Math.max(0, rect.right + document.body.scrollLeft - menu.offsetWidth) + "px";
+    menu.style.top = rect.bottom + document.body.scrollTop + "px";
+    var eventObject = window.event;
+    if (eventObject) {
+        eventObject.cancelBubble = true;
+        eventObject.returnValue = false;
+    }
+    return false;
+}
+
+function hidePersistentRowMenu() {
+    var menu = document.getElementById("persistentRowMenu");
+    if (menu) {
+        menu.style.display = "none";
+    }
+    persistentMenuIndex = -1;
+}
+
+function movePersistentToNewTabFromMenu() {
+    var index = persistentMenuIndex;
+    hidePersistentRowMenu();
+    if (index >= 0) {
+        movePersistentToNewTab(index);
+    }
+}
+
+function deletePersistentFromMenu() {
+    var index = persistentMenuIndex;
+    hidePersistentRowMenu();
+    if (index > 0) {
+        deletePersistent(index);
+    }
+}
+
+function hideMenus() {
+    hideContextMenu();
+    hidePersistentRowMenu();
+}
+
 function tabContextMenu() {
+    hidePersistentRowMenu();
     var eventObject = window.event;
     var target = eventObject.srcElement;
     var index = asNumber(target.getAttribute("data-tab-index"), -1);
@@ -1940,6 +2234,9 @@ function prepareLinkTarget(path) {
 
 function handleBeforeUnload() {
     try {
+        if (isRestarting) {
+            return;
+        }
         captureState();
         if (!hasUnsavedChanges) {
             return;
@@ -1969,13 +2266,15 @@ function initialize() {
     try {
         fso = new ActiveXObject("Scripting.FileSystemObject");
         wsh = new ActiveXObject("WScript.Shell");
-        shellApp = new ActiveXObject("Shell.Application");
+
         sourcePath = getApplicationPath();
         sourceSignature = getSourceSignature();
         appDir = getAppDirectory();
         iniPath = fso.BuildPath(appDir, "Path-Config.ini");
         legacyIniPath = fso.BuildPath(appDir, "System-Config.ini");
         logPath = fso.BuildPath(appDir, "Path-Config-Apply-Log.md");
+        heartbeatPath = fso.BuildPath(appDir, "Path-Config.heartbeat");
+        relaunchRequestPath = fso.BuildPath(appDir, "Path-Config.relaunch");
         loadState();
         try {
             var initialWidth = Math.min(1220, screen.availWidth);
@@ -1987,12 +2286,15 @@ function initialize() {
             );
         } catch (ignoreInitialSize) {}
         render();
+        maintainLauncherBridge();
         window.setInterval(validateInputs, 700);
         window.setInterval(watchForSourceUpdate, 500);
-        document.attachEvent("onclick", function() { hideContextMenu(); });
+        window.setInterval(maintainLauncherBridge, 1000);
+        document.attachEvent("onclick", function() { hideMenus(); });
         document.attachEvent("oninput", trackInputChange);
         document.attachEvent("onchange", trackInputChange);
         window.attachEvent("onbeforeunload", handleBeforeUnload);
+        window.attachEvent("onunload", cleanupLauncherBridge);
     } catch (error) {
         document.getElementById("app").innerHTML =
             '<div style="padding:30px;color:#ff9aa7">Path-Config could not start.<br><br>' + html(error.message) + '</div>';
@@ -2005,6 +2307,10 @@ function initialize() {
 <div class="context-menu" id="contextMenu">
     <button onclick="renameProgram()">Rename current tab</button>
     <button onclick="deleteProgram()">Delete current tab</button>
+</div>
+<div class="context-menu" id="persistentRowMenu">
+    <button onclick="movePersistentToNewTabFromMenu()">Move to New Tab</button>
+    <button id="persistentRowDelete" onclick="deletePersistentFromMenu()">Delete Row</button>
 </div>
 </body>
 </html>

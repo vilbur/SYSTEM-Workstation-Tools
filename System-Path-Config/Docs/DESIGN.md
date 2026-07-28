@@ -31,6 +31,10 @@ Expected capabilities:
 
 Structural editing controls should be hidden or disabled in Apply mode.
 
+## Source-update restart
+
+Path-Config maintains heartbeat and relaunch-request files used by the cooperative `Path-Config.exe` launcher. A launcher invocation against a running instance writes a relaunch request, which the HTA consumes and handles through its restart path. Stable source updates use the same restart logic. If UI edits are unsaved, restart remains pending until they can be saved; the controlled restart then reloads the running HTA while preserving restart-aware unload handling.
+
 ## Fixed Paths tab
 
 The first visible tab is always:
@@ -51,22 +55,40 @@ Constraints:
 
 ## Persistent row layout
 
-Recommended left-to-right control order:
+Required left-to-right control order:
 
-1. file path edit
-2. Browse button
-3. Env var edit
-4. Run as Admin checkbox
-5. Run on startup checkbox
-6. delete button for additional rows
+1. one leftmost ordering button (left-click moves down; right-click moves up)
+2. file path edit
+3. Browse button
+4. Env var edit
+5. Run as Admin checkbox
+6. Run on startup checkbox
+7. fixed-size burger menu containing Move to New Tab and Delete Row
 
-The exact widths may change to fit the window, but every row must remain aligned with its column headers.
+The file-path edit receives the largest available share of the row. Every adjacent path-row control uses the same exact 16 px horizontal gap; shared button styles must not add extra margins inside path rows. Config-mode checkboxes are larger and icon-only, without a `Yes` caption. The ordering button is aligned to the left edge and the burger menu to the right edge. Every row remains aligned with its column headers.
+
+## Path browsing
+
+File and folder Browse actions use native Windows dialogs with access to the full PC. The first dialog in an application session starts at `C:\`. After a successful selection, both file and folder dialogs reuse the selected directory as their next starting location. Cancelling a dialog leaves the remembered directory unchanged.
 
 ## Programs-tab path rows
 
-Every dynamic Programs tab uses the same file path, Browse, Env var, Run as Admin, Run on startup, and Delete controls. Rows are saved inside that tab's `_Paths` section. Legacy `_Name` and `_Val` keys migrate to the new Env var and file path fields.
+Every dynamic Programs tab uses the same maximized file path, Browse, Env var, larger icon-only Run as Admin, larger icon-only Run on startup, and Delete controls with the same 16 px horizontal spacing. Rows are saved inside that tab's `_Paths` section. Legacy `_Name` and `_Val` keys migrate to the new Env var and file path fields.
 
 Program startup registry values use the dedicated `PathConfig_Program_` namespace so applying a program tab does not remove fixed Paths startup entries.
+
+## Persistent row ordering
+
+In Config mode, one leftmost ordering control appears on every persistent row. Left-click moves the complete row down; right-click moves it up and suppresses the context menu. The file path, environment variable, Run as Admin flag, and Run on startup flag must move together. The reordered array is saved in its visible order. The ordering control is not shown in Apply mode. After a successful move, the mouse cursor follows the merged control on the moved row.
+
+## Persistent row menu
+
+Every fixed Paths row has a fixed-size burger menu on the right. Either left-click or right-click opens the same menu with two actions:
+
+1. `Move to New Tab` creates a uniquely named Programs tab containing the complete row data, removes the source row, and activates the new tab.
+2. `Delete Row` uses the existing deletion rule and remains disabled for the first row.
+
+Moving the only fixed row must leave one empty persistent row behind. The new Programs tab starts with the moved path row and empty Environment Variables, Executables, and Links collections.
 
 ## Persistent row actions
 

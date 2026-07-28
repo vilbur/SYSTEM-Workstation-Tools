@@ -2,16 +2,16 @@
 
 ## Current baseline
 
-The latest approved version is `0.16`.
+The latest approved version is `0.29`.
 
 Primary files:
 
 - `Path-Config.hta`
 - `Path-Config.exe` (generic HTA launcher)
-- `Test/Path-Config-Test_0.16.ps1`
+- `Test/Path-Config-Test_0.29.ps1`
 - `Path-Config.ini` at runtime
 
-The next code delivery must be version `0.17` unless another version has already been approved in the repository.
+The next code delivery must be version `0.30` unless another version has already been approved in the repository.
 
 ## Product purpose
 
@@ -34,6 +34,7 @@ There are two configuration areas:
 8. Capture visible control values before tab changes, reloads, saves, or applies.
 9. Save current data and selected tab state.
 10. Apply only the requested scope.
+11. Maintain heartbeat and relaunch-request files for the cooperative launcher bridge, and reload the HTA after a stable source update once no unsaved edits remain.
 
 ## State model
 
@@ -77,7 +78,7 @@ Rules:
 - Empty rows are allowed while editing.
 - The first row cannot be deleted.
 - Additional rows can be added and deleted.
-- Browse selects a file path.
+- Browse uses a full-PC native dialog, starts at `C:\` on first use, and reuses the last selected directory for later file and folder dialogs in the current session.
 - The environment-variable name is optional.
 - Both checkboxes are independent.
 

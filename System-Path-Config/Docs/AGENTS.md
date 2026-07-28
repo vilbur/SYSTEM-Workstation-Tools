@@ -6,9 +6,9 @@ Path-Config is a standalone Windows HTA application (HTML and legacy-compatible 
 
 Current approved baseline:
 
-- `Path-Config.hta` version `0.16`
+- `Path-Config.hta` version `0.29`
 - `Path-Config.exe`
-- `Test/Path-Config-Test_0.16.ps1`
+- `Test/Path-Config-Test_0.29.ps1`
 
 Continue development only from the latest approved baseline. Never rebuild from memory when the current source files are available.
 
@@ -41,6 +41,7 @@ Required:
 - Use guarded COM calls and report operational failures.
 - Quote filesystem and command-line paths safely.
 - Run background status checks and maintenance commands with hidden window style `0`; only user-requested target launches and pickers may be visible.
+- maintain the cooperative launcher heartbeat/relaunch bridge; stable source updates reload the HTA after unsaved edits are saved
 
 ## UI rules
 
@@ -53,6 +54,8 @@ Preserve the current dark UI style:
 - fake text-based dark buttons where already used
 - highlighted `CONFIG` and `APPLY` mode controls
 - consistent row alignment
+- maximized file-path edits in path rows, with exact 16 px horizontal gaps and no inherited control margins between adjacent controls
+- larger icon-only Config-mode checkboxes
 
 The fixed first tab is always named `Paths`.
 
@@ -76,11 +79,16 @@ Each persistent row contains exactly these logical fields:
 The row UI contains:
 
 - file path edit
-- Browse button
+- Browse button using full-PC native file/folder dialogs
+- first browse starts at `C:\`; later dialogs in the same session start at the last selected directory
 - Env var edit
 - Run as Admin checkbox
 - Run on startup checkbox
-- Delete button for rows after the first
+- fixed-size burger menu opened by either left-click or right-click, with Move to New Tab and Delete Row actions; Delete Row remains disabled for the first row
+- one leftmost ordering button: left-click moves down and right-click moves up
+- right-click context-menu suppression on the ordering button
+- cursor follow-up to the merged ordering button on the moved row
+- left edge alignment for the ordering button and right edge alignment for the burger menu
 
 At least one row must always exist.
 

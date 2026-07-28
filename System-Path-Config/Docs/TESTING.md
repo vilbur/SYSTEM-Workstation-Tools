@@ -6,8 +6,8 @@ The test file version must always match the source version.
 
 Current pair:
 
-- `Path-Config.hta` version `0.16`
-- `Test/Path-Config-Test_0.16.ps1`
+- `Path-Config.hta` version `0.29`
+- `Test/Path-Config-Test_0.29.ps1`
 
 The canonical source filename remains `Path-Config.hta`; versioned PowerShell tests are stored under `Test/`, and the test filename advances with each version.
 
@@ -65,8 +65,18 @@ Check for all of the following:
 - Env var control
 - Run as Admin checkbox
 - Run on startup checkbox
+- maximized file-path columns in both path tables
+- exact 16 px horizontal spacing between every adjacent path-row control, without inherited button margins
+- larger icon-only Config-mode checkboxes
+- left-aligned ordering button and right-aligned burger menu
 - Add Path handler
 - Delete Path handler
+- combined leftmost Move Path control
+- left-click down and right-click up handlers
+- right-click context-menu suppression
+- moved-row cursor destination and hidden cursor-position command
+- burger row menu, Move to New Tab and Delete Row handlers, unique tab naming, complete-row transfer, and fixed-row invariant
+- source-update detection, unsaved-change deferral, HTA reload, launcher heartbeat/relaunch bridge, and unload cleanup
 - Browse handler
 - Apply Paths handler
 
@@ -110,6 +120,10 @@ Parser success does not replace runtime UI testing.
 - Start without an existing `Path-Config.ini`.
 - Confirm `Paths` is the first tab.
 - Confirm one empty fixed row exists.
+- Confirm the file-path edit uses most of the available row width.
+- Confirm every adjacent row control has the same 16 px horizontal gap, including buttons.
+- Confirm both checkboxes are visibly larger and have no Yes caption.
+- Confirm the move button is aligned left and the burger menu is aligned right.
 - Confirm dynamic program tabs still appear after it.
 
 ### 2. Save and reload
@@ -131,15 +145,29 @@ Repeat with both checkboxes checked.
 
 - Add at least three rows.
 - Confirm each row has all four fields.
+- Confirm the combined ordering control is the first control on every row.
+- Left-click it to move a row down and right-click it to move a row up.
+- Confirm right-click does not open a context menu.
+- Confirm the path, Env var, Run as Admin, and Run on startup values stay together.
+- Confirm the first row cannot move up and the last row cannot move down.
+- Confirm the mouse cursor follows the combined ordering button to the moved row after a valid move.
 - Delete the middle row.
 - Save and reopen.
-- Confirm remaining rows and flags are correct.
-- Confirm the first row cannot be deleted.
+- Confirm the moved order and all remaining row values and flags are restored.
+- Confirm every row has a same-sized burger menu in place of the old X button.
+- Confirm both left-click and right-click open the same menu showing Move to New Tab and Delete Row, with no browser context menu.
+- Move a populated row to a new tab and confirm all four fields transfer, the source row disappears, and the new tab opens.
+- Confirm duplicate inferred tab names receive a numeric suffix.
+- Confirm moving the only fixed row leaves one empty Paths row.
+- Confirm Delete Row remains disabled for the first row and deletes later rows.
 
 ### 4. Browse
 
-- Browse to a file with spaces in its path.
-- Confirm the full path is stored.
+- On the first file or folder browse, confirm the dialog starts at `C:\`.
+- Confirm the dialog can navigate drives, Desktop, and the full PC rather than being rooted at the Path-Config program directory.
+- Browse to a file with spaces in its path and confirm the full path is stored.
+- Open another file or folder browser and confirm it starts at the directory selected previously.
+- Select a different directory and confirm the next browser remembers that directory.
 - Save and reopen.
 
 ### 5. Environment variable
@@ -234,6 +262,15 @@ Verify:
 - apply current dynamic tab
 - apply all dynamic tabs
 - fixed Paths selection does not corrupt dynamic current-tab state
+
+### 13. Source-update restart
+
+- Open Path-Config without unsaved edits and update `Path-Config.hta` to a newer version.
+- Confirm the running HTA reloads into the new version.
+- Repeat with an unsaved UI edit and confirm restart waits with a save-to-restart status.
+- Save and confirm the pending reload then occurs automatically.
+- Launch `Path-Config.exe` while Path-Config is already running and confirm the cooperative relaunch request is consumed.
+- Confirm heartbeat and relaunch-request files are cleaned up on an ordinary close.
 
 ## Delivery verification
 
