@@ -1,6 +1,6 @@
 ﻿/* -------------------------
-    Path Configurator v0.01
-    Dynamic paths, environments, executables and links
+    Path Configurator v0.04
+    Persistent paths plus dynamic environments, executables and links
 -------------------------
 */ 
 
@@ -31,13 +31,17 @@ if FileExist("Path-Config.ico")
 else if FileExist("System-Config.ico")
     Menu, Tray, Icon, System-Config.ico
 
-global g_ini_file        := A_ScriptDir "\Path-Config.ini"
-global g_legacy_ini_file := A_ScriptDir "\System-Config.ini"
-global g_tab_names       := []
-global g_tab_data        := {}
-global g_current_tab     := 1
-global g_current_mode    := "Config"
-global g_tab_menu        := "TabMenu"
+global g_script_version   := "0.04"
+global g_ini_file         := A_ScriptDir "\Path-Config.ini"
+global g_legacy_ini_file  := A_ScriptDir "\System-Config.ini"
+global g_tab_names        := []
+global g_tab_data         := {}
+global g_persistent_paths := []
+global g_current_tab      := 1
+global g_current_ui_tab   := 1
+global g_current_mode     := "Config"
+global g_tab_menu         := "TabMenu"
+global g_startup_prefix   := "PathConfig_Path_"
 
 global dark_background := "1E1E1E"
 global border_color := "2D2D2D"
@@ -89,17 +93,71 @@ if (g_current_mode == "Config") {
 setDarkControl(h_mode)
 Gui, Font, s12 Norm
 
-tab_str := ""
+tab_str := "Paths|"
 For tab_idx, tab_name in g_tab_names
     tab_str .= tab_name "|"
 
-Gui, Add, Tab3, vmain_tab gonTabChanged x20 y110 w1160 h670 hwndh_tab AltSubmit Choose%g_current_tab%, %tab_str%
+Gui, Add, Tab3, vmain_tab gonTabChanged x20 y110 w1160 h670 hwndh_tab AltSubmit Choose%g_current_ui_tab%, %tab_str%
 DllCall("uxtheme\SetWindowTheme", "Ptr", h_tab, "Str", "DarkMode_Explorer", "Ptr", 0)
 GuiControl, +cDDDDDD, main_tab
 
+; Fixed, non-dynamic Paths tab (UI tab 1).
+Gui, Tab, 1
+y_pos := 160
+Gui, Font, Bold s14 c%mode_color%
+if (g_current_mode == "Config")
+    Gui, Add, Text, gonAddPersistentPath x40 y%y_pos% BackgroundTrans, + ADD FILE PATH
+else
+    Gui, Add, Text, x40 y%y_pos% BackgroundTrans, Persistent Paths
+Gui, Font, Norm s10 c888888
+header_y := y_pos + 38
+Gui, Add, Text, x40 y%header_y% w500, File Path
+Gui, Add, Text, x630 y%header_y% w190, Environment Variable
+Gui, Add, Text, x830 y%header_y% w110, Run as Admin
+Gui, Add, Text, x960 y%header_y% w120, Run on Startup
+Gui, Font, Norm s11 c%font_color%
+y_pos += 65
+For i, row in g_persistent_paths {
+    var_path := "persistent_path_" i
+    var_env := "persistent_env_" i
+    var_admin := "persistent_admin_" i
+    var_startup := "persistent_startup_" i
+    if (g_current_mode == "Config") {
+        var_browse := "btn_persistent_browse_" i
+        var_delete := "btn_persistent_delete_" i
+        Gui, Add, Edit, v%var_path% x40 y%y_pos% w500 h28 -E0x200 -Theme +Border, % row.path
+        Gui, Add, Button, v%var_browse% gonBrowsePersistentPath hwndh_pb x550 y%y_pos% w70 h28 -Theme +Border, Browse
+        Gui, Add, Edit, v%var_env% x630 y%y_pos% w190 h28 -E0x200 -Theme +Border, % row.env_var
+        admin_options := row.run_as_admin ? "Checked" : ""
+        startup_options := row.run_on_startup ? "Checked" : ""
+        Gui, Add, Checkbox, v%var_admin% x850 y%y_pos% w70 h28 %admin_options%, Yes
+        Gui, Add, Checkbox, v%var_startup% x985 y%y_pos% w70 h28 %startup_options%, Yes
+        if (i > 1) {
+            Gui, Add, Button, v%var_delete% gonDeletePersistentPath hwndh_pd x1090 y%y_pos% w30 h28 -Theme +Border, X
+            setDarkControl(h_pd)
+        }
+        setDarkControl(h_pb)
+    } else {
+        admin_text := row.run_as_admin ? "Yes" : "No"
+        startup_text := row.run_on_startup ? "Yes" : "No"
+        Gui, Add, Text, v%var_path% x40 y%y_pos% w570 h28 c%font_color%, % row.path
+        Gui, Add, Text, v%var_env% x630 y%y_pos% w190 h28 c%font_color%, % row.env_var
+        Gui, Add, Text, x850 y%y_pos% w70 h28 c%font_color%, %admin_text%
+        Gui, Add, Text, x985 y%y_pos% w70 h28 c%font_color%, %startup_text%
+    }
+    y_pos += 36
+}
+if (g_current_mode == "Apply") {
+    Gui, Font, Bold s12 cFFFFFF
+    Gui, Add, Button, gonApplyPaths hwndh_apply_paths x920 y720 w240 h40 -Theme +Border, APPLY PATHS
+    setDarkControl(h_apply_paths)
+    Gui, Font, Norm s12 c%font_color%
+}
+
 For tab_idx, tab_name in g_tab_names 
 {
-    Gui, Tab, %tab_idx% 
+    ui_tab_idx := tab_idx + 1
+    Gui, Tab, %ui_tab_idx% 
         data := g_tab_data[tab_name]
         y_pos := 155
         
@@ -278,7 +336,7 @@ For tab_idx, tab_name in g_tab_names
         }
     }
 Gui, Tab 
-Gui, Show, w1200 h800, Path-Config v0.01
+Gui, Show, w1200 h800, Path-Config v%g_script_version%
 
 SetTimer, pathTimer, 500
 return
@@ -286,22 +344,29 @@ return
 ; ==========================================
 ;         RIGHT-CLICK & TAB MENU LOGIC
 ; ==========================================
+toLower(value) {
+    StringLower, lowered, value
+    return lowered
+}
+
 WM_RBUTTONDOWN(wParam, lParam, msg, hwnd) {
-    global h_tab, g_tab_menu
-    if (hwnd == h_tab) {
+    global h_tab, g_tab_menu, g_current_ui_tab
+    if (hwnd == h_tab && g_current_ui_tab > 1)
         Menu, %g_tab_menu%, Show
-    }
 }
 
 onTabChanged:
+    captureAllRows()
     Gui, Submit, NoHide
-    g_current_tab := main_tab
+    g_current_ui_tab := main_tab
+    if (g_current_ui_tab > 1)
+        g_current_tab := g_current_ui_tab - 1
     saveState()
 return
 
 toggleMode:
     Gui, Submit, NoHide
-    captureCurrentTabRows()
+    captureAllRows()
     saveState()
     g_current_mode := (g_current_mode == "Config") ? "Apply" : "Config"
     IniWrite, %g_current_mode%, %g_ini_file%, Settings, Mode
@@ -312,16 +377,18 @@ onAddProgram:
     FileSelectFile, exe_path, 3,, Browse for Main Executable (Sets Tab Name), Executables (*.exe)
     if (exe_path == "")
         return
-    captureCurrentTabRows()
+    captureAllRows()
     SplitPath, exe_path, out_file_name, out_dir, out_ext, out_name_no_ext
     SplitPath, out_dir, out_folder_name
     tab_name := out_folder_name
     if (tab_name == "")
-        tab_name := out_name_no_ext 
+        tab_name := out_name_no_ext
+    if (toLower(tab_name) == "paths")
+        tab_name := tab_name . "_Program"
     Loop {
         is_dup := false
         For k, v in g_tab_names {
-            if (v == tab_name) {
+            if (toLower(v) == toLower(tab_name)) {
                 is_dup := true
                 tab_name := tab_name "_2"
                 break
@@ -332,25 +399,42 @@ onAddProgram:
     }
     g_tab_names.Push(tab_name)
     g_tab_data[tab_name] := {"paths": [{"name": out_name_no_ext, "val": exe_path}], "envs": [], "execs": [], "links": []}
-    g_current_tab := g_tab_names.Length() 
+    g_current_tab := g_tab_names.Length()
+    g_current_ui_tab := g_current_tab + 1
     saveState()
     Reload
 return
 
 onRenameTab:
+    if (g_current_ui_tab == 1)
+        return
+    captureAllRows()
     old_name := g_tab_names[g_current_tab]
     InputBox, new_name, Rename Tab, Enter new name for tab "%old_name%":,, 300, 150
+    new_name := Trim(new_name)
     if (ErrorLevel || new_name == "" || new_name == old_name)
         return
+    if (toLower(new_name) == "paths" || InStr(new_name, "|") || InStr(new_name, "[") || InStr(new_name, "]")) {
+        MsgBox, 48, Invalid Name, Paths is reserved and tab names cannot contain | [ or ].
+        return
+    }
+    For tab_index, existing_name in g_tab_names {
+        if (tab_index != g_current_tab && toLower(existing_name) == toLower(new_name)) {
+            MsgBox, 48, Invalid Name, A program tab with that name already exists.
+            return
+        }
+    }
     g_tab_names[g_current_tab] := new_name
     g_tab_data[new_name] := g_tab_data[old_name]
     g_tab_data.Delete(old_name)
-    captureCurrentTabRows()
+    captureAllRows()
     saveState()
     Reload
 return
 
 onDeleteTab:
+    if (g_current_ui_tab == 1)
+        return
     if (g_tab_names.Length() <= 1) {
         MsgBox, 48, Denied, At least one program tab must remain.
         return
@@ -361,7 +445,8 @@ onDeleteTab:
         return
     g_tab_data.Delete(target_name)
     g_tab_names.RemoveAt(g_current_tab)
-    g_current_tab := 1 
+    g_current_tab := 1
+    g_current_ui_tab := 2
     saveState()
     Reload
 return
@@ -370,8 +455,38 @@ return
 ; ==========================================
 ;         ROW ADD/DELETE/BROWSE EVENTS
 ; ==========================================
+onAddPersistentPath:
+    captureAllRows()
+    g_persistent_paths.Push({"path":"", "env_var":"", "run_as_admin":0, "run_on_startup":0})
+    g_current_ui_tab := 1
+    saveState()
+    Reload
+return
+
+onDeletePersistentPath:
+    parts := StrSplit(A_GuiControl, "_")
+    row_idx := parts[4]
+    if (row_idx <= 1)
+        return
+    captureAllRows()
+    g_persistent_paths.RemoveAt(row_idx)
+    g_current_ui_tab := 1
+    saveState()
+    Reload
+return
+
+onBrowsePersistentPath:
+    parts := StrSplit(A_GuiControl, "_")
+    row_idx := parts[4]
+    var_path := "persistent_path_" row_idx
+    GuiControlGet, current_val,, %var_path%
+    FileSelectFile, selected, 3, %current_val%, Select File
+    if (selected != "")
+        GuiControl,, %var_path%, %selected%
+return
+
 onAddPath:
-    captureCurrentTabRows()
+    captureAllRows()
     if (!IsObject(g_tab_data[g_tab_names[g_current_tab]].paths))
         g_tab_data[g_tab_names[g_current_tab]].paths := []
     g_tab_data[g_tab_names[g_current_tab]].paths.Push({"name":"", "val":""})
@@ -380,7 +495,7 @@ onAddPath:
 return
 
 onAddEnv:
-    captureCurrentTabRows()
+    captureAllRows()
     if (!IsObject(g_tab_data[g_tab_names[g_current_tab]].envs))
         g_tab_data[g_tab_names[g_current_tab]].envs := []
     g_tab_data[g_tab_names[g_current_tab]].envs.Push({"name":"", "val":""})
@@ -389,7 +504,7 @@ onAddEnv:
 return
 
 onAddExec:
-    captureCurrentTabRows()
+    captureAllRows()
     if (!IsObject(g_tab_data[g_tab_names[g_current_tab]].execs))
         g_tab_data[g_tab_names[g_current_tab]].execs := []
     g_tab_data[g_tab_names[g_current_tab]].execs.Push("")
@@ -398,7 +513,7 @@ onAddExec:
 return
 
 onAddLink:
-    captureCurrentTabRows()
+    captureAllRows()
     if (!IsObject(g_tab_data[g_tab_names[g_current_tab]].links))
         g_tab_data[g_tab_names[g_current_tab]].links := []
     g_tab_data[g_tab_names[g_current_tab]].links.Push({"src":"", "tgt_dir":"", "tgt_name":"", "type":"Shortcut"})
@@ -408,7 +523,7 @@ return
 
 onDeletePath:
     parts := StrSplit(A_GuiControl, "_"), tab_idx := parts[4], row_idx := parts[5]
-    captureCurrentTabRows()
+    captureAllRows()
     g_tab_data[g_tab_names[tab_idx]].paths.RemoveAt(row_idx)
     saveState()
     Reload
@@ -416,7 +531,7 @@ return
 
 onDeleteEnv:
     parts := StrSplit(A_GuiControl, "_"), tab_idx := parts[4], row_idx := parts[5]
-    captureCurrentTabRows()
+    captureAllRows()
     g_tab_data[g_tab_names[tab_idx]].envs.RemoveAt(row_idx)
     saveState()
     Reload
@@ -424,7 +539,7 @@ return
 
 onDeleteExec:
     parts := StrSplit(A_GuiControl, "_"), tab_idx := parts[4], row_idx := parts[5]
-    captureCurrentTabRows()
+    captureAllRows()
     g_tab_data[g_tab_names[tab_idx]].execs.RemoveAt(row_idx)
     saveState()
     Reload
@@ -432,7 +547,7 @@ return
 
 onDeleteLink:
     parts := StrSplit(A_GuiControl, "_"), tab_idx := parts[4], row_idx := parts[5]
-    captureCurrentTabRows()
+    captureAllRows()
     g_tab_data[g_tab_names[tab_idx]].links.RemoveAt(row_idx)
     saveState()
     Reload
@@ -561,7 +676,14 @@ updateControlColor(var, path, is_env_name := false) {
 }
 
 checkPaths() {
-    global g_current_tab, g_current_mode
+    global g_current_tab, g_current_mode, g_persistent_paths
+    For i, row in g_persistent_paths {
+        persistent_var := "persistent_path_" i
+        GuiControlGet, persistent_value,, %persistent_var%
+        if (!ErrorLevel)
+            updateControlColor(persistent_var, persistent_value)
+    }
+
     Loop, 50 {
         edit_var := "edit_path_" g_current_tab "_" A_Index
         GuiControlGet, path_val,, %edit_var%
@@ -609,26 +731,50 @@ checkPaths() {
 ;         STATE MANAGEMENT CORE
 ; ==========================================
 onManualSave:
-    captureCurrentTabRows()
+    captureAllRows()
     saveState()
-    MsgBox, 64, Saved, All dynamic configurations have been written to Path-Config.ini.
+    MsgBox, 64, Saved, Persistent paths and dynamic configurations have been written to Path-Config.ini.
+return
+
+onApplyPaths:
+    captureAllRows()
+    saveState()
+    resetLog()
+    result := applyPersistentPaths()
+    if (result.env_changed)
+        SendMessage, 0x1A, 0, "Environment",, ahk_id 0xFFFF
+    showPersistentApplyResult("Apply Paths", result)
 return
 
 onApplyConfigs:
-    captureCurrentTabRows()
+    captureAllRows()
     saveState()
-    env_updated := false
+    resetLog()
+    persistent_result := applyPersistentPaths()
+    env_updated := persistent_result.env_changed
+    dynamic_tabs_applied := 0
     For k, tab_name in g_tab_names {
         if (applyTabConfig(tab_name))
             env_updated := true
+        dynamic_tabs_applied++
     }
     if (env_updated)
         SendMessage, 0x1A, 0, "Environment",, ahk_id 0xFFFF
-    MsgBox, 64, Apply All, All configurations applied successfully!
+    message := "Persistent actions completed: " . persistent_result.success_count
+    message .= "`nPersistent errors: " . persistent_result.error_count
+    message .= "`nDynamic program tabs applied: " . dynamic_tabs_applied
+    if (persistent_result.error_count > 0)
+        MsgBox, 48, Apply All, %message%
+    else
+        MsgBox, 64, Apply All, %message%
 return
 
 onApplyCurrentTab:
-    captureCurrentTabRows()
+    if (g_current_ui_tab == 1) {
+        Gosub, onApplyPaths
+        return
+    }
+    captureAllRows()
     saveState()
     current_tab_name := g_tab_names[g_current_tab]
     if (applyTabConfig(current_tab_name))
@@ -637,11 +783,33 @@ onApplyCurrentTab:
 return
 
 GuiClose:
-    captureCurrentTabRows()
+    captureAllRows()
     saveState()
 ExitApp
 
-captureCurrentTabRows() {
+captureAllRows() {
+    capturePersistentRows()
+    captureDynamicRows()
+}
+
+capturePersistentRows() {
+    global
+    if (g_current_mode == "Apply")
+        return
+    Gui, Submit, NoHide
+    For i, row in g_persistent_paths {
+        var_path := "persistent_path_" i
+        var_env := "persistent_env_" i
+        var_admin := "persistent_admin_" i
+        var_startup := "persistent_startup_" i
+        g_persistent_paths[i].path := %var_path%
+        g_persistent_paths[i].env_var := %var_env%
+        g_persistent_paths[i].run_as_admin := %var_admin% ? 1 : 0
+        g_persistent_paths[i].run_on_startup := %var_startup% ? 1 : 0
+    }
+}
+
+captureDynamicRows() {
     global
     if (g_current_mode == "Apply")
         return
@@ -685,8 +853,17 @@ saveState() {
     For k, v in g_tab_names
         tab_str .= (A_Index=1 ? "" : "|") . v
     IniWrite, %tab_str%, %g_ini_file%, Settings, Tabs
-    IniWrite, %g_current_tab%, %g_ini_file%, Settings, ActiveTab
+    IniWrite, %g_script_version%, %g_ini_file%, Settings, SchemaVersion
+    IniWrite, %g_current_ui_tab%, %g_ini_file%, Settings, ActiveTab
+    IniWrite, %g_current_tab%, %g_ini_file%, Settings, ActiveProgramTab
     IniWrite, %g_current_mode%, %g_ini_file%, Settings, Mode
+
+    For i, row in g_persistent_paths {
+        IniWrite, % row.path, %g_ini_file%, PersistentPaths, %i%_Path
+        IniWrite, % row.env_var, %g_ini_file%, PersistentPaths, %i%_EnvVar
+        IniWrite, % row.run_as_admin, %g_ini_file%, PersistentPaths, %i%_RunAsAdmin
+        IniWrite, % row.run_on_startup, %g_ini_file%, PersistentPaths, %i%_RunOnStartup
+    }
     
     For k, tab_name in g_tab_names {
         data := g_tab_data[tab_name]
@@ -709,28 +886,66 @@ saveState() {
     }
 }
 
+loadPersistentPaths(source_ini) {
+    global g_persistent_paths
+    g_persistent_paths := []
+    Loop {
+        row_index := A_Index
+        IniRead, path_value, %source_ini%, PersistentPaths, %row_index%_Path, ||END||
+        IniRead, legacy_path, %source_ini%, PersistentPaths, %row_index%, ||END||
+        if (path_value == "||END||" && legacy_path == "||END||")
+            break
+        if (path_value == "||END||")
+            path_value := legacy_path
+        IniRead, env_var, %source_ini%, PersistentPaths, %row_index%_EnvVar, %A_Space%
+        IniRead, run_as_admin, %source_ini%, PersistentPaths, %row_index%_RunAsAdmin, 0
+        IniRead, run_on_startup, %source_ini%, PersistentPaths, %row_index%_RunOnStartup, 0
+        g_persistent_paths.Push({"path":path_value, "env_var":env_var
+            , "run_as_admin":run_as_admin ? 1 : 0, "run_on_startup":run_on_startup ? 1 : 0})
+    }
+    if (g_persistent_paths.Length() == 0)
+        g_persistent_paths.Push({"path":"", "env_var":"", "run_as_admin":0, "run_on_startup":0})
+}
+
 loadState() {
     global
     source_ini := FileExist(g_ini_file) ? g_ini_file : g_legacy_ini_file
     if !FileExist(source_ini) {
         g_tab_names := ["PROGRAMS"]
         g_tab_data := {"PROGRAMS": {"paths": [{"name": "", "val": ""}], "envs": [], "execs": [], "links": []}}
+        g_persistent_paths := [{"path":"", "env_var":"", "run_as_admin":0, "run_on_startup":0}]
         g_current_tab := 1
+        g_current_ui_tab := 1
         g_current_mode := "Config"
         return
     }
+    loadPersistentPaths(source_ini)
     IniRead, tabs, %source_ini%, Settings, Tabs, %A_Space%
     source_tabs := StrSplit(tabs, "|")
     g_tab_names := []
     For _, source_tab_name in source_tabs {
-        if (source_tab_name != "" && source_tab_name != "WINDOWS")
+        if (source_tab_name != "" && source_tab_name != "WINDOWS" && toLower(source_tab_name) != "paths")
             g_tab_names.Push(source_tab_name)
     }
     if (g_tab_names.Length() == 0)
         g_tab_names.Push("PROGRAMS")
 
-    IniRead, legacy_active_tab, %source_ini%, Settings, ActiveTab, 1
-    g_current_tab := (source_ini == g_legacy_ini_file) ? legacy_active_tab - 1 : legacy_active_tab
+    IniRead, saved_active_tab, %source_ini%, Settings, ActiveTab, 1
+    IniRead, schema_version, %source_ini%, Settings, SchemaVersion, %A_Space%
+    IniRead, saved_program_tab, %source_ini%, Settings, ActiveProgramTab, 1
+    IniRead, persistent_probe, %source_ini%, PersistentPaths, 1_Path, ||END||
+    if (persistent_probe == "||END||")
+        IniRead, persistent_probe, %source_ini%, PersistentPaths, 1, ||END||
+
+    if (schema_version == "0.04" || persistent_probe != "||END||")
+        g_current_ui_tab := saved_active_tab
+    else {
+        legacy_program_tab := (source_ini == g_legacy_ini_file) ? saved_active_tab - 1 : saved_active_tab
+        g_current_ui_tab := legacy_program_tab + 1
+    }
+    if (g_current_ui_tab < 1 || g_current_ui_tab > g_tab_names.Length() + 1)
+        g_current_ui_tab := 1
+    g_current_tab := (g_current_ui_tab > 1) ? g_current_ui_tab - 1 : saved_program_tab
     if (g_current_tab < 1 || g_current_tab > g_tab_names.Length())
         g_current_tab := 1
     IniRead, g_current_mode, %source_ini%, Settings, Mode, Config
@@ -812,6 +1027,110 @@ setDarkTitleBar(window_hwnd) {
     use_dark_mode := 1
     DllCall("dwmapi\DwmSetWindowAttribute", "Ptr", window_hwnd, "Int", 20, "Int*", use_dark_mode, "Int", 4)
     DllCall("dwmapi\DwmSetWindowAttribute", "Ptr", window_hwnd, "Int", 19, "Int*", use_dark_mode, "Int", 4)
+}
+
+newPersistentApplyResult() {
+    return {"env_changed":false, "launched_count":0, "startup_count":0
+        , "success_count":0, "error_count":0}
+}
+
+recordPersistentError(result, message) {
+    result.error_count++
+    writeLog("- FAILED: " . message, "red")
+}
+
+recordPersistentSuccess(result, message) {
+    result.success_count++
+    writeLog("- OK: " . message)
+}
+
+applyPersistentPaths() {
+    global g_persistent_paths, g_startup_prefix
+    result := newPersistentApplyResult()
+    writeLog("## Persistent Paths")
+
+    owned_values := []
+    Loop, Reg, HKCU\Software\Microsoft\Windows\CurrentVersion\Run, V
+    {
+        if (SubStr(A_LoopRegName, 1, StrLen(g_startup_prefix)) == g_startup_prefix)
+            owned_values.Push(A_LoopRegName)
+    }
+    For _, value_name in owned_values {
+        RegDelete, HKCU\Software\Microsoft\Windows\CurrentVersion\Run, %value_name%
+        if (ErrorLevel)
+            recordPersistentError(result, "Could not remove owned startup entry: " . value_name)
+    }
+
+    For row_index, row in g_persistent_paths {
+        path_value := Trim(row.path)
+        env_var := Trim(row.env_var)
+        run_as_admin := row.run_as_admin ? 1 : 0
+        run_on_startup := row.run_on_startup ? 1 : 0
+
+        if (env_var != "" && path_value != "") {
+            RegWrite, REG_SZ, HKCU\Environment, %env_var%, %path_value%
+            if (ErrorLevel)
+                recordPersistentError(result, "Row " . row_index . " environment variable write failed: " . env_var)
+            else {
+                result.env_changed := true
+                recordPersistentSuccess(result, "Environment variable " . env_var . " = " . path_value)
+            }
+        }
+
+        if (run_on_startup) {
+            if (path_value == "" || !FileExist(path_value)) {
+                recordPersistentError(result, "Row " . row_index . " startup target is missing: " . path_value)
+            } else {
+                value_name := g_startup_prefix . row_index
+                startup_command := buildStartupCommand(path_value, run_as_admin)
+                RegWrite, REG_SZ, HKCU\Software\Microsoft\Windows\CurrentVersion\Run, %value_name%, %startup_command%
+                if (ErrorLevel)
+                    recordPersistentError(result, "Row " . row_index . " startup entry could not be written.")
+                else {
+                    result.startup_count++
+                    recordPersistentSuccess(result, "Startup entry " . value_name . " configured.")
+                }
+            }
+        }
+
+        if (run_as_admin) {
+            if (path_value == "" || !FileExist(path_value)) {
+                recordPersistentError(result, "Row " . row_index . " elevated launch target is missing: " . path_value)
+            } else {
+                SplitPath, path_value, , work_dir
+                run_target := "*RunAs " . Chr(34) . path_value . Chr(34)
+                Run, %run_target%, %work_dir%, UseErrorLevel
+                if (ErrorLevel == "ERROR")
+                    recordPersistentError(result, "Row " . row_index . " elevated launch failed: " . path_value)
+                else {
+                    result.launched_count++
+                    recordPersistentSuccess(result, "Elevated launch requested: " . path_value)
+                }
+            }
+        }
+    }
+    return result
+}
+
+buildStartupCommand(path_value, elevate) {
+    quote := Chr(34)
+    if (!elevate)
+        return quote . path_value . quote
+    escaped_path := StrReplace(path_value, "'", "''")
+    return "powershell.exe -NoProfile -WindowStyle Hidden -Command " . quote
+        . "Start-Process -FilePath '" . escaped_path . "' -Verb RunAs" . quote
+}
+
+showPersistentApplyResult(title, result) {
+    message := "Completed: " . result.success_count
+    message .= "`nEnvironment updates: " . (result.env_changed ? "Yes" : "No")
+    message .= "`nElevated launches: " . result.launched_count
+    message .= "`nStartup entries: " . result.startup_count
+    message .= "`nErrors: " . result.error_count
+    if (result.error_count > 0)
+        MsgBox, 48, %title%, %message%
+    else
+        MsgBox, 64, %title%, %message%
 }
 
 applyTabConfig(tab_name) {
