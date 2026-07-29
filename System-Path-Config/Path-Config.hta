@@ -230,6 +230,31 @@ button, input, select {
     padding-right: 0;
     padding-left: 0;
 }
+.program-table {
+    min-width: 1270px;
+}
+.program-table td {
+    padding-right: 10px;
+    padding-left: 10px;
+}
+.program-table td:first-child {
+    padding-left: 0;
+    text-align: left;
+}
+.program-table td:last-child {
+    padding-right: 0;
+    text-align: right;
+}
+.program-table .button-small {
+    box-sizing: border-box;
+    width: 30px;
+    margin-left: 0;
+    padding-right: 0;
+    padding-left: 0;
+}
+.program-table .row-action-pair .button-small + .button-small {
+    margin-left: 20px;
+}
 .field {
     box-sizing: border-box;
     width: 100%;
@@ -354,7 +379,7 @@ button, input, select {
 }
 </style>
 <script language="JScript" type="text/javascript">
-var VERSION = "0.35";
+var VERSION = "0.36";
 var STARTUP_PREFIX = "PathConfig_Path_";
 var PROGRAM_STARTUP_PREFIX = "PathConfig_Program_";
 var REG_ENV = "HKCU\\Environment\\";
@@ -1177,8 +1202,8 @@ function renderNameValueSection(tabIndex, kind, title, rows, keepFirst) {
         out += '<div class="empty-state">No entries configured.</div></div>';
         return out;
     }
-    out += '<table class="data-table"><colgroup><col style="width:22%"><col style="width:61%">' +
-        '<col style="width:11%"><col style="width:6%"></colgroup><thead><tr><th>Name</th><th>Value / path</th><th></th><th></th></tr></thead><tbody>';
+    out += '<table class="data-table program-table"><colgroup><col style="width:20%"><col>' +
+        '<col style="width:100px"><col style="width:40px"></colgroup><thead><tr><th>Name</th><th>Value / path</th><th></th><th></th></tr></thead><tbody>';
     var i, row, check;
     for (i = 0; i < rows.length; i++) {
         row = rows[i];
@@ -1187,7 +1212,7 @@ function renderNameValueSection(tabIndex, kind, title, rows, keepFirst) {
         if (state.mode === "Config") {
             out += fieldInput("dynamic", kind, i, "name", row.name, 'data-tab="' + tabIndex + '"');
             out += fieldInput("dynamic", kind, i, "val", row.val, 'data-tab="' + tabIndex + '" ' + check);
-            out += '<td><button class="button button-small" onclick="browseDynamic(' + tabIndex + ',\'' + kind + '\',' + i + ',false)">D</button>' +
+            out += '<td class="row-action-pair"><button class="button button-small" onclick="browseDynamic(' + tabIndex + ',\'' + kind + '\',' + i + ',false)">D</button>' +
                 '<button class="button button-small" onclick="browseDynamic(' + tabIndex + ',\'' + kind + '\',' + i + ',true)">F</button></td>';
             out += '<td>' + ((!keepFirst || i > 0) ? '<button class="button button-small button-danger" onclick="deleteDynamicRow(' +
                 tabIndex + ',\'' + kind + '\',' + i + ')">X</button>' : '') + '</td>';
@@ -1211,14 +1236,14 @@ function renderExecSection(tabIndex, rows) {
     if (!rows.length) {
         return out + '<div class="empty-state">No executables configured.</div></div>';
     }
-    out += '<table class="data-table"><colgroup><col style="width:78%"><col style="width:16%"><col style="width:6%"></colgroup><tbody>';
+    out += '<table class="data-table program-table"><colgroup><col><col style="width:100px"><col style="width:40px"></colgroup><tbody>';
     var i;
     for (i = 0; i < rows.length; i++) {
         out += '<tr>';
         if (state.mode === "Config") {
             out += '<td><input class="field" data-scope="dynamic" data-kind="execs" data-index="' + i +
                 '" data-tab="' + tabIndex + '" data-field="value" data-pathcheck="1" value="' + html(rows[i]) + '"></td>';
-            out += '<td><button class="button button-small" onclick="browseDynamic(' + tabIndex + ',\'execs\',' + i + ',false)">D</button>' +
+            out += '<td class="row-action-pair"><button class="button button-small" onclick="browseDynamic(' + tabIndex + ',\'execs\',' + i + ',false)">D</button>' +
                 '<button class="button button-small" onclick="browseDynamic(' + tabIndex + ',\'execs\',' + i + ',true)">F</button></td>';
             out += '<td><button class="button button-small button-danger" onclick="deleteDynamicRow(' + tabIndex + ',\'execs\',' + i + ')">X</button></td>';
         } else {
@@ -1238,8 +1263,8 @@ function renderLinksSection(tabIndex, rows) {
     if (!rows.length) {
         return out + '<div class="empty-state">No links configured.</div></div>';
     }
-    out += '<table class="data-table"><colgroup><col style="width:26%"><col style="width:8%"><col style="width:26%">' +
-        '<col style="width:8%"><col style="width:15%"><col style="width:11%"><col style="width:6%"></colgroup>' +
+    out += '<table class="data-table program-table"><colgroup><col><col style="width:100px"><col>' +
+        '<col style="width:50px"><col style="width:15%"><col style="width:130px"><col style="width:40px"></colgroup>' +
         '<thead><tr><th>Source</th><th></th><th>Target folder</th><th></th><th>Target name</th><th>Type</th><th></th></tr></thead><tbody>';
     var i, row, target;
     for (i = 0; i < rows.length; i++) {
@@ -1247,7 +1272,7 @@ function renderLinksSection(tabIndex, rows) {
         out += '<tr>';
         if (state.mode === "Config") {
             out += fieldInput("dynamic", "links", i, "src", row.src, 'data-tab="' + tabIndex + '" data-pathcheck="1"');
-            out += '<td><button class="button button-small" onclick="browseLinkSource(' + tabIndex + ',' + i + ',false)">D</button>' +
+            out += '<td class="row-action-pair"><button class="button button-small" onclick="browseLinkSource(' + tabIndex + ',' + i + ',false)">D</button>' +
                 '<button class="button button-small" onclick="browseLinkSource(' + tabIndex + ',' + i + ',true)">F</button></td>';
             out += fieldInput("dynamic", "links", i, "tgt_dir", row.tgt_dir, 'data-tab="' + tabIndex + '" data-pathcheck="1"');
             out += '<td><button class="button button-small" onclick="browseLinkTarget(' + tabIndex + ',' + i + ')">D</button></td>';
