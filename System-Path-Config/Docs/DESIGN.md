@@ -65,7 +65,7 @@ Required left-to-right control order:
 6. Run on startup checkbox
 7. fixed-size burger menu containing Move to New Tab and Delete Row
 
-The file-path edit receives the largest available share of the row. Every adjacent path-row control uses the same exact 16 px horizontal gap; shared button styles must not add extra margins inside path rows. Config-mode checkboxes are larger and icon-only, without a `Yes` caption. The ordering button is aligned to the left edge and the burger menu to the right edge. Every row remains aligned with its column headers.
+The file-path edit receives the largest available share of the row and has a 560 px minimum width. Environment Variable uses its restored 20% column while Links Target Name keeps its earlier 15% column. Path tables retain a 1270 px minimum canvas and the application window is capped at half the available display width; narrower windows scroll horizontally instead of compressing File Path below its minimum. Compact fixed-width columns fit the 30 px edge buttons, 64 px Browse button, and 20 px checkboxes without unused column space; 10 px padding on each adjacent cell therefore produces an exact visible 20 px horizontal gap. Shared button styles must not add extra margins. The first and last controls align flush with the left and right row edges, and section action buttons align to the right edge of the tab content. Config-mode checkboxes are larger and icon-only, without a `Yes` caption. Every row remains aligned with its column headers.
 
 ## Path browsing
 
@@ -73,7 +73,7 @@ File and folder Browse actions use native Windows dialogs with access to the ful
 
 ## Programs-tab path rows
 
-Every dynamic Programs tab uses the same maximized file path, Browse, Env var, larger icon-only Run as Admin, larger icon-only Run on startup, and Delete controls with the same 16 px horizontal spacing. Rows are saved inside that tab's `_Paths` section. Legacy `_Name` and `_Val` keys migrate to the new Env var and file path fields.
+Every dynamic Programs tab uses the same minimum-560-px file path, compact 64 px Browse button, restored 20% Env var, larger icon-only Run as Admin, larger icon-only Run on startup, and compact 30 px Delete controls with the same exact visible 20 px horizontal spacing and flush outer alignment. Rows are saved inside that tab's `_Paths` section. Legacy `_Name` and `_Val` keys migrate to the new Env var and file path fields.
 
 Program startup registry values use the dedicated `PathConfig_Program_` namespace so applying a program tab does not remove fixed Paths startup entries.
 
@@ -107,6 +107,8 @@ Write HKCU\Environment\<Env var> = <path>
 ```
 
 An empty Env var does nothing. It must not create a blank registry value name.
+
+Path-like values accept native `%NAME%` references. Resolution is case-insensitive and recursive. Variables configured anywhere in the Path-Config dialog take priority over the existing Windows environment; later Path-Config definitions in Apply All order win. Windows variables such as `%username%` are used as fallback. Unknown and cyclic references remain unresolved instead of being discarded or looping. Raw values remain persisted, and environment registry values containing references use `REG_EXPAND_SZ`.
 
 ### Windows administrator compatibility property
 

@@ -6,8 +6,8 @@ The test file version must always match the source version.
 
 Current pair:
 
-- `Path-Config.hta` version `0.29`
-- `Test/Path-Config-Test_0.29.ps1`
+- `Path-Config.hta` version `0.35`
+- `Test/Path-Config-Test_0.35.ps1`
 
 The canonical source filename remains `Path-Config.hta`; versioned PowerShell tests are stored under `Test/`, and the test filename advances with each version.
 
@@ -65,8 +65,8 @@ Check for all of the following:
 - Env var control
 - Run as Admin checkbox
 - Run on startup checkbox
-- maximized file-path columns in both path tables
-- exact 16 px horizontal spacing between every adjacent path-row control, without inherited button margins
+- file-path edits at least 560 px wide in both path tables, supported by the minimum table canvas and half-display-width window
+- compact fixed-width action columns and exact visible 20 px horizontal spacing between every adjacent path-row control, without inherited button margins or unused percentage-column space
 - larger icon-only Config-mode checkboxes
 - left-aligned ordering button and right-aligned burger menu
 - Add Path handler
@@ -106,6 +106,9 @@ Check for all of the following:
 - no broad deletion of all Run values
 - environment target is HKCU, not HKLM
 - startup target is HKCU, not HKLM
+- `%NAME%` expansion is case-insensitive, nested, cycle-safe, and preserves unknown names
+- Path-Config dialog definitions override Windows environment values
+- expandable registry values use `REG_EXPAND_SZ`
 
 ## Parser test
 
@@ -120,8 +123,10 @@ Parser success does not replace runtime UI testing.
 - Start without an existing `Path-Config.ini`.
 - Confirm `Paths` is the first tab.
 - Confirm one empty fixed row exists.
-- Confirm the file-path edit uses most of the available row width.
-- Confirm every adjacent row control has the same 16 px horizontal gap, including buttons.
+- Confirm the window is no wider than half the available display and File Path remains at least 560 px wide in both fixed and Programs path tables.
+- Confirm Environment Variable uses its restored 20% column and Links Target Name keeps its earlier 15% column.
+- Confirm the first and last controls align flush with the left and right row edges.
+- Confirm every adjacent row control has the same visible 20 px horizontal gap, including around the compact Browse, checkbox, move, menu, and Delete controls; confirm section action buttons align to the right edge.
 - Confirm both checkboxes are visibly larger and have no Yes caption.
 - Confirm the move button is aligned left and the burger menu is aligned right.
 - Confirm dynamic program tabs still appear after it.

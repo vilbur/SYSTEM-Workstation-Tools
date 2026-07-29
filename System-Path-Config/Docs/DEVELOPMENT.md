@@ -2,16 +2,16 @@
 
 ## Current baseline
 
-The latest approved version is `0.29`.
+The latest approved version is `0.35`.
 
 Primary files:
 
 - `Path-Config.hta`
 - `Path-Config.exe` (generic HTA launcher)
-- `Test/Path-Config-Test_0.29.ps1`
+- `Test/Path-Config-Test_0.35.ps1`
 - `Path-Config.ini` at runtime
 
-The next code delivery must be version `0.30` unless another version has already been approved in the repository.
+The next code delivery must be version `0.36` unless another version has already been approved in the repository.
 
 ## Product purpose
 
@@ -79,6 +79,7 @@ Rules:
 - The first row cannot be deleted.
 - Additional rows can be added and deleted.
 - Browse uses a full-PC native dialog, starts at `C:\` on first use, and reuses the last selected directory for later file and folder dialogs in the current session.
+- File Path remains at least 560 px wide; Environment Variable uses its restored 20% column and Links Target Name keeps its earlier 15% column. Path-row actions use compact fixed-width columns sized to their controls, so the 10 px padding on each adjacent cell produces an exact visible 20 px gap; the first and last controls align flush to the left and right row edges. The window is capped at half the available display width, with horizontal scrolling retained when the minimum layout is wider. Section action buttons align to the right edge of their tab content.
 - The environment-variable name is optional.
 - Both checkboxes are independent.
 
@@ -139,9 +140,11 @@ Target:
 HKCU\Environment
 ```
 
-The user-provided Env var text is the registry value name.
+The user-provided Env var text is the registry value name. Path values may contain native `%NAME%` references.
 
-The selected path is the registry value data.
+For validation and actions, Path-Config builds a case-insensitive variable map from fixed path rows, every Programs path row, and every Programs Environment Variables row. It follows Apply All order, so later Path-Config definitions win, and only then falls back to the current Windows process environment. Nested values are resolved recursively; unknown and cyclic references remain unresolved.
+
+Raw values remain in the INI. Registry values containing `%NAME%` are written as `REG_EXPAND_SZ`; plain values remain `REG_SZ`.
 
 After one or more successful changes, broadcast `WM_SETTINGCHANGE` with `Environment` to notify Windows applications.
 

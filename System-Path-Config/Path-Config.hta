@@ -20,7 +20,7 @@
 <style type="text/css">
 html, body {
     margin: 0;
-    min-width: 980px;
+    min-width: 1350px;
     min-height: 680px;
     background: #17181b;
     color: #d8d9dc;
@@ -155,6 +155,7 @@ button, input, select {
     margin-bottom: 24px;
 }
 .section-head {
+    min-height: 24px;
     margin-bottom: 10px;
 }
 .section-title {
@@ -164,6 +165,7 @@ button, input, select {
     font-weight: 650;
 }
 .section-action {
+    float: right;
     margin-left: 12px;
     border: 0;
     background: transparent;
@@ -195,11 +197,38 @@ button, input, select {
     vertical-align: middle;
 }
 .path-table td {
-    padding-right: 8px;
-    padding-left: 8px;
+    padding-right: 10px;
+    padding-left: 10px;
+}
+.path-table {
+    min-width: 1270px;
+}
+.path-field {
+    min-width: 560px;
+}
+.path-table td:first-child {
+    padding-left: 0;
+    text-align: left;
+}
+.path-table td:last-child {
+    padding-right: 0;
+    text-align: right;
 }
 .path-table .button-small {
     margin-left: 0;
+}
+.path-browse-button {
+    box-sizing: border-box;
+    width: 64px;
+    padding-right: 0;
+    padding-left: 0;
+}
+.move-cell .button,
+.path-table td:last-child .button-small {
+    box-sizing: border-box;
+    width: 30px;
+    padding-right: 0;
+    padding-left: 0;
 }
 .field {
     box-sizing: border-box;
@@ -325,7 +354,7 @@ button, input, select {
 }
 </style>
 <script language="JScript" type="text/javascript">
-var VERSION = "0.29";
+var VERSION = "0.35";
 var STARTUP_PREFIX = "PathConfig_Path_";
 var PROGRAM_STARTUP_PREFIX = "PathConfig_Program_";
 var REG_ENV = "HKCU\\Environment\\";
@@ -378,8 +407,84 @@ function lower(value) {
     return String(value).toLowerCase();
 }
 
+function environmentVariableKey(name) {
+    return "$" + lower(trimText(name));
+}
+
+function addConfiguredEnvironment(variables, name, value) {
+    name = trimText(name);
+    value = trimText(value);
+    if (name && value) {
+        variables[environmentVariableKey(name)] = value;
+    }
+}
+
+function configuredEnvironmentVariables() {
+    var variables = {};
+    var i, j, data;
+    for (i = 0; i < state.persistent.length; i++) {
+        addConfiguredEnvironment(variables, state.persistent[i].env_var, state.persistent[i].path);
+    }
+    for (i = 0; i < state.tabs.length; i++) {
+        data = state.data[state.tabs[i]];
+        if (!data) {
+            continue;
+        }
+        for (j = 0; j < data.paths.length; j++) {
+            addConfiguredEnvironment(variables, data.paths[j].env_var, data.paths[j].path);
+        }
+        for (j = 0; j < data.envs.length; j++) {
+            addConfiguredEnvironment(variables, data.envs[j].name, data.envs[j].val);
+        }
+    }
+    return variables;
+}
+
+function expandEnvironmentText(value, variables, resolving, depth) {
+    var text = String(value == null ? "" : value);
+    if (depth > 32 || text.indexOf("%") < 0) {
+        return text;
+    }
+    return text.replace(/%([^%]+)%/g, function(token, name) {
+        var key = environmentVariableKey(name);
+        var replacement = "";
+        if (resolving[key]) {
+            return token;
+        }
+        resolving[key] = true;
+        if (Object.prototype.hasOwnProperty.call(variables, key)) {
+            replacement = variables[key];
+        } else {
+            try {
+                replacement = wsh.ExpandEnvironmentStrings(token);
+            } catch (ignoreEnvironment) {
+                replacement = token;
+            }
+            if (replacement === token) {
+                delete resolving[key];
+                return token;
+            }
+        }
+        replacement = expandEnvironmentText(replacement, variables, resolving, depth + 1);
+        delete resolving[key];
+        return replacement;
+    });
+}
+
+function expandPathVariables(value, variables) {
+    var text = trimText(value);
+    if (text.indexOf("%") < 0) {
+        return text;
+    }
+    return expandEnvironmentText(text, variables || configuredEnvironmentVariables(), {}, 0);
+}
+
+function environmentRegistryType(value) {
+    return /%[^%]+%/.test(String(value || "")) ? "REG_EXPAND_SZ" : "REG_SZ";
+}
+
 function pathExists(path) {
-    path = trimText(path);
+    path = expandPathVariables(path);
     if (!path) {
         return false;
     }
@@ -881,6 +986,7 @@ function trackInputChange() {
     var eventObject = window.event;
     var target = eventObject ? eventObject.srcElement : null;
     if (target && target.getAttribute && target.getAttribute("data-scope")) {
+        captureElement(target);
         markDirty();
     }
 }
@@ -939,7 +1045,7 @@ function fitWindowToContent() {
     try {
         var availableWidth = screen.availWidth;
         var availableHeight = screen.availHeight;
-        var desiredWidth = Math.min(1220, availableWidth);
+        var desiredWidth = Math.max(1, Math.floor(availableWidth / 2));
         var viewportHeight = document.documentElement.clientHeight || document.body.clientHeight;
         var currentOuterHeight = window.outerHeight || (viewportHeight + 48);
         var chromeHeight = Math.max(0, currentOuterHeight - viewportHeight);
@@ -972,8 +1078,8 @@ function renderPersistent() {
         out += '<button class="section-action" onclick="addPersistent()">+ Add file path</button>';
     }
     out += '</div><table class="data-table path-table"><colgroup>' +
-        '<col style="width:4%"><col style="width:46%"><col style="width:9%"><col style="width:20%">' +
-        '<col style="width:8%"><col style="width:9%"><col style="width:4%"></colgroup>' +
+        '<col style="width:40px"><col><col style="width:84px"><col style="width:20%">' +
+        '<col style="width:40px"><col style="width:40px"><col style="width:40px"></colgroup>' +
         '<thead><tr><th></th><th>File path</th><th></th><th>Environment variable</th>' +
         '<th>Run as admin</th>' +
         '<th>Run on startup</th><th></th></tr></thead><tbody>';
@@ -986,7 +1092,7 @@ function renderPersistent() {
                 '" title="Left click: move down; right click: move up" onclick="movePersistent(' + i +
                 ',1)" oncontextmenu="return movePersistentUp(' + i + ')">&#8597;</button></td>';
             out += fieldInput("persistent", "", i, "path", row.path, 'data-pathcheck="1"');
-            out += '<td><button class="button button-small" onclick="browsePersistent(' + i + ')">Browse</button></td>';
+            out += '<td><button class="button button-small path-browse-button" onclick="browsePersistent(' + i + ')">Browse</button></td>';
             out += fieldInput("persistent", "", i, "env_var", row.env_var, "");
             out += checkboxInput("persistent", "", i, "run_as_admin", row.run_as_admin);
             out += checkboxInput("persistent", "", i, "run_on_startup", row.run_on_startup);
@@ -1031,8 +1137,8 @@ function renderProgramPaths(tabIndex, rows) {
         out += '<button class="section-action" onclick="addDynamicRow(' + tabIndex + ',\'paths\')">+ Add file path</button>';
     }
     out += '</div><table class="data-table path-table"><colgroup>' +
-        '<col style="width:48%"><col style="width:9%"><col style="width:20%">' +
-        '<col style="width:8%"><col style="width:9%"><col style="width:6%"></colgroup>' +
+        '<col><col style="width:84px"><col style="width:20%">' +
+        '<col style="width:40px"><col style="width:40px"><col style="width:40px"></colgroup>' +
         '<thead><tr><th>File path</th><th></th><th>Environment variable</th>' +
         '<th>Run as admin</th>' +
         '<th>Run on startup</th><th></th></tr></thead><tbody>';
@@ -1042,7 +1148,7 @@ function renderProgramPaths(tabIndex, rows) {
         out += '<tr>';
         if (state.mode === "Config") {
             out += fieldInput("dynamic", "paths", i, "path", row.path, 'data-tab="' + tabIndex + '" data-pathcheck="1"');
-            out += '<td><button class="button button-small" onclick="browseDynamicPath(' + tabIndex + ',' + i + ')">Browse</button></td>';
+            out += '<td><button class="button button-small path-browse-button" onclick="browseDynamicPath(' + tabIndex + ',' + i + ')">Browse</button></td>';
             out += fieldInput("dynamic", "paths", i, "env_var", row.env_var, 'data-tab="' + tabIndex + '"');
             out += checkboxInput("dynamic", "paths", i, "run_as_admin", row.run_as_admin, tabIndex);
             out += checkboxInput("dynamic", "paths", i, "run_on_startup", row.run_on_startup, tabIndex);
@@ -1161,7 +1267,8 @@ function renderLinksSection(tabIndex, rows) {
 }
 
 function fieldInput(scope, kind, index, field, value, extra) {
-    return '<td><input class="field" data-scope="' + scope + '" data-kind="' + kind +
+    var className = field === "path" ? "field path-field" : "field";
+    return '<td><input class="' + className + '" data-scope="' + scope + '" data-kind="' + kind +
         '" data-index="' + index + '" data-field="' + field + '" ' + extra + ' value="' + html(value) + '"></td>';
 }
 
@@ -1201,7 +1308,8 @@ function adminPropertyMatchCell(path, expected) {
 }
 
 function hasRunAsAdminProperty(path) {
-    if (!trimText(path)) {
+    path = expandPathVariables(path);
+    if (!path) {
         return false;
     }
     var current = readRunAsAdminFlags(path);
@@ -1223,7 +1331,7 @@ function option(value, selected) {
 }
 
 function looksLikePath(value) {
-    value = String(value || "");
+    value = expandPathVariables(value);
     return /^[A-Za-z]:\\/.test(value) || /^\\\\/.test(value);
 }
 
@@ -1231,6 +1339,10 @@ function environmentExists(name) {
     name = trimText(name);
     if (!name) {
         return false;
+    }
+    var configured = configuredEnvironmentVariables();
+    if (Object.prototype.hasOwnProperty.call(configured, environmentVariableKey(name))) {
+        return true;
     }
     try {
         return wsh.ExpandEnvironmentStrings("%" + name + "%") !== "%" + name + "%";
@@ -1362,7 +1474,7 @@ function queuePersistentMoveCursor(index, cursorState) {
 
 function persistentTabName(row) {
     var baseName = "";
-    var path = trimText(row.path);
+    var path = expandPathVariables(row.path);
     if (path) {
         try {
             baseName = trimText(fso.GetBaseName(path));
@@ -1833,16 +1945,18 @@ function applyPersistentPaths() {
     };
     appendLog("Persistent Paths", false);
     cleanupOwnedStartup(result);
-    var i, row, path, envName, startupName, command;
+    var variables = configuredEnvironmentVariables();
+    var i, row, rawPath, path, envName, startupName, command;
     for (i = 0; i < state.persistent.length; i++) {
         row = state.persistent[i];
-        path = trimText(row.path);
+        rawPath = trimText(row.path);
+        path = expandPathVariables(rawPath, variables);
         envName = trimText(row.env_var);
-        if (envName && path) {
+        if (envName && rawPath) {
             try {
-                wsh.RegWrite(REG_ENV + envName, path, "REG_SZ");
+                wsh.RegWrite(REG_ENV + envName, rawPath, environmentRegistryType(rawPath));
                 result.env_changed = true;
-                persistentSuccess(result, "Environment variable " + envName + " = " + path);
+                persistentSuccess(result, "Environment variable " + envName + " = " + rawPath);
             } catch (errorEnv) {
                 persistentError(result, "Row " + (i + 1) + " environment write failed: " + errorEnv.message);
             }
@@ -1872,6 +1986,7 @@ function applyPersistentPaths() {
 }
 
 function setRunAsAdminProperty(path, enabled, result, rowNumber) {
+    path = expandPathVariables(path);
     var extension = lower(fso.GetExtensionName(path));
     if (enabled && (!pathExists(path) || extension !== "exe")) {
         persistentError(result, "Row " + rowNumber + " administrator property requires an existing .exe file: " + path);
@@ -2030,6 +2145,7 @@ function runCapture(command) {
 }
 
 function buildStartupCommand(path, elevate) {
+    path = expandPathVariables(path);
     if (!elevate) {
         return quoteArg(path);
     }
@@ -2068,17 +2184,19 @@ function applyTabConfig(tabName, tabIndex, startupAlreadyCleaned) {
         admin_removed_count: 0,
         startup_count: 0
     };
-    var i, item, path, envName, startupName, command;
+    var variables = configuredEnvironmentVariables();
+    var i, item, rawPath, path, envName, startupName, command;
     appendLog("Program tab: " + tabName, false);
     if (!startupAlreadyCleaned) {
         cleanupProgramStartup(programStartupPrefix(tabIndex), result);
     }
     for (i = 0; i < data.paths.length; i++) {
         item = data.paths[i];
-        path = trimText(item.path);
+        rawPath = trimText(item.path);
+        path = expandPathVariables(rawPath, variables);
         envName = trimText(item.env_var);
-        if (envName && path) {
-            writeUserEnvironment(envName, path, result);
+        if (envName && rawPath) {
+            writeUserEnvironment(envName, rawPath, result);
         }
         if (item.run_on_startup) {
             if (!path || !pathExists(path)) {
@@ -2121,7 +2239,7 @@ function applyTabConfig(tabName, tabIndex, startupAlreadyCleaned) {
 
 function writeUserEnvironment(name, value, result) {
     try {
-        wsh.RegWrite(REG_ENV + trimText(name), trimText(value), "REG_SZ");
+        wsh.RegWrite(REG_ENV + trimText(name), trimText(value), environmentRegistryType(value));
         result.env_changed = true;
         appendLog("Environment variable " + trimText(name) + " = " + trimText(value), false);
     } catch (error) {
@@ -2131,7 +2249,7 @@ function writeUserEnvironment(name, value, result) {
 }
 
 function runConfiguredTarget(path, result) {
-    path = trimText(path);
+    path = expandPathVariables(path);
     try {
         if (fso.FolderExists(path)) {
             var folder = fso.GetFolder(path);
@@ -2162,9 +2280,10 @@ function runConfiguredTarget(path, result) {
 }
 
 function createConfiguredLink(link, result) {
-    var src = trimText(link.src);
-    var targetDir = trimText(link.tgt_dir);
-    var targetName = trimText(link.tgt_name);
+    var variables = configuredEnvironmentVariables();
+    var src = expandPathVariables(link.src, variables);
+    var targetDir = expandPathVariables(link.tgt_dir, variables);
+    var targetName = expandPathVariables(link.tgt_name, variables);
     if (!src || !targetDir || !targetName) {
         return;
     }
@@ -2277,7 +2396,7 @@ function initialize() {
         relaunchRequestPath = fso.BuildPath(appDir, "Path-Config.relaunch");
         loadState();
         try {
-            var initialWidth = Math.min(1220, screen.availWidth);
+            var initialWidth = Math.max(1, Math.floor(screen.availWidth / 2));
             var initialHeight = Math.min(720, screen.availHeight);
             window.resizeTo(initialWidth, initialHeight);
             window.moveTo(

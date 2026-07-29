@@ -1,5 +1,74 @@
 # Path-Config Changelog
 
+## 0.35
+
+Removed hidden percentage-column space that made path-row control gaps look much larger than 20 px.
+
+- replaced percentage-width move, Browse, checkbox, menu, and Delete columns with compact fixed widths
+- sized Browse buttons to 64 px, edge buttons to 30 px, and checkbox columns to their 20 px controls
+- kept File Path flexible with its 560 px minimum and kept Environment Variable at 20%
+- preserved Target Name at 15% and the half-display window cap
+- retained 10 px padding on adjacent cells, now producing an exact visible 20 px gap
+- aligned the first and last row buttons flush with the tab-content edges
+- added `Test/Path-Config-Test_0.35.ps1` compact-column, visible-spacing, edge-alignment, parser, and regression coverage
+
+## 0.34
+
+Rebalanced the window and restored the earlier secondary-control proportions.
+
+- capped initial and post-render window width at half the available display
+- restored Environment Variable to 20% in fixed and Programs path rows
+- kept Links Target Name at its earlier 15% width
+- restored File Path proportions to 46% in fixed Paths and 48% in Programs while retaining the 560 px minimum
+- aligned section action buttons to the right edge of tab content
+- preserved exact 20 px gaps between adjacent path-row controls
+- added `Test/Path-Config-Test_0.34.ps1` half-width, restored-column, button-alignment, spacing, parser, and regression coverage
+
+## 0.33
+
+Removed the window-width cap so the path-row layout produces an unmistakably wider result on large displays.
+
+- changed initial sizing to the full Windows work-area width
+- changed every post-render content fit to retain the full Windows work-area width
+- removed the previous 1320 px cap
+- preserved the 560 px File Path minimum, exact 20 px gaps, and flush left/right alignment
+- added `Test/Path-Config-Test_0.33.ps1` full-width sizing, minimum-width, parser, and regression coverage
+
+## 0.32
+
+Guaranteed a practical minimum width for File Path controls while retaining the wide edge-aligned layout.
+
+- assigned every Config-mode File Path edit a 560 px minimum width
+- set path tables to a 1140 px minimum canvas and the page to a 1220 px minimum canvas
+- increased both initial and content-fit window targets from 1220 px to 1320 px
+- retained horizontal scrolling on smaller displays rather than shrinking File Path below 560 px
+- preserved exact 20 px internal gaps and flush left/right outer-control alignment
+- added `Test/Path-Config-Test_0.32.ps1` minimum-width, window-size, spacing, parser, and regression coverage
+
+## 0.31
+
+Rebalanced path-tab controls to maximize File Path width and use 20 px gaps.
+
+- increased File Path to 51% in the fixed Paths table and 53% in Programs tabs
+- set both Environment Variable columns to 15%, matching the Links Target Name column
+- changed internal path-row gaps to exactly 20 px using 10 px padding on each adjacent cell
+- aligned the first and last controls flush with the left and right row edges
+- preserved zero inherited button margins, checkbox sizing, row ordering, menus, and Apply-mode layout
+- added `Test/Path-Config-Test_0.31.ps1` width, matched-column, edge-alignment, spacing, parser, and regression coverage
+
+## 0.30
+
+Added native `%NAME%` environment-variable support throughout path handling.
+
+- resolves Windows variables such as `%username%` and `%GoogleDrive%`
+- collects variables from fixed Paths rows, Programs path rows, and Programs Environment Variables rows
+- gives Path-Config definitions priority over existing Windows variables, using Apply All order for duplicate definitions
+- supports case-insensitive and nested references with cycle and unknown-variable protection
+- keeps raw variable syntax in the INI while using resolved paths for validation, startup, administrator properties, launches, and links
+- writes referenced environment values as `REG_EXPAND_SZ`
+- updates dialog state live so newly typed Path-Config variables are immediately available
+- added `Test/Path-Config-Test_0.30.ps1` resolver, priority, persistence, parser, and regression coverage
+
 ## 0.29
 
 Replaced app-directory-rooted path browsing with remembered full-PC native dialogs.
@@ -12,6 +81,7 @@ Replaced app-directory-rooted path browsing with remembered full-PC native dialo
 - picker helper processes remain hidden while the user-requested dialogs stay visible
 - removed the legacy HTML file input and Shell.Application folder picker
 - added `Test/Path-Config-Test_0.29.ps1` static, runtime, helper-capture, handler, and parser coverage
+
 ## 0.28
 
 Corrected all path-row control gaps to 16 px.

@@ -6,9 +6,9 @@ Path-Config is a standalone Windows HTA application (HTML and legacy-compatible 
 
 Current approved baseline:
 
-- `Path-Config.hta` version `0.29`
+- `Path-Config.hta` version `0.35`
 - `Path-Config.exe`
-- `Test/Path-Config-Test_0.29.ps1`
+- `Test/Path-Config-Test_0.35.ps1`
 
 Continue development only from the latest approved baseline. Never rebuild from memory when the current source files are available.
 
@@ -54,7 +54,7 @@ Preserve the current dark UI style:
 - fake text-based dark buttons where already used
 - highlighted `CONFIG` and `APPLY` mode controls
 - consistent row alignment
-- maximized file-path edits in path rows, with exact 16 px horizontal gaps and no inherited control margins between adjacent controls
+- a window no wider than half the display, file-path edits at least 560 px wide, restored 20% Environment Variable columns, preserved 15% Target Name columns, compact fixed-width row-action columns that produce exact visible 20 px gaps, flush outer controls, right-aligned section buttons, and no inherited control margins
 - larger icon-only Config-mode checkboxes
 
 The fixed first tab is always named `Paths`.
@@ -98,8 +98,12 @@ Applying fixed Paths rows must process every row independently.
 
 Environment variable:
 
+- accept native `%NAME%` references in every path-like field, including `%username%` and `%GoogleDrive%`
+- resolve names case-insensitively and recursively, leaving unknown or cyclic references safely unresolved
+- collect variables from fixed path rows, Programs path rows, and Programs Environment Variables sections
+- give Path-Config definitions priority over existing Windows environment variables; within Path-Config, later definitions in Apply All order win
+- preserve raw `%NAME%` references in the INI and write expandable environment values as `REG_EXPAND_SZ`
 - write non-empty variable names to `HKCU\Environment`
-- value is the row file path
 - broadcast the Windows environment-change message after changes
 
 Run as Admin:
