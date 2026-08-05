@@ -1,9 +1,5 @@
 ﻿#NoEnv
 #SingleInstance Force  ; Standard behavior: don't allow multiple copies
-; ==============================================================================
-; Everything Assistance
-; Version: 0.01
-; ==============================================================================
 SetBatchLines, -1
 SetTitleMatchMode, 2
 DetectHiddenWindows, On
@@ -30,29 +26,13 @@ if (A_Args.Length() > 0) {
 ; ==============================================================================
 OnMessage(0x5555, "TriggerManualMode")
 
-global scriptVersion := "0.01"
-global settingsPath := A_ScriptDir . "\Everything-Assistance.ini"
-
-EnvGet, googleDrivePath, GoogleDrive
-if (googleDrivePath = "")
-{
-    googleDrivePath := "D:\GoogleDrive"
-}
-
-global defaultEverythingPath := googleDrivePath . "\TotalComander\_Utilities\Everything Portable\Everything.exe"
-global everythingPath := LoadEverythingPath()
-
 global eHeight := 400
 global padding := 0
 global currentMode := "None"
 global origWin := ""
 global origCtrl := ""
 global eWin := ""
-
-Menu, Tray, Tip, Everything Assistance v%scriptVersion%
-Menu, Tray, Add
-Menu, Tray, Add, Change Everything.exe Path, ChangeEverythingPath
-Menu, Tray, Add, Test Everything.exe Path, TestEverythingPath
+global everythingPath := "%GoogleDrive%\TotalComander\_Utilities\Everything Portable\everything.exe"
 
 #Persistent
 SetTimer, DialogWatcher, 250
@@ -81,14 +61,8 @@ DialogWatcher:
             ControlGetFocus, focusedCtrl, ahk_id %origWin%
             origCtrl := InStr(focusedCtrl, "Edit") ? focusedCtrl : "Edit1" 
 
-            if !EnsureEverythingPath()
-            {
-                currentMode := "None"
-                return
-            }
-
             ; Removed the "Min" flag so the window is allowed to draw properly
-            Run, % Chr(34) . everythingPath . Chr(34)
+            Run, % everythingPath
 
             WinWaitActive, ahk_exe Everything.exe,, 5
             
@@ -159,12 +133,16 @@ return
 TriggerManualMode() {
     global currentMode, origWin, origCtrl, eWin, eHeight, everythingPath
 
-    ; --- PATH VALIDATION & PERSISTENT SETTINGS ---
-    if !EnsureEverythingPath()
-    {
-        return
+    ; --- PATH VALIDATION & BROWSER ---
+    if !FileExist(everythingPath) {
+        MsgBox, 48, Path Not Found, Everything.exe was not found at:`n%everythingPath%`n`nPlease locate it.
+        FileSelectFile, selectedPath, 3, %A_ProgramFiles%, Locate Everything.exe, Executables (*.exe)
+        if (selectedPath = "") {
+            return ; Abort if the user cancels the file dialog
+        }
+        everythingPath := selectedPath
     }
-    ; ---------------------------------------------
+    ; ---------------------------------
 
     ; Reset any existing Auto-session
     if (currentMode == "Auto") {
@@ -198,9 +176,9 @@ TriggerManualMode() {
         ; --- LAUNCH EVERYTHING ---
         ; If text was highlighted, pass it via the '-s' search parameter
         if (searchQuery != "") {
-            Run, % Chr(34) . everythingPath . Chr(34) . " -s " . Chr(34) . searchQuery . Chr(34)
+            Run, "%everythingPath%" -s "%searchQuery%"
         } else {
-            Run, % Chr(34) . everythingPath . Chr(34)
+            Run, "%everythingPath%"
         }
         
         WinWaitActive, ahk_exe Everything.exe,, 5
@@ -220,92 +198,7 @@ TriggerManualMode() {
     }
 }
 ; ==============================================================================
-; 5. EVERYTHING.EXE PATH SETTINGS
-; ==============================================================================
-ChangeEverythingPath:
-    if SelectEverythingPath()
-    {
-        TrayTip, Everything Assistance, Everything.exe path saved:`n%everythingPath%, 3, 1
-    }
-return
-
-TestEverythingPath:
-    if !EnsureEverythingPath()
-    {
-        return
-    }
-
-    Run, % Chr(34) . everythingPath . Chr(34),, UseErrorLevel
-    if ErrorLevel
-    {
-        MsgBox, 16, Launch Test Failed, Everything.exe could not be started from:`n%everythingPath%
-    }
-    else
-    {
-        TrayTip, Everything Assistance, Everything.exe started successfully., 3, 1
-    }
-return
-
-/**
-Load the remembered Everything.exe path from the script INI file.
-*/
-LoadEverythingPath()
-{
-    global settingsPath, defaultEverythingPath
-
-    IniRead, saved_path, %settingsPath%, Settings, EverythingPath, %defaultEverythingPath%
-    return saved_path
-}
-
-/**
-Validate the configured path and request a new path when necessary.
-*/
-EnsureEverythingPath()
-{
-    global everythingPath
-
-    if FileExist(everythingPath)
-    {
-        return true
-    }
-
-    MsgBox, 48, Path Not Found, Everything.exe was not found at:`n%everythingPath%`n`nPlease locate it. The selected path will be remembered.
-    return SelectEverythingPath()
-}
-
-/**
-Select Everything.exe and save its path beside the script.
-*/
-SelectEverythingPath()
-{
-    global everythingPath, settingsPath
-
-    FileSelectFile, selected_path, 3, %A_ProgramFiles%, Locate Everything.exe, Executables (*.exe)
-    if (selected_path = "")
-    {
-        return false
-    }
-
-    SplitPath, selected_path, selected_name
-    if (selected_name != "Everything.exe")
-    {
-        MsgBox, 48, Invalid File, Please select Everything.exe.
-        return false
-    }
-
-    everythingPath := selected_path
-    IniWrite, %everythingPath%, %settingsPath%, Settings, EverythingPath
-    if ErrorLevel
-    {
-        MsgBox, 16, Settings Error, The Everything.exe path could not be saved to:`n%settingsPath%
-        return false
-    }
-
-    return true
-}
-
-; ==============================================================================
-; 6. SELECTION & HAND-OFF
+; 5. SELECTION & HAND-OFF
 ; ==============================================================================
 #IfWinActive ahk_exe Everything.exe
 

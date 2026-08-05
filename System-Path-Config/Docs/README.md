@@ -12,11 +12,11 @@ This folder contains the development context Codex should read before changing P
 
 ## Current approved baseline
 
-- `Path-Config.hta` version `0.35`
+- `Path-Config.hta` version `0.37`
 - `Path-Config.exe` generic launcher
-- `Test/Path-Config-Test_0.35.ps1`
+- `Test/Path-Config-Test_0.37.ps1`
 
-The next version is `0.36`, unless the project already contains a newer user-approved baseline.
+The next version is `0.38`, unless the project already contains a newer user-approved baseline.
 
 ## Codex start prompt
 

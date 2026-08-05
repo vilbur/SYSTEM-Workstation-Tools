@@ -1,53 +1,46 @@
 ﻿#NoEnv
-#SingleInstance Off  
+#SingleInstance Force  ; Standard behavior: don't allow multiple copies
+; ==============================================================================
+; Everything Assistance
+; Version: 0.02
+; ==============================================================================
 SetBatchLines, -1
 SetTitleMatchMode, 2
 DetectHiddenWindows, On
-
 ; ==============================================================================
-; 1. PARAMETER CHECK (Re-Run, File Execution & Hide)
+; 1. PARAMETER CHECK (The "Re-Run" Trigger)
 ; ==============================================================================
-arg := A_Args[1] ? A_Args[1] : %1%
-
-if (arg != "") {
-    
-    ; Find the main background instance of this script
-    mainScriptID := 0
+; A_Args is an array of parameters passed to the script
+if (A_Args.Length() > 0) {
+    ; If any parameter is passed (like -manual), tell the running script to trigger
+    ; We use a hidden HWND check to find the main instance and send the message
+    DetectHiddenWindows, On
     WinGet, hwnds, List, %A_ScriptFullPath% ahk_class AutoHotkey
     Loop, %hwnds% {
-        if (hwnds%A_Index% != A_ScriptHwnd) {
-            mainScriptID := hwnds%A_Index%
-            break
+        id := hwnds%A_Index%
+        if (id != A_ScriptHwnd) {
+            PostMessage, 0x5555, 0, 0,, ahk_id %id%
+            ExitApp ; Close this "trigger" instance immediately
         }
     }
-
-    ; If we found the main script, tell it to abort its current Auto-session
-    if (mainScriptID) {
-        PostMessage, 0x5556, 0, 0,, ahk_id %mainScriptID%
-    } else {
-        ; Fallback if main script isn't running
-        if WinExist("ahk_exe Everything.exe")
-            WinClose, ahk_exe Everything.exe
-    }
-
-    ; --- GOAL 1: RUN FILE ---
-    if FileExist(arg) {
-        Run, "%arg%" 
-    } 
-    ; --- MANUAL TRIGGER (-manual) ---
-    else if (arg = "-manual") {
-        if (mainScriptID)
-            PostMessage, 0x5555, 0, 0,, ahk_id %mainScriptID%
-    }
-    
-    ExitApp 
 }
 
 ; ==============================================================================
 ; 2. GLOBAL SETUP & SETTINGS
 ; ==============================================================================
 OnMessage(0x5555, "TriggerManualMode")
-OnMessage(0x5556, "AbortAutoMode") ; New listener for the hide command
+
+global scriptVersion := "0.02"
+global settingsPath := A_ScriptDir . "\Everything-Assistance.ini"
+
+EnvGet, googleDrivePath, GoogleDrive
+if (googleDrivePath = "")
+{
+    googleDrivePath := "D:\GoogleDrive"
+}
+
+global defaultEverythingPath := googleDrivePath . "\TotalComander\_Utilities\Everything Portable\Everything.exe"
+global everythingPath := LoadEverythingPath()
 
 global eHeight := 400
 global padding := 0
@@ -55,7 +48,11 @@ global currentMode := "None"
 global origWin := ""
 global origCtrl := ""
 global eWin := ""
-global ignoredWin := "" ; Tracks the dialog we told Everything to ignore
+
+Menu, Tray, Tip, Everything Assistance v%scriptVersion%
+Menu, Tray, Add
+Menu, Tray, Add, Change Everything.exe Path, ChangeEverythingPath
+Menu, Tray, Add, Test Everything.exe Path, TestEverythingPath
 
 #Persistent
 SetTimer, DialogWatcher, 250
@@ -68,19 +65,9 @@ DialogWatcher:
     if (currentMode != "None")
         return
 
-    ; Cleanup the ignore list if the ignored dialog was finally closed by the user
-    if (ignoredWin != "" && !WinExist("ahk_id " . ignoredWin)) {
-        ignoredWin := ""
-    }
-
     WinGet, winList, List, ahk_class #32770
     Loop, %winList% {
         wid := winList%A_Index%
-        
-        ; If this is the dialog we explicitly hid Everything from, skip it!
-        if (wid == ignoredWin)
-            continue
-
         WinGetTitle, wTitle, ahk_id %wid%
         
         if (wTitle ~= "i)(open|save|browse|select)") {
@@ -94,13 +81,26 @@ DialogWatcher:
             ControlGetFocus, focusedCtrl, ahk_id %origWin%
             origCtrl := InStr(focusedCtrl, "Edit") ? focusedCtrl : "Edit1" 
 
-            Run, "C:\Program Files\Everything 1.5a\Everything.exe"
+            if !EnsureEverythingPath()
+            {
+                currentMode := "None"
+                return
+            }
+
+            ; Removed the "Min" flag so the window is allowed to draw properly
+            Run, % Chr(34) . everythingPath . Chr(34)
+
             WinWaitActive, ahk_exe Everything.exe,, 5
             
-            if !ErrorLevel {
+            if !ErrorLevel
+            {
                 eWin := WinExist("A")
+                
+                ; Correct syntax to force AlwaysOnTop to ON for this specific window ID
                 WinSet, AlwaysOnTop, On, ahk_id %eWin%
+                
                 SetTimer, AutoAlignTracker, 10 
+                
             } else {
                 currentMode := "None" 
             }
@@ -152,33 +152,19 @@ AutoAlignTracker:
     ; Finally, snap the Everything window exactly to the bottom of the dialog
     WinMove, ahk_id %eWin%,, %ox%, % oy + oh + padding, %ow%, %eHeight%
 return
-; ==============================================================================
-; ABORT FUNCTION (Fired when launching a file)
-; ==============================================================================
-AbortAutoMode() {
-    global currentMode, origWin, eWin, ignoredWin
 
-    ; If Everything is currently attached to a dialog, blacklist that specific dialog
-    if (currentMode == "Auto") {
-        ignoredWin := origWin 
-        SetTimer, AutoAlignTracker, Off
-    } 
-    
-    ; Close Everything and reset the script state
-    if WinExist("ahk_exe Everything.exe")
-        WinClose, ahk_exe Everything.exe
-        
-    currentMode := "None"
-}
 ; ==============================================================================
 ; 4. BEHAVIOR: MANUAL CURSOR TRIGGER (Fired by Parameter)
 ; ==============================================================================
-
-
 TriggerManualMode() {
-	
-	;MsgBox, Test
-    global currentMode, origWin, origCtrl, eWin, eHeight
+    global currentMode, origWin, origCtrl, eWin, eHeight, everythingPath
+
+    ; --- PATH VALIDATION & PERSISTENT SETTINGS ---
+    if !EnsureEverythingPath()
+    {
+        return
+    }
+    ; ---------------------------------------------
 
     ; Reset any existing Auto-session
     if (currentMode == "Auto") {
@@ -189,43 +175,137 @@ TriggerManualMode() {
 
     currentMode := "Manual"
     origWin := WinExist("A")
-	
     ControlGetFocus, origCtrl, ahk_id %origWin%
-	
-    ;if !InStr(origCtrl, "Edit") {
-    ;    currentMode := "None"
-    ;    return
-    ;}
 
-	;if !( WinExist(  ahk_id %eWin% ) )
-	{
+    if !WinExist("ahk_id " . eWin)
+    {
 		
-		CoordMode, Mouse, Screen
+        ; --- GRAB SELECTED TEXT ---
+        savedClip := ClipboardAll   ; Backup current clipboard
+        Clipboard := ""             ; Clear clipboard to test for new data
+        Send, ^c                    ; Send Ctrl+C
+        ;ClipWait, 0.2               ; Wait up to 0.2 seconds for text to copy
+        ClipWait, 1               ; Wait up to 0.2 seconds for text to copy
+        searchQuery := Clipboard    ; Store the grabbed text
+        Clipboard := savedClip      ; Restore the original clipboard silently
+        ; --------------------------
+
+        CoordMode, Mouse, Screen
+        MouseGetPos, mX, mY
 		
-		MouseGetPos, mX, mY
-	
-		Run, "C:\Program Files\Everything 1.5a\Everything.exe"
-		
-		WinWaitActive, ahk_exe Everything.exe,, 5
-	
-		if !ErrorLevel
-		{
-			eWin := WinExist("A")
-	
-			; Correct syntax here as well
-			WinSet, AlwaysOnTop, On, ahk_id %eWin%
-			
-			WinMove, ahk_id %eWin%,, %mX%, %mY%
-		}
-		
-	}
-	
-	
+		;msgBox % searchQuery
+
+        ; --- LAUNCH EVERYTHING ---
+        ; If text was highlighted, pass it via the '-s' search parameter
+        if (searchQuery != "") {
+            Run, % Chr(34) . everythingPath . Chr(34) . " -s " . Chr(34) . searchQuery . Chr(34)
+        } else {
+            Run, % Chr(34) . everythingPath . Chr(34)
+        }
+        
+        WinWaitActive, ahk_exe Everything.exe,, 5
+    
+        if !ErrorLevel
+        {
+            eWin := WinExist("A")
+            WinSet, AlwaysOnTop, On, ahk_id %eWin%
+            WinMove, ahk_id %eWin%,, %mX%, %mY%
+        }
+    }
+    /* CLOSE EVERYTHING WINDOW IF OPENED ( TOGGLE SHOW\HIDE on manual mode )
+    */ 
+    else
+    {
+        WinClose, ahk_id %eWin%
+    }
+}
+; ==============================================================================
+; 5. EVERYTHING.EXE PATH SETTINGS
+; ==============================================================================
+ChangeEverythingPath:
+    if SelectEverythingPath()
+    {
+        TrayTip, Everything Assistance, Everything.exe path saved:`n%everythingPath%, 3, 1
+    }
+return
+
+TestEverythingPath:
+    if !EnsureEverythingPath()
+    {
+        return
+    }
+
+    Run, % Chr(34) . everythingPath . Chr(34),, UseErrorLevel
+    if ErrorLevel
+    {
+        MsgBox, 16, Launch Test Failed, Everything.exe could not be started from:`n%everythingPath%
+    }
+    else
+    {
+        TrayTip, Everything Assistance, Everything.exe started successfully., 3, 1
+    }
+return
+
+/**
+Load the remembered Everything.exe path from the script INI file.
+*/
+LoadEverythingPath()
+{
+    global settingsPath, defaultEverythingPath
+
+    IniRead, saved_path, %settingsPath%, Settings, EverythingPath, %defaultEverythingPath%
+    return saved_path
 }
 
+/**
+Validate the configured path and request a new path when necessary.
+*/
+EnsureEverythingPath()
+{
+    global everythingPath
+
+    if FileExist(everythingPath)
+    {
+        return true
+    }
+
+    MsgBox, 48, Path Not Found, Everything.exe was not found at:`n%everythingPath%`n`nPlease locate it. The selected path will be remembered.
+    return SelectEverythingPath()
+}
+
+/**
+Select Everything.exe and save its path beside the script.
+*/
+SelectEverythingPath()
+{
+    global everythingPath, settingsPath
+
+    FileSelectFile, selected_path, 3, %A_ProgramFiles%, Locate Everything.exe, Executables (*.exe)
+    if (selected_path = "")
+    {
+        return false
+    }
+
+    SplitPath, selected_path, selected_name
+    if (selected_name != "Everything.exe")
+    {
+        MsgBox, 48, Invalid File, Please select Everything.exe.
+        return false
+    }
+
+    everythingPath := selected_path
+    IniWrite, %everythingPath%, %settingsPath%, Settings, EverythingPath
+    if ErrorLevel
+    {
+        MsgBox, 16, Settings Error, The Everything.exe path could not be saved to:`n%settingsPath%
+        return false
+    }
+
+    return true
+}
 
 ; ==============================================================================
-; 5. SELECTION & HAND-OFF
+; 6. SELECTION & HAND-OFF
 ; ==============================================================================
 #IfWinActive ahk_exe Everything.exe
 
@@ -271,6 +351,8 @@ TriggerManualMode() {
         ; Standard behavior for Open/Save/Browse dialogs
         ControlSetText, %origCtrl%, %Clipboard%, ahk_id %origWin%
     }
+	
+	
     
     ; Cleanup and window activation
     if (currentMode == "Manual") {

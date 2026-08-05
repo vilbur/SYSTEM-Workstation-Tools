@@ -1,5 +1,29 @@
 # Path-Config Changelog
 
+## 0.37
+
+Sanitized every path returned by the native Windows Browse dialogs.
+
+- added one centralized post-selection sanitizer used by all file and folder Browse actions
+- capitalized drive letters for every browsed path
+- removed trailing backslashes from browsed folders, including UNC shares
+- preserved required drive-root separators such as `C:\`
+- retained native Windows Forms `OpenFileDialog` and `FolderBrowserDialog` controls with full-PC access
+- preserved the shared remembered browse directory and all fixed/dynamic Browse handlers
+- added `Test/Path-Config-Test_0.37.ps1` sanitizer, drive-root, UNC, native-dialog construction, callback, parser, and regression coverage
+
+## 0.36
+
+Extended the compact fixed-Paths row geometry to every section of dynamic program tabs.
+
+- applied 10 px adjacent-cell padding and exact visible 20 px gaps to Environment Variables, Executables, and Links
+- replaced their percentage action columns with compact fixed-width Browse/D/F/Delete columns
+- sized dynamic row buttons to 30 px and spaced paired D/F buttons by exactly 20 px
+- aligned first fields flush left and Delete buttons flush right
+- kept flexible value/path fields, Environment Variable proportions, Target Name at 15%, and the half-display window cap
+- preserved all dynamic add, browse, delete, save, load, apply, and migration behavior
+- added `Test/Path-Config-Test_0.36.ps1` all-section compact-layout, gap, edge-alignment, handler, parser, and regression coverage
+
 ## 0.35
 
 Removed hidden percentage-column space that made path-row control gaps look much larger than 20 px.

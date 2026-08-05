@@ -6,9 +6,9 @@ Path-Config is a standalone Windows HTA application (HTML and legacy-compatible 
 
 Current approved baseline:
 
-- `Path-Config.hta` version `0.35`
+- `Path-Config.hta` version `0.37`
 - `Path-Config.exe`
-- `Test/Path-Config-Test_0.35.ps1`
+- `Test/Path-Config-Test_0.37.ps1`
 
 Continue development only from the latest approved baseline. Never rebuild from memory when the current source files are available.
 
@@ -54,7 +54,7 @@ Preserve the current dark UI style:
 - fake text-based dark buttons where already used
 - highlighted `CONFIG` and `APPLY` mode controls
 - consistent row alignment
-- a window no wider than half the display, file-path edits at least 560 px wide, restored 20% Environment Variable columns, preserved 15% Target Name columns, compact fixed-width row-action columns that produce exact visible 20 px gaps, flush outer controls, right-aligned section buttons, and no inherited control margins
+- a window no wider than half the display, file-path edits at least 560 px wide, restored 20% Environment Variable columns, preserved 15% Target Name columns, compact fixed-width row-action columns across fixed Paths and every dynamic-tab section that produce exact visible 20 px gaps, flush outer controls, right-aligned section buttons, and no inherited control margins
 - larger icon-only Config-mode checkboxes
 
 The fixed first tab is always named `Paths`.
@@ -79,8 +79,8 @@ Each persistent row contains exactly these logical fields:
 The row UI contains:
 
 - file path edit
-- Browse button using full-PC native file/folder dialogs
-- first browse starts at `C:\`; later dialogs in the same session start at the last selected directory
+- Browse button using native Windows Forms file/folder dialogs with full-PC access
+- first browse starts at `C:\`; later dialogs in the same session start at the last selected directory; every returned path capitalizes its drive letter and folder results remove trailing backslashes except required drive roots
 - Env var edit
 - Run as Admin checkbox
 - Run on startup checkbox

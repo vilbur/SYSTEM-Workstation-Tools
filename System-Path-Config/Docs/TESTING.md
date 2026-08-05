@@ -6,8 +6,8 @@ The test file version must always match the source version.
 
 Current pair:
 
-- `Path-Config.hta` version `0.35`
-- `Test/Path-Config-Test_0.35.ps1`
+- `Path-Config.hta` version `0.37`
+- `Test/Path-Config-Test_0.37.ps1`
 
 The canonical source filename remains `Path-Config.hta`; versioned PowerShell tests are stored under `Test/`, and the test filename advances with each version.
 
@@ -66,7 +66,7 @@ Check for all of the following:
 - Run as Admin checkbox
 - Run on startup checkbox
 - file-path edits at least 560 px wide in both path tables, supported by the minimum table canvas and half-display-width window
-- compact fixed-width action columns and exact visible 20 px horizontal spacing between every adjacent path-row control, without inherited button margins or unused percentage-column space
+- compact fixed-width action columns and exact visible 20 px horizontal spacing between adjacent controls in fixed Paths and every dynamic-tab section, without inherited button margins or unused percentage-column space
 - larger icon-only Config-mode checkboxes
 - left-aligned ordering button and right-aligned burger menu
 - Add Path handler
@@ -77,7 +77,7 @@ Check for all of the following:
 - moved-row cursor destination and hidden cursor-position command
 - burger row menu, Move to New Tab and Delete Row handlers, unique tab naming, complete-row transfer, and fixed-row invariant
 - source-update detection, unsaved-change deferral, HTA reload, launcher heartbeat/relaunch bridge, and unload cleanup
-- Browse handler
+- native Windows Forms file/folder Browse handlers and centralized selected-path sanitization
 - Apply Paths handler
 
 ### Persistence
@@ -126,7 +126,7 @@ Parser success does not replace runtime UI testing.
 - Confirm the window is no wider than half the available display and File Path remains at least 560 px wide in both fixed and Programs path tables.
 - Confirm Environment Variable uses its restored 20% column and Links Target Name keeps its earlier 15% column.
 - Confirm the first and last controls align flush with the left and right row edges.
-- Confirm every adjacent row control has the same visible 20 px horizontal gap, including around the compact Browse, checkbox, move, menu, and Delete controls; confirm section action buttons align to the right edge.
+- Confirm every adjacent row control has the same visible 20 px horizontal gap in fixed Paths and all dynamic-tab sections, including compact Browse, D/F, checkbox, move, menu, and Delete controls; confirm paired D/F buttons also have 20 px between them and section action buttons align to the right edge.
 - Confirm both checkboxes are visibly larger and have no Yes caption.
 - Confirm the move button is aligned left and the burger menu is aligned right.
 - Confirm dynamic program tabs still appear after it.
@@ -168,11 +168,11 @@ Repeat with both checkboxes checked.
 
 ### 4. Browse
 
-- On the first file or folder browse, confirm the dialog starts at `C:\`.
+- On the first file or folder browse, confirm the native Windows dialog starts at `C:\`.
 - Confirm the dialog can navigate drives, Desktop, and the full PC rather than being rooted at the Path-Config program directory.
-- Browse to a file with spaces in its path and confirm the full path is stored.
+- Browse to a file with spaces and a lowercase drive letter and confirm the full path is stored with an uppercase drive letter.
 - Open another file or folder browser and confirm it starts at the directory selected previously.
-- Select a different directory and confirm the next browser remembers that directory.
+- Select a folder and confirm its drive letter is uppercase and its trailing backslash is removed; confirm a drive root remains valid as `C:\`, then confirm the next browser remembers the sanitized directory.
 - Save and reopen.
 
 ### 5. Environment variable

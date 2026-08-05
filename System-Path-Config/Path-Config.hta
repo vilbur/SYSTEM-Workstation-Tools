@@ -379,7 +379,7 @@ button, input, select {
 }
 </style>
 <script language="JScript" type="text/javascript">
-var VERSION = "0.36";
+var VERSION = "0.37";
 var STARTUP_PREFIX = "PathConfig_Path_";
 var PROGRAM_STARTUP_PREFIX = "PathConfig_Program_";
 var REG_ENV = "HKCU\\Environment\\";
@@ -1641,6 +1641,19 @@ function powerShellLiteral(value) {
     return "'" + String(value).replace(/'/g, "''") + "'";
 }
 
+function sanitizeBrowsedPath(path, isFolder) {
+    path = trimText(path).replace(/\//g, "\\");
+    if (/^[a-z]:\\/i.test(path)) {
+        path = path.charAt(0).toUpperCase() + path.substr(1);
+    }
+    if (isFolder) {
+        while (/\\$/.test(path) && !/^[A-Z]:\\$/.test(path)) {
+            path = path.substr(0, path.length - 1);
+        }
+    }
+    return path;
+}
+
 function currentBrowseDirectory() {
     try {
         if (lastBrowseDirectory && fso.FolderExists(lastBrowseDirectory)) {
@@ -1689,7 +1702,7 @@ function browseFolder(callback, title) {
         "$dialog.ShowNewFolderButton=$true;" +
         "if($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK){" +
         "[Console]::Out.Write('PATHCONFIG_PICKER:'+$dialog.SelectedPath)}";
-    var path = runPickerScript(script);
+    var path = sanitizeBrowsedPath(runPickerScript(script), true);
     if (path) {
         rememberBrowseDirectory(path);
         callback(path);
@@ -1708,7 +1721,7 @@ function browseFile(callback, accept) {
         "$dialog.RestoreDirectory=$true;" +
         "if($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK){" +
         "[Console]::Out.Write('PATHCONFIG_PICKER:'+$dialog.FileName)}";
-    var path = runPickerScript(script);
+    var path = sanitizeBrowsedPath(runPickerScript(script), false);
     if (path) {
         rememberBrowseDirectory(path);
         callback(path);
