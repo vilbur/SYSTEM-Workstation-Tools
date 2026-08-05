@@ -1,4 +1,4 @@
-# Path-Config Design Specification
+﻿# Path-Config Design Specification
 
 ## User-facing modes
 
@@ -69,7 +69,7 @@ The file-path edit receives the largest available share of the row and has a 560
 
 ## Path browsing
 
-File and folder Browse actions use native Windows Forms `OpenFileDialog` and `FolderBrowserDialog` controls with access to the full PC. The first dialog in an application session starts at `C:\`. After a successful selection, both file and folder dialogs reuse the selected directory as their next starting location. Every selected path passes through one sanitizer before reaching application state: drive letters are capitalized, forward separators are normalized, and folder results lose trailing backslashes except when the separator is required for a drive root such as `C:\`. UNC share trailing separators are removed. Cancelling a dialog leaves the remembered directory unchanged.
+File Browse actions use Windows Forms `OpenFileDialog`. Folder Browse actions use the native Windows `IFileOpenDialog` Common Item Dialog in folder-selection mode. Both provide access to the full PC. The first dialog in an application session starts at `C:\`. After a successful selection, both file and folder dialogs reuse the selected directory as their next starting location. Every selected path passes through one sanitizer before reaching application state: drive letters are capitalized, forward separators are normalized, and folder results lose trailing backslashes except when the separator is required for a drive root such as `C:\`. UNC share trailing separators are removed. Cancelling a dialog leaves the remembered directory unchanged.
 
 ## Programs-tab path rows
 

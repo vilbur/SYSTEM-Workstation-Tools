@@ -1,8 +1,8 @@
-# Apply Execution Log - Tuesday, 28 July 2026 21:14:28
+# Apply Execution Log - Wednesday, 5 August 2026 19:14:51
 
-- OK: Program tab: GoogleDrive
+- OK: Program tab: PROGRAMS
 
-- FAILED: GoogleDrive row 1 administrator-property target is empty.
+- OK: Environment variable poath_confg_test = W:\SYSTEM-Workstation-Tools\System-Path-Config\Test\Test-File-Tree\Source\foo.exe
 
-- OK: Environment variable GoogleDrive = D:\GoogleDrive
+- FAILED: Hardlink failed for W:\SYSTEM-Workstation-Tools\System-Path-Config\Test\Test-File-Tree\Source\hardlink-test: Hard links can only target files
 

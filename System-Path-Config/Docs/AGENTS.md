@@ -1,4 +1,4 @@
-# Path-Config Codex Agent Instructions
+﻿# Path-Config Codex Agent Instructions
 
 ## Project
 
@@ -6,9 +6,9 @@ Path-Config is a standalone Windows HTA application (HTML and legacy-compatible 
 
 Current approved baseline:
 
-- `Path-Config.hta` version `0.37`
+- `Path-Config.hta` version `0.39`
 - `Path-Config.exe`
-- `Test/Path-Config-Test_0.37.ps1`
+- `Test/Path-Config-Test_0.39.ps1`
 
 Continue development only from the latest approved baseline. Never rebuild from memory when the current source files are available.
 

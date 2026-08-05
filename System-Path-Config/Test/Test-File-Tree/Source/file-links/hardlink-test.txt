@@ -1,1 +1,1 @@
-Hard-link source file.
+Hard-link test file.

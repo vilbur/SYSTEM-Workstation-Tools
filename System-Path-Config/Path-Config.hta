@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html>
 <head>
 <meta http-equiv="X-UA-Compatible" content="IE=9" />
@@ -379,12 +379,63 @@ button, input, select {
 }
 </style>
 <script language="JScript" type="text/javascript">
-var VERSION = "0.37";
+var VERSION = "0.39";
 var STARTUP_PREFIX = "PathConfig_Path_";
 var PROGRAM_STARTUP_PREFIX = "PathConfig_Program_";
 var REG_ENV = "HKCU\\Environment\\";
 var REG_RUN = "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\\";
 var APP_COMPAT_KEY = "HKCU\\Software\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Layers";
+var NATIVE_FOLDER_DIALOG_CSHARP =
+    "dXNpbmcgU3lzdGVtOwp1c2luZyBTeXN0ZW0uUnVudGltZS5JbnRlcm9wU2VydmljZXM7Cm5hbWVzcGFjZSBQYXRoQ29uZmlnIHsKICAgIFtGbGFnc10KICAg" +
+    "IGludGVybmFsIGVudW0gRmlsZU9wZW5PcHRpb25zIDogdWludCB7CiAgICAgICAgUGlja0ZvbGRlcnMgPSAweDAwMDAwMDIwLAogICAgICAgIEZvcmNlRmls" +
+    "ZVN5c3RlbSA9IDB4MDAwMDAwNDAsCiAgICAgICAgUGF0aE11c3RFeGlzdCA9IDB4MDAwMDA4MDAsCiAgICAgICAgTm9DaGFuZ2VEaXJlY3RvcnkgPSAweDAw" +
+    "MDAwMDA4CiAgICB9CiAgICBpbnRlcm5hbCBlbnVtIFNoZWxsRGlzcGxheU5hbWUgOiB1aW50IHsgRmlsZVN5c3RlbVBhdGggPSAweDgwMDU4MDAwIH0KICAg" +
+    "IFtDb21JbXBvcnQsIEd1aWQoIkRDMUM1QTlDLUU4OEEtNERERS1BNUExLTYwRjgyQTIwQUVGNyIpXQogICAgaW50ZXJuYWwgY2xhc3MgRmlsZU9wZW5EaWFs" +
+    "b2dDb20geyB9CiAgICBbQ29tSW1wb3J0LCBJbnRlcmZhY2VUeXBlKENvbUludGVyZmFjZVR5cGUuSW50ZXJmYWNlSXNJVW5rbm93biksIEd1aWQoIjQyRjg1" +
+    "MTM2LURCN0UtNDM5Qy04NUYxLUU0MDc1RDEzNUZDOCIpXQogICAgaW50ZXJuYWwgaW50ZXJmYWNlIElGaWxlRGlhbG9nIHsKICAgICAgICBbUHJlc2VydmVT" +
+    "aWddIGludCBTaG93KEludFB0ciBwYXJlbnQpOwogICAgICAgIHZvaWQgU2V0RmlsZVR5cGVzKHVpbnQgY291bnQsIEludFB0ciBzcGVjcyk7CiAgICAgICAg" +
+    "dm9pZCBTZXRGaWxlVHlwZUluZGV4KHVpbnQgaW5kZXgpOwogICAgICAgIHZvaWQgR2V0RmlsZVR5cGVJbmRleChvdXQgdWludCBpbmRleCk7CiAgICAgICAg" +
+    "dm9pZCBBZHZpc2UoSW50UHRyIGV2ZW50cywgb3V0IHVpbnQgY29va2llKTsKICAgICAgICB2b2lkIFVuYWR2aXNlKHVpbnQgY29va2llKTsKICAgICAgICB2" +
+    "b2lkIFNldE9wdGlvbnMoRmlsZU9wZW5PcHRpb25zIG9wdGlvbnMpOwogICAgICAgIHZvaWQgR2V0T3B0aW9ucyhvdXQgRmlsZU9wZW5PcHRpb25zIG9wdGlv" +
+    "bnMpOwogICAgICAgIHZvaWQgU2V0RGVmYXVsdEZvbGRlcihJU2hlbGxJdGVtIGl0ZW0pOwogICAgICAgIHZvaWQgU2V0Rm9sZGVyKElTaGVsbEl0ZW0gaXRl" +
+    "bSk7CiAgICAgICAgdm9pZCBHZXRGb2xkZXIob3V0IElTaGVsbEl0ZW0gaXRlbSk7CiAgICAgICAgdm9pZCBHZXRDdXJyZW50U2VsZWN0aW9uKG91dCBJU2hl" +
+    "bGxJdGVtIGl0ZW0pOwogICAgICAgIHZvaWQgU2V0RmlsZU5hbWUoW01hcnNoYWxBcyhVbm1hbmFnZWRUeXBlLkxQV1N0cildIHN0cmluZyBuYW1lKTsKICAg" +
+    "ICAgICB2b2lkIEdldEZpbGVOYW1lKFtNYXJzaGFsQXMoVW5tYW5hZ2VkVHlwZS5MUFdTdHIpXSBvdXQgc3RyaW5nIG5hbWUpOwogICAgICAgIHZvaWQgU2V0" +
+    "VGl0bGUoW01hcnNoYWxBcyhVbm1hbmFnZWRUeXBlLkxQV1N0cildIHN0cmluZyB0aXRsZSk7CiAgICAgICAgdm9pZCBTZXRPa0J1dHRvbkxhYmVsKFtNYXJz" +
+    "aGFsQXMoVW5tYW5hZ2VkVHlwZS5MUFdTdHIpXSBzdHJpbmcgdGV4dCk7CiAgICAgICAgdm9pZCBTZXRGaWxlTmFtZUxhYmVsKFtNYXJzaGFsQXMoVW5tYW5h" +
+    "Z2VkVHlwZS5MUFdTdHIpXSBzdHJpbmcgbGFiZWwpOwogICAgICAgIHZvaWQgR2V0UmVzdWx0KG91dCBJU2hlbGxJdGVtIGl0ZW0pOwogICAgICAgIHZvaWQg" +
+    "QWRkUGxhY2UoSVNoZWxsSXRlbSBpdGVtLCBpbnQgbG9jYXRpb24pOwogICAgICAgIHZvaWQgU2V0RGVmYXVsdEV4dGVuc2lvbihbTWFyc2hhbEFzKFVubWFu" +
+    "YWdlZFR5cGUuTFBXU3RyKV0gc3RyaW5nIGV4dGVuc2lvbik7CiAgICAgICAgdm9pZCBDbG9zZShpbnQgcmVzdWx0KTsKICAgICAgICB2b2lkIFNldENsaWVu" +
+    "dEd1aWQocmVmIEd1aWQgZ3VpZCk7CiAgICAgICAgdm9pZCBDbGVhckNsaWVudERhdGEoKTsKICAgICAgICB2b2lkIFNldEZpbHRlcihJbnRQdHIgZmlsdGVy" +
+    "KTsKICAgIH0KICAgIFtDb21JbXBvcnQsIEludGVyZmFjZVR5cGUoQ29tSW50ZXJmYWNlVHlwZS5JbnRlcmZhY2VJc0lVbmtub3duKSwgR3VpZCgiNDM4MjZE" +
+    "MUUtRTcxOC00MkVFLUJDNTUtQTFFMjYxQzM3QkZFIildCiAgICBpbnRlcm5hbCBpbnRlcmZhY2UgSVNoZWxsSXRlbSB7CiAgICAgICAgdm9pZCBCaW5kVG9I" +
+    "YW5kbGVyKEludFB0ciBjb250ZXh0LCByZWYgR3VpZCBoYW5kbGVyLCByZWYgR3VpZCBpaWQsIG91dCBJbnRQdHIgcmVzdWx0KTsKICAgICAgICB2b2lkIEdl" +
+    "dFBhcmVudChvdXQgSVNoZWxsSXRlbSBwYXJlbnQpOwogICAgICAgIHZvaWQgR2V0RGlzcGxheU5hbWUoU2hlbGxEaXNwbGF5TmFtZSB0eXBlLCBvdXQgSW50" +
+    "UHRyIG5hbWUpOwogICAgICAgIHZvaWQgR2V0QXR0cmlidXRlcyh1aW50IG1hc2ssIG91dCB1aW50IGF0dHJpYnV0ZXMpOwogICAgICAgIHZvaWQgQ29tcGFy" +
+    "ZShJU2hlbGxJdGVtIGl0ZW0sIHVpbnQgaGludCwgb3V0IGludCBvcmRlcik7CiAgICB9CiAgICBwdWJsaWMgc3RhdGljIGNsYXNzIE5hdGl2ZUZvbGRlckRp" +
+    "YWxvZyB7CiAgICAgICAgW0RsbEltcG9ydCgic2hlbGwzMi5kbGwiLCBDaGFyU2V0ID0gQ2hhclNldC5Vbmljb2RlLCBQcmVzZXJ2ZVNpZyA9IGZhbHNlKV0K" +
+    "ICAgICAgICBwcml2YXRlIHN0YXRpYyBleHRlcm4gdm9pZCBTSENyZWF0ZUl0ZW1Gcm9tUGFyc2luZ05hbWUoc3RyaW5nIHBhdGgsIEludFB0ciBiaW5kaW5n" +
+    "Q29udGV4dCwgcmVmIEd1aWQgaWlkLCBvdXQgSVNoZWxsSXRlbSBpdGVtKTsKICAgICAgICBbRGxsSW1wb3J0KCJ1c2VyMzIuZGxsIildCiAgICAgICAgcHJp" +
+    "dmF0ZSBzdGF0aWMgZXh0ZXJuIEludFB0ciBHZXRGb3JlZ3JvdW5kV2luZG93KCk7CiAgICAgICAgcHVibGljIHN0YXRpYyBzdHJpbmcgU2hvdyhzdHJpbmcg" +
+    "dGl0bGUsIHN0cmluZyBpbml0aWFsUGF0aCkgewogICAgICAgICAgICBJRmlsZURpYWxvZyBkaWFsb2cgPSAoSUZpbGVEaWFsb2cpbmV3IEZpbGVPcGVuRGlh" +
+    "bG9nQ29tKCk7CiAgICAgICAgICAgIElTaGVsbEl0ZW0gaW5pdGlhbEl0ZW0gPSBudWxsOwogICAgICAgICAgICBJU2hlbGxJdGVtIHJlc3VsdEl0ZW0gPSBu" +
+    "dWxsOwogICAgICAgICAgICB0cnkgewogICAgICAgICAgICAgICAgRmlsZU9wZW5PcHRpb25zIG9wdGlvbnM7CiAgICAgICAgICAgICAgICBkaWFsb2cuR2V0" +
+    "T3B0aW9ucyhvdXQgb3B0aW9ucyk7CiAgICAgICAgICAgICAgICBkaWFsb2cuU2V0T3B0aW9ucyhvcHRpb25zIHwgRmlsZU9wZW5PcHRpb25zLlBpY2tGb2xk" +
+    "ZXJzIHwgRmlsZU9wZW5PcHRpb25zLkZvcmNlRmlsZVN5c3RlbSB8IEZpbGVPcGVuT3B0aW9ucy5QYXRoTXVzdEV4aXN0IHwgRmlsZU9wZW5PcHRpb25zLk5v" +
+    "Q2hhbmdlRGlyZWN0b3J5KTsKICAgICAgICAgICAgICAgIGlmICghU3RyaW5nLklzTnVsbE9yRW1wdHkodGl0bGUpKSBkaWFsb2cuU2V0VGl0bGUodGl0bGUp" +
+    "OwogICAgICAgICAgICAgICAgaWYgKCFTdHJpbmcuSXNOdWxsT3JFbXB0eShpbml0aWFsUGF0aCkgJiYgU3lzdGVtLklPLkRpcmVjdG9yeS5FeGlzdHMoaW5p" +
+    "dGlhbFBhdGgpKSB7CiAgICAgICAgICAgICAgICAgICAgR3VpZCBpaWQgPSB0eXBlb2YoSVNoZWxsSXRlbSkuR1VJRDsKICAgICAgICAgICAgICAgICAgICBT" +
+    "SENyZWF0ZUl0ZW1Gcm9tUGFyc2luZ05hbWUoaW5pdGlhbFBhdGgsIEludFB0ci5aZXJvLCByZWYgaWlkLCBvdXQgaW5pdGlhbEl0ZW0pOwogICAgICAgICAg" +
+    "ICAgICAgICAgIGRpYWxvZy5TZXREZWZhdWx0Rm9sZGVyKGluaXRpYWxJdGVtKTsKICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgICAgIGludCByZXN1" +
+    "bHQgPSBkaWFsb2cuU2hvdyhHZXRGb3JlZ3JvdW5kV2luZG93KCkpOwogICAgICAgICAgICAgICAgaWYgKHJlc3VsdCAhPSAwKSByZXR1cm4gU3RyaW5nLkVt" +
+    "cHR5OwogICAgICAgICAgICAgICAgZGlhbG9nLkdldFJlc3VsdChvdXQgcmVzdWx0SXRlbSk7CiAgICAgICAgICAgICAgICBJbnRQdHIgZGlzcGxheU5hbWU7" +
+    "CiAgICAgICAgICAgICAgICByZXN1bHRJdGVtLkdldERpc3BsYXlOYW1lKFNoZWxsRGlzcGxheU5hbWUuRmlsZVN5c3RlbVBhdGgsIG91dCBkaXNwbGF5TmFt" +
+    "ZSk7CiAgICAgICAgICAgICAgICB0cnkgeyByZXR1cm4gTWFyc2hhbC5QdHJUb1N0cmluZ1VuaShkaXNwbGF5TmFtZSk7IH0KICAgICAgICAgICAgICAgIGZp" +
+    "bmFsbHkgeyBNYXJzaGFsLkZyZWVDb1Rhc2tNZW0oZGlzcGxheU5hbWUpOyB9CiAgICAgICAgICAgIH0gZmluYWxseSB7CiAgICAgICAgICAgICAgICBpZiAo" +
+    "cmVzdWx0SXRlbSAhPSBudWxsKSBNYXJzaGFsLkZpbmFsUmVsZWFzZUNvbU9iamVjdChyZXN1bHRJdGVtKTsKICAgICAgICAgICAgICAgIGlmIChpbml0aWFs" +
+    "SXRlbSAhPSBudWxsKSBNYXJzaGFsLkZpbmFsUmVsZWFzZUNvbU9iamVjdChpbml0aWFsSXRlbSk7CiAgICAgICAgICAgICAgICBNYXJzaGFsLkZpbmFsUmVs" +
+    "ZWFzZUNvbU9iamVjdChkaWFsb2cpOwogICAgICAgICAgICB9CiAgICAgICAgfQogICAgfQp9";
+
 var fso = null;
 var wsh = null;
 var appDir = "";
@@ -1694,14 +1745,13 @@ function runPickerScript(script) {
 }
 
 function browseFolder(callback, title) {
-    var script = "Add-Type -AssemblyName System.Windows.Forms;" +
-        "$dialog=New-Object System.Windows.Forms.FolderBrowserDialog;" +
-        "$dialog.Description=" + powerShellLiteral(title || "Select folder") + ";" +
-        "$dialog.RootFolder=[System.Environment+SpecialFolder]::Desktop;" +
-        "$dialog.SelectedPath=" + powerShellLiteral(currentBrowseDirectory()) + ";" +
-        "$dialog.ShowNewFolderButton=$true;" +
-        "if($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK){" +
-        "[Console]::Out.Write('PATHCONFIG_PICKER:'+$dialog.SelectedPath)}";
+    var script = "$code=[System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('" +
+        NATIVE_FOLDER_DIALOG_CSHARP + "'));" +
+        "Add-Type -TypeDefinition $code -Language CSharp -ErrorAction Stop;" +
+        "$selected=[PathConfig.NativeFolderDialog]::Show(" +
+        powerShellLiteral(title || "Select folder") + "," +
+        powerShellLiteral(currentBrowseDirectory()) + ");" +
+        "if($selected){[Console]::Out.Write('PATHCONFIG_PICKER:'+$selected)}";
     var path = sanitizeBrowsedPath(runPickerScript(script), true);
     if (path) {
         rememberBrowseDirectory(path);

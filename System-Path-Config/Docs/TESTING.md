@@ -1,4 +1,4 @@
-# Path-Config Testing Guide
+﻿# Path-Config Testing Guide
 
 ## Test files
 
@@ -6,8 +6,8 @@ The test file version must always match the source version.
 
 Current pair:
 
-- `Path-Config.hta` version `0.37`
-- `Test/Path-Config-Test_0.37.ps1`
+- `Path-Config.hta` version `0.39`
+- `Test/Path-Config-Test_0.39.ps1`
 
 The canonical source filename remains `Path-Config.hta`; versioned PowerShell tests are stored under `Test/`, and the test filename advances with each version.
 

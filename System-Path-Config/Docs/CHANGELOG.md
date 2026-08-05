@@ -1,4 +1,22 @@
-# Path-Config Changelog
+﻿# Path-Config Changelog
+
+## 0.39
+
+Replaced the incompatible upgraded WinForms folder picker with the native Windows Common Item Dialog.
+
+- removed the FolderBrowserDialog.AutoUpgradeEnabled dependency, which is unavailable in some Windows PowerShell/.NET installations
+- opened Windows IFileOpenDialog in folder-selection and file-system modes through an embedded, runtime-compiled interop bridge
+- preserved the picker title, remembered initial directory, selected-path sanitization, hidden STA helper, and all folder Browse callbacks
+- added Test/Path-Config-Test_0.39.ps1, including bridge decoding and compilation plus the full parser and UI regression suite
+## 0.38
+
+Upgraded Browse Folder to the modern native Windows folder-selection experience.
+
+- explicitly enabled `FolderBrowserDialog.AutoUpgradeEnabled`
+- requested the upgraded Windows Common Item Dialog while retaining folder-only selection
+- preserved the remembered starting directory, full Desktop/This PC tree, new-folder action, full-path sanitization, and all fixed/dynamic folder Browse handlers
+- retained the hidden STA picker helper so no console window is shown
+- added `Test/Path-Config-Test_0.38.ps1` native-upgrade, picker-script, parser, migration, and full regression coverage
 
 ## 0.37
 
