@@ -1,5 +1,17 @@
 ﻿# Path-Config Changelog
 
+## 0.40
+
+Refined dynamic program-tab section labels, ordering, and empty-state layout.
+
+- shortened the path status headers from Run as admin and Run on startup to Admin and Startup
+- retained full Yes/No values in Apply mode
+- moved Links directly below Paths in every dynamic program tab
+- removed visible No entries configured, No executables configured, and No links configured messages while preserving their layout height
+- moved every + Add section action beside its heading on the left
+- preserved the v0.39 native Windows folder picker and all existing persistence and Apply behavior
+- added `Test/Path-Config-Test_0.40.ps1` UI-order, label, empty-state, action-alignment, parser, and regression coverage
+
 ## 0.39
 
 Replaced the incompatible upgraded WinForms folder picker with the native Windows Common Item Dialog.

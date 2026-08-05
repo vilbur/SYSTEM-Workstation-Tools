@@ -165,8 +165,9 @@ button, input, select {
     font-weight: 650;
 }
 .section-action {
-    float: right;
-    margin-left: 12px;
+    display: inline-block;
+    margin-left: 10px;
+    vertical-align: 2px;
     border: 0;
     background: transparent;
     color: #f2a23a;
@@ -379,7 +380,7 @@ button, input, select {
 }
 </style>
 <script language="JScript" type="text/javascript">
-var VERSION = "0.39";
+var VERSION = "0.40";
 var STARTUP_PREFIX = "PathConfig_Path_";
 var PROGRAM_STARTUP_PREFIX = "PathConfig_Program_";
 var REG_ENV = "HKCU\\Environment\\";
@@ -1157,8 +1158,8 @@ function renderPersistent() {
         '<col style="width:40px"><col><col style="width:84px"><col style="width:20%">' +
         '<col style="width:40px"><col style="width:40px"><col style="width:40px"></colgroup>' +
         '<thead><tr><th></th><th>File path</th><th></th><th>Environment variable</th>' +
-        '<th>Run as admin</th>' +
-        '<th>Run on startup</th><th></th></tr></thead><tbody>';
+        '<th>Admin</th>' +
+        '<th>Startup</th><th></th></tr></thead><tbody>';
     var i, row;
     for (i = 0; i < state.persistent.length; i++) {
         row = state.persistent[i];
@@ -1197,9 +1198,9 @@ function renderProgram(tabIndex) {
     var name = state.tabs[tabIndex];
     var data = state.data[name];
     var out = renderProgramPaths(tabIndex, data.paths);
+    out += renderLinksSection(tabIndex, data.links);
     out += renderNameValueSection(tabIndex, "envs", "Environment Variables", data.envs, false);
     out += renderExecSection(tabIndex, data.execs);
-    out += renderLinksSection(tabIndex, data.links);
     if (state.mode === "Apply") {
         out += '<div class="footer-actions"><button class="button button-primary apply" onclick="applyCurrentProgram()">APPLY ' +
             html(name).toUpperCase() + '</button></div>';
@@ -1216,8 +1217,8 @@ function renderProgramPaths(tabIndex, rows) {
         '<col><col style="width:84px"><col style="width:20%">' +
         '<col style="width:40px"><col style="width:40px"><col style="width:40px"></colgroup>' +
         '<thead><tr><th>File path</th><th></th><th>Environment variable</th>' +
-        '<th>Run as admin</th>' +
-        '<th>Run on startup</th><th></th></tr></thead><tbody>';
+        '<th>Admin</th>' +
+        '<th>Startup</th><th></th></tr></thead><tbody>';
     var i, row;
     for (i = 0; i < rows.length; i++) {
         row = rows[i];
@@ -1250,7 +1251,7 @@ function renderNameValueSection(tabIndex, kind, title, rows, keepFirst) {
     }
     out += '</div>';
     if (!rows.length) {
-        out += '<div class="empty-state">No entries configured.</div></div>';
+        out += '<div class="empty-state">&nbsp;</div></div>';
         return out;
     }
     out += '<table class="data-table program-table"><colgroup><col style="width:20%"><col>' +
@@ -1285,7 +1286,7 @@ function renderExecSection(tabIndex, rows) {
     }
     out += '</div>';
     if (!rows.length) {
-        return out + '<div class="empty-state">No executables configured.</div></div>';
+        return out + '<div class="empty-state">&nbsp;</div></div>';
     }
     out += '<table class="data-table program-table"><colgroup><col><col style="width:100px"><col style="width:40px"></colgroup><tbody>';
     var i;
@@ -1312,7 +1313,7 @@ function renderLinksSection(tabIndex, rows) {
     }
     out += '</div>';
     if (!rows.length) {
-        return out + '<div class="empty-state">No links configured.</div></div>';
+        return out + '<div class="empty-state">&nbsp;</div></div>';
     }
     out += '<table class="data-table program-table"><colgroup><col><col style="width:100px"><col>' +
         '<col style="width:50px"><col style="width:15%"><col style="width:130px"><col style="width:40px"></colgroup>' +

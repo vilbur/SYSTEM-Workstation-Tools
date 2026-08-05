@@ -126,7 +126,7 @@ Parser success does not replace runtime UI testing.
 - Confirm the window is no wider than half the available display and File Path remains at least 560 px wide in both fixed and Programs path tables.
 - Confirm Environment Variable uses its restored 20% column and Links Target Name keeps its earlier 15% column.
 - Confirm the first and last controls align flush with the left and right row edges.
-- Confirm every adjacent row control has the same visible 20 px horizontal gap in fixed Paths and all dynamic-tab sections, including compact Browse, D/F, checkbox, move, menu, and Delete controls; confirm paired D/F buttons also have 20 px between them and section action buttons align to the right edge.
+- Confirm every adjacent row control has the same visible 20 px horizontal gap in fixed Paths and all dynamic-tab sections, including compact Browse, D/F, checkbox, move, menu, and Delete controls; confirm paired D/F buttons also have 20 px between them and section Add buttons sit beside their labels on the left.
 - Confirm both checkboxes are visibly larger and have no Yes caption.
 - Confirm the move button is aligned left and the burger menu is aligned right.
 - Confirm dynamic program tabs still appear after it.

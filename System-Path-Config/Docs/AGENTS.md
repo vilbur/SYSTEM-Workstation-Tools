@@ -54,7 +54,7 @@ Preserve the current dark UI style:
 - fake text-based dark buttons where already used
 - highlighted `CONFIG` and `APPLY` mode controls
 - consistent row alignment
-- a window no wider than half the display, file-path edits at least 560 px wide, restored 20% Environment Variable columns, preserved 15% Target Name columns, compact fixed-width row-action columns across fixed Paths and every dynamic-tab section that produce exact visible 20 px gaps, flush outer controls, right-aligned section buttons, and no inherited control margins
+- a window no wider than half the display, file-path edits at least 560 px wide, restored 20% Environment Variable columns, preserved 15% Target Name columns, compact fixed-width row-action columns across fixed Paths and every dynamic-tab section that produce exact visible 20 px gaps, flush outer controls, section Add buttons beside their labels on the left, and no inherited control margins
 - larger icon-only Config-mode checkboxes
 
 The fixed first tab is always named `Paths`.
