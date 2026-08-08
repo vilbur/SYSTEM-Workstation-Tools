@@ -16,7 +16,9 @@ Expected capabilities:
 - delete persistent rows after the first
 - manage dynamic program tabs
 - edit dynamic tab configuration rows
-- save changes
+- save changes manually while edits are pending; the available state uses the original v0.39 base class, hover, white font, pointer cursor, and direct save action; the clean state is a separate frozen button with grey font, default cursor, resting v0.39 surface, no hover response, and no click handler
+- detect value changes immediately in IE9-mode HTA through input, keyup, propertychange, and change events so typing or pasting into a path field unfreezes Save State without waiting for focus loss; ignore non-value property events
+- automatically save pending changes before switching from Config to Apply; remain in Config if saving fails
 
 ### APPLY
 
@@ -65,15 +67,21 @@ Required left-to-right control order:
 6. Run on startup checkbox
 7. fixed-size burger menu containing Move to New Tab and Delete Row
 
-The file-path edit receives the largest available share of the row and has a 560 px minimum width. Environment Variable uses its restored 20% column while Links Target Name keeps its earlier 15% column. Path tables retain a 1270 px minimum canvas and the application window is capped at half the available display width; narrower windows scroll horizontally instead of compressing File Path below its minimum. Compact fixed-width columns fit the 30 px edge buttons, 64 px Browse button, and 20 px checkboxes without unused column space in fixed Paths and Programs Paths; 10 px padding on each adjacent cell therefore produces an exact visible 20 px horizontal gap. Shared button styles must not add extra margins. The first and last controls align flush with the left and right row edges, and section Add buttons sit beside their labels on the left. Config-mode checkboxes are larger and icon-only, without a `Yes` caption. Every row remains aligned with its column headers.
+The file-path edit receives the largest available share of the row and has a 560 px minimum width. Environment Variable uses its restored 20% column while Links Link Name keeps its earlier 15% column. Path tables retain a 1270 px minimum canvas and the application window is capped at half the available display width; narrower windows scroll horizontally instead of compressing File Path below its minimum. Compact fixed-width columns fit the 30 px edge buttons, 64 px Browse button, and 20 px checkboxes without unused column space in fixed Paths and Programs Paths; 10 px padding on each adjacent cell therefore produces an exact visible 20 px horizontal gap. Shared button styles must not add extra margins. The first and last controls align flush with the left and right row edges, and section Add buttons sit beside their labels on the left. Config-mode checkboxes are larger and icon-only, without a `Yes` caption. Every row remains aligned with its column headers.
 
 ## Path browsing
 
-File Browse actions use Windows Forms `OpenFileDialog`. Folder Browse actions use the native Windows `IFileOpenDialog` Common Item Dialog in folder-selection mode. Both provide access to the full PC. The first dialog in an application session starts at `C:\`. After a successful selection, both file and folder dialogs reuse the selected directory as their next starting location. Every selected path passes through one sanitizer before reaching application state: drive letters are capitalized, forward separators are normalized, and folder results lose trailing backslashes except when the separator is required for a drive root such as `C:\`. UNC share trailing separators are removed. Cancelling a dialog leaves the remembered directory unchanged.
+File Browse actions use Windows Forms `OpenFileDialog`. Folder Browse actions use the native Windows `IFileOpenDialog` Common Item Dialog in folder-selection mode. Both provide access to the full PC. A populated path field opens Browse at that field path (or its containing directory for a file). An empty field opens at the last successfully selected directory; before any selection it starts at `C:\`. Every selected path passes through one sanitizer before reaching application state: drive letters are capitalized, forward separators are normalized, and folder results lose trailing backslashes except when the separator is required for a drive root such as `C:\`. UNC share trailing separators are removed. Cancelling a dialog leaves the remembered directory unchanged.
+
+Every file/folder Browse button, including compact D/F controls, opens a shared right-click menu with `Find in Explorer`. The menu reads the live adjacent input rather than stale saved state, disables its action for an empty value, resolves `%NAME%` references, validates that the target exists, and launches visible Windows Explorer with the file or folder selected. Missing paths report an error without changing configuration.
 
 ## Programs-tab path rows
 
-Every dynamic Programs tab uses the same minimum-560-px file path, compact 64 px Browse button, restored 20% Env var, larger icon-only Run as Admin, larger icon-only Run on startup, and compact 30 px Delete controls with the same exact visible 20 px horizontal spacing and flush outer alignment. Environment Variables, Executables, and Links also use compact fixed-width D/F/Browse/Delete action columns; paired D/F buttons are separated by exactly 20 px, first fields are flush left, and Delete buttons are flush right. Links keeps Target Name at 15%. Rows are saved inside that tab's `_Paths` section. Legacy `_Name` and `_Val` keys migrate to the new Env var and file path fields.
+Every dynamic Programs tab uses the same minimum-560-px file path, compact 64 px Browse button, restored 20% Env var, larger icon-only Run as Admin, larger icon-only Run on startup, and compact 30 px Delete controls with the same exact visible 20 px horizontal spacing and flush outer alignment. Environment Variables, Executables, and Links also use compact fixed-width D/F/Browse/Delete action columns; paired D/F buttons are separated by exactly 20 px, first fields are flush left, and Delete buttons are flush right. Links keeps Link Name at 15% in Config mode; Apply mode combines Link folder and Link name into one Link path column, so the visible labels are Source, Link path, and Type. Rows are saved inside that tab's `_Paths` section. Legacy `_Name` and `_Val` keys migrate to the new Env var and file path fields.
+
+New Link rows inherit the immediately previous row's non-empty Link folder. Source and Link name remain empty and Type starts as Symlink; if the previous Link folder is blank, the new row stays blank.
+
+Path-Config compares the Source item's containing directory with Link folder after %NAME% expansion, slash normalization, trailing-separator cleanup, and case folding. When they match, Config mode colors both Source and Link folder orange; Apply mode colors Source and the combined Link path orange. Empty or different directories keep their normal validation colors.
 
 Program startup registry values use the dedicated `PathConfig_Program_` namespace so applying a program tab does not remove fixed Paths startup entries.
 
@@ -129,8 +137,8 @@ Action:
 - remove only the `RUNASADMIN` token when disabled
 - preserve all other compatibility flags
 - query status without displaying a helper console window
-- keep the Apply-mode column label as `Run as admin`
-- display `Yes` or `No` from the configured Run as Admin checkbox
+- keep the Apply-mode column label as `Admin`
+- display uppercase `YES` or `NO` from the configured Run as Admin checkbox
 - color the value green when the Windows property matches and red when it differs
 - show a neutral `N/A` status when the path is empty
 

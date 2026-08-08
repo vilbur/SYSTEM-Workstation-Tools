@@ -80,6 +80,13 @@ button, input, select {
     border-color: #6b717b;
     background: #33373d;
 }
+.save-state-frozen,
+.save-state-frozen:hover {
+    border-color: #444850;
+    background: #2a2d32;
+    color: #686d75;
+    cursor: default;
+}
 .button-primary.config {
     border-color: #e58d19;
     color: #ffad3e;
@@ -246,6 +253,9 @@ button, input, select {
     padding-right: 0;
     text-align: right;
 }
+.links-apply-table td:last-child {
+    text-align: left;
+}
 .program-table .button-small {
     box-sizing: border-box;
     width: 30px;
@@ -277,6 +287,10 @@ button, input, select {
     border-color: #80434b;
     color: #ff8f9d;
 }
+.field.same-directory {
+    border-color: #b86f16;
+    color: #f2a23a;
+}
 .readonly {
     min-height: 24px;
     padding: 6px 8px;
@@ -291,6 +305,10 @@ button, input, select {
 }
 .readonly.invalid {
     color: #ff8f9d;
+}
+.readonly.same-directory {
+    border-bottom-color: #b86f16;
+    color: #f2a23a;
 }
 .yes {
     color: #76df96;
@@ -380,7 +398,7 @@ button, input, select {
 }
 </style>
 <script language="JScript" type="text/javascript">
-var VERSION = "0.40";
+var VERSION = "0.51";
 var STARTUP_PREFIX = "PathConfig_Path_";
 var PROGRAM_STARTUP_PREFIX = "PathConfig_Program_";
 var REG_ENV = "HKCU\\Environment\\";
@@ -453,6 +471,7 @@ var isRestarting = false;
 var heartbeatPath = "";
 var relaunchRequestPath = "";
 var persistentMenuIndex = -1;
+var browseMenuPath = "";
 var hasUnsavedChanges = false;
 var state = {
     mode: "Config",
@@ -987,6 +1006,7 @@ function saveState(showMessage, stateAlreadyCaptured) {
         }
         fso.MoveFile(temporary, iniPath);
         hasUnsavedChanges = false;
+        updateSaveStateButton();
         setStatus("Saved to Path-Config.ini");
         if (showMessage) {
             alert("Persistent paths and dynamic configurations were saved.");
@@ -1056,15 +1076,25 @@ function captureElement(element) {
 
 function markDirty() {
     hasUnsavedChanges = true;
+    updateSaveStateButton();
     setStatus("Unsaved changes");
+}
+
+function updateSaveStateButton() {
+    var button = document.getElementById("saveStateButton");
+    if (button) {
+        button.className = hasUnsavedChanges ? "button" : "button save-state-frozen";
+        button.onclick = hasUnsavedChanges ? function() { saveState(true); } : null;
+    }
 }
 
 function trackInputChange() {
     var eventObject = window.event;
     var target = eventObject ? eventObject.srcElement : null;
     if (target && target.getAttribute && target.getAttribute("data-scope")) {
-        captureElement(target);
-        markDirty();
+        if (captureElement(target)) {
+            markDirty();
+        }
     }
 }
 
@@ -1083,7 +1113,11 @@ function render() {
         '<div class="top-actions">' +
         '<button class="button button-primary ' + modeClass + '" onclick="toggleMode()">MODE: ' + state.mode.toUpperCase() + '</button>';
     if (state.mode === "Config") {
-        top += '<button class="button" onclick="saveState(true)">SAVE STATE</button>';
+        if (hasUnsavedChanges) {
+            top += '<button id="saveStateButton" class="button" onclick="saveState(true)">SAVE STATE</button>';
+        } else {
+            top += '<button id="saveStateButton" class="button save-state-frozen">SAVE STATE</button>';
+        }
     } else {
         top += '<button class="button" onclick="applyAll()">APPLY ALL</button>';
     }
@@ -1169,7 +1203,7 @@ function renderPersistent() {
                 '" title="Left click: move down; right click: move up" onclick="movePersistent(' + i +
                 ',1)" oncontextmenu="return movePersistentUp(' + i + ')">&#8597;</button></td>';
             out += fieldInput("persistent", "", i, "path", row.path, 'data-pathcheck="1"');
-            out += '<td><button class="button button-small path-browse-button" onclick="browsePersistent(' + i + ')">Browse</button></td>';
+            out += '<td><button class="button button-small path-browse-button" onclick="browsePersistent(' + i + ')" oncontextmenu="return showBrowseContextMenu(this)">Browse</button></td>';
             out += fieldInput("persistent", "", i, "env_var", row.env_var, "");
             out += checkboxInput("persistent", "", i, "run_as_admin", row.run_as_admin);
             out += checkboxInput("persistent", "", i, "run_on_startup", row.run_on_startup);
@@ -1225,7 +1259,7 @@ function renderProgramPaths(tabIndex, rows) {
         out += '<tr>';
         if (state.mode === "Config") {
             out += fieldInput("dynamic", "paths", i, "path", row.path, 'data-tab="' + tabIndex + '" data-pathcheck="1"');
-            out += '<td><button class="button button-small path-browse-button" onclick="browseDynamicPath(' + tabIndex + ',' + i + ')">Browse</button></td>';
+            out += '<td><button class="button button-small path-browse-button" onclick="browseDynamicPath(' + tabIndex + ',' + i + ')" oncontextmenu="return showBrowseContextMenu(this)">Browse</button></td>';
             out += fieldInput("dynamic", "paths", i, "env_var", row.env_var, 'data-tab="' + tabIndex + '"');
             out += checkboxInput("dynamic", "paths", i, "run_as_admin", row.run_as_admin, tabIndex);
             out += checkboxInput("dynamic", "paths", i, "run_on_startup", row.run_on_startup, tabIndex);
@@ -1264,8 +1298,8 @@ function renderNameValueSection(tabIndex, kind, title, rows, keepFirst) {
         if (state.mode === "Config") {
             out += fieldInput("dynamic", kind, i, "name", row.name, 'data-tab="' + tabIndex + '"');
             out += fieldInput("dynamic", kind, i, "val", row.val, 'data-tab="' + tabIndex + '" ' + check);
-            out += '<td class="row-action-pair"><button class="button button-small" onclick="browseDynamic(' + tabIndex + ',\'' + kind + '\',' + i + ',false)">D</button>' +
-                '<button class="button button-small" onclick="browseDynamic(' + tabIndex + ',\'' + kind + '\',' + i + ',true)">F</button></td>';
+            out += '<td class="row-action-pair"><button class="button button-small" onclick="browseDynamic(' + tabIndex + ',\'' + kind + '\',' + i + ',false)" oncontextmenu="return showBrowseContextMenu(this)">D</button>' +
+                '<button class="button button-small" onclick="browseDynamic(' + tabIndex + ',\'' + kind + '\',' + i + ',true)" oncontextmenu="return showBrowseContextMenu(this)">F</button></td>';
             out += '<td>' + ((!keepFirst || i > 0) ? '<button class="button button-small button-danger" onclick="deleteDynamicRow(' +
                 tabIndex + ',\'' + kind + '\',' + i + ')">X</button>' : '') + '</td>';
         } else {
@@ -1295,8 +1329,8 @@ function renderExecSection(tabIndex, rows) {
         if (state.mode === "Config") {
             out += '<td><input class="field" data-scope="dynamic" data-kind="execs" data-index="' + i +
                 '" data-tab="' + tabIndex + '" data-field="value" data-pathcheck="1" value="' + html(rows[i]) + '"></td>';
-            out += '<td class="row-action-pair"><button class="button button-small" onclick="browseDynamic(' + tabIndex + ',\'execs\',' + i + ',false)">D</button>' +
-                '<button class="button button-small" onclick="browseDynamic(' + tabIndex + ',\'execs\',' + i + ',true)">F</button></td>';
+            out += '<td class="row-action-pair"><button class="button button-small" onclick="browseDynamic(' + tabIndex + ',\'execs\',' + i + ',false)" oncontextmenu="return showBrowseContextMenu(this)">D</button>' +
+                '<button class="button button-small" onclick="browseDynamic(' + tabIndex + ',\'execs\',' + i + ',true)" oncontextmenu="return showBrowseContextMenu(this)">F</button></td>';
             out += '<td><button class="button button-small button-danger" onclick="deleteDynamicRow(' + tabIndex + ',\'execs\',' + i + ')">X</button></td>';
         } else {
             out += readonlyCell(rows[i], "pathcheck") + '<td></td><td></td>';
@@ -1315,19 +1349,24 @@ function renderLinksSection(tabIndex, rows) {
     if (!rows.length) {
         return out + '<div class="empty-state">&nbsp;</div></div>';
     }
-    out += '<table class="data-table program-table"><colgroup><col><col style="width:100px"><col>' +
-        '<col style="width:50px"><col style="width:15%"><col style="width:130px"><col style="width:40px"></colgroup>' +
-        '<thead><tr><th>Source</th><th></th><th>Target folder</th><th></th><th>Target name</th><th>Type</th><th></th></tr></thead><tbody>';
-    var i, row, target;
+    if (state.mode === "Config") {
+        out += '<table class="data-table program-table"><colgroup><col><col style="width:100px"><col>' +
+            '<col style="width:50px"><col style="width:15%"><col style="width:130px"><col style="width:40px"></colgroup>' +
+            '<thead><tr><th>Source</th><th></th><th>Link folder</th><th></th><th>Link name</th><th>Type</th><th></th></tr></thead><tbody>';
+    } else {
+        out += '<table class="data-table program-table links-apply-table"><colgroup><col><col><col style="width:130px"></colgroup>' +
+            '<thead><tr><th>Source</th><th>Link path</th><th>Type</th></tr></thead><tbody>';
+    }
+    var i, row, target, sameDirectory;
     for (i = 0; i < rows.length; i++) {
         row = rows[i];
         out += '<tr>';
         if (state.mode === "Config") {
-            out += fieldInput("dynamic", "links", i, "src", row.src, 'data-tab="' + tabIndex + '" data-pathcheck="1"');
-            out += '<td class="row-action-pair"><button class="button button-small" onclick="browseLinkSource(' + tabIndex + ',' + i + ',false)">D</button>' +
-                '<button class="button button-small" onclick="browseLinkSource(' + tabIndex + ',' + i + ',true)">F</button></td>';
-            out += fieldInput("dynamic", "links", i, "tgt_dir", row.tgt_dir, 'data-tab="' + tabIndex + '" data-pathcheck="1"');
-            out += '<td><button class="button button-small" onclick="browseLinkTarget(' + tabIndex + ',' + i + ')">D</button></td>';
+            out += fieldInput("dynamic", "links", i, "src", row.src, 'data-tab="' + tabIndex + '" data-pathcheck="1" data-linkdirectorycheck="1"');
+            out += '<td class="row-action-pair"><button class="button button-small" onclick="browseLinkSource(' + tabIndex + ',' + i + ',false)" oncontextmenu="return showBrowseContextMenu(this)">D</button>' +
+                '<button class="button button-small" onclick="browseLinkSource(' + tabIndex + ',' + i + ',true)" oncontextmenu="return showBrowseContextMenu(this)">F</button></td>';
+            out += fieldInput("dynamic", "links", i, "tgt_dir", row.tgt_dir, 'data-tab="' + tabIndex + '" data-pathcheck="1" data-linkdirectorycheck="1"');
+            out += '<td><button class="button button-small" onclick="browseLinkTarget(' + tabIndex + ',' + i + ')" oncontextmenu="return showBrowseContextMenu(this)">D</button></td>';
             out += fieldInput("dynamic", "links", i, "tgt_name", row.tgt_name, 'data-tab="' + tabIndex + '"');
             out += '<td><select class="field" data-scope="dynamic" data-kind="links" data-index="' + i +
                 '" data-tab="' + tabIndex + '" data-field="type">' +
@@ -1335,8 +1374,9 @@ function renderLinksSection(tabIndex, rows) {
             out += '<td><button class="button button-small button-danger" onclick="deleteDynamicRow(' + tabIndex + ',\'links\',' + i + ')">X</button></td>';
         } else {
             target = joinPath(row.tgt_dir, row.tgt_name + (row.type === "Shortcut" && !/\.lnk$/i.test(row.tgt_name) ? ".lnk" : ""));
-            out += readonlyCell(row.src, "pathcheck") + '<td></td>' + readonlyCell(target, "") + '<td></td>' +
-                readonlyCell("", "") + readonlyCell(row.type, "") + '<td></td>';
+            sameDirectory = linkDirectoriesAreSame(row.src, row.tgt_dir);
+            out += readonlyCell(row.src, sameDirectory ? "same-directory" : "pathcheck") +
+                readonlyCell(target, sameDirectory ? "same-directory" : "") + readonlyCell(row.type, "");
         }
         out += '</tr>';
     }
@@ -1358,7 +1398,9 @@ function checkboxInput(scope, kind, index, field, checked, tabIndex) {
 
 function readonlyCell(value, checkType) {
     var className = "readonly";
-    if (checkType === "pathcheck" && trimText(value)) {
+    if (checkType === "same-directory") {
+        className += " same-directory";
+    } else if (checkType === "pathcheck" && trimText(value)) {
         className += pathExists(value) ? " valid" : " invalid";
     } else if (checkType === "smartcheck" && looksLikePath(value)) {
         className += pathExists(value) ? " valid" : " invalid";
@@ -1369,7 +1411,7 @@ function readonlyCell(value, checkType) {
 }
 
 function yesNoCell(value) {
-    return '<td><div class="readonly ' + (value ? "yes" : "no") + '">' + (value ? "Yes" : "No") + '</div></td>';
+    return '<td><div class="readonly ' + (value ? "yes" : "no") + '">' + (value ? "YES" : "NO") + '</div></td>';
 }
 
 function adminPropertyMatchCell(path, expected) {
@@ -1381,7 +1423,7 @@ function adminPropertyMatchCell(path, expected) {
     var detail = "Configured: " + (expected ? "Yes" : "No") +
         "; Windows property: " + (actual ? "Yes" : "No");
     return '<td><div class="readonly ' + (matches ? "yes" : "mismatch") +
-        '" title="' + html(detail) + '">' + (expected ? "Yes" : "No") + '</div></td>';
+        '" title="' + html(detail) + '">' + (expected ? "YES" : "NO") + '</div></td>';
 }
 
 function hasRunAsAdminProperty(path) {
@@ -1428,16 +1470,67 @@ function environmentExists(name) {
     }
 }
 
+function normalizedDirectoryPath(path) {
+    path = expandPathVariables(path);
+    if (!path) {
+        return "";
+    }
+    try {
+        path = fso.GetAbsolutePathName(path);
+    } catch (ignoreAbsolutePath) {}
+    path = path.replace(/\//g, "\\");
+    while (/\\$/.test(path) && !/^[A-Za-z]:\\$/.test(path)) {
+        path = path.substr(0, path.length - 1);
+    }
+    return lower(path);
+}
+
+function linkDirectoriesAreSame(source, linkDirectory) {
+    source = expandPathVariables(source);
+    linkDirectory = expandPathVariables(linkDirectory);
+    if (!source || !linkDirectory) {
+        return false;
+    }
+    try {
+        return normalizedDirectoryPath(fso.GetParentFolderName(source)) ===
+            normalizedDirectoryPath(linkDirectory);
+    } catch (ignoreLinkDirectoryComparison) {
+        return false;
+    }
+}
+
+function linkInputDirectoriesAreSame(input) {
+    if (input.getAttribute("data-kind") !== "links") {
+        return false;
+    }
+    var tabIndex = asNumber(input.getAttribute("data-tab"), -1);
+    var index = asNumber(input.getAttribute("data-index"), -1);
+    if (tabIndex < 0 || !state.tabs[tabIndex]) {
+        return false;
+    }
+    var rows = state.data[state.tabs[tabIndex]].links;
+    if (!rows[index]) {
+        return false;
+    }
+    var field = input.getAttribute("data-field");
+    var source = field === "src" ? input.value : rows[index].src;
+    var linkDirectory = field === "tgt_dir" ? input.value : rows[index].tgt_dir;
+    return linkDirectoriesAreSame(source, linkDirectory);
+}
 function validateInputs() {
     var inputs = document.getElementsByTagName("input");
     var i, value, className;
     for (i = 0; i < inputs.length; i++) {
         value = trimText(inputs[i].value);
-        className = "field";
+        className = inputs[i].className.indexOf("path-field") >= 0 ? "field path-field" : "field";
         if (inputs[i].getAttribute("data-pathcheck") === "1" && value) {
             className += pathExists(value) ? " valid" : " invalid";
         } else if (inputs[i].getAttribute("data-smartcheck") === "1" && looksLikePath(value)) {
             className += pathExists(value) ? " valid" : " invalid";
+        }
+        if (inputs[i].getAttribute("data-linkdirectorycheck") === "1" &&
+                linkInputDirectoriesAreSame(inputs[i])) {
+            className += " same-directory";
         }
         if (inputs[i].className.indexOf("field") >= 0) {
             inputs[i].className = className;
@@ -1463,7 +1556,15 @@ function selectTab(index) {
 
 function toggleMode() {
     captureState();
-    state.mode = state.mode === "Config" ? "Apply" : "Config";
+    if (state.mode === "Config") {
+        if (hasUnsavedChanges && !saveState(false, true)) {
+            setStatus("Could not enter Apply mode because state could not be saved.");
+            return;
+        }
+        state.mode = "Apply";
+    } else {
+        state.mode = "Config";
+    }
     render();
 }
 
@@ -1603,12 +1704,14 @@ function movePersistentToNewTab(index) {
 }
 
 function browsePersistent(index) {
+    captureState();
+    var initialPath = state.persistent[index].path;
     browseFile(function(path) {
         captureState();
         state.persistent[index].path = path;
         markDirty();
         render();
-    }, "");
+    }, "", initialPath);
 }
 
 function addDynamicRow(tabIndex, kind) {
@@ -1619,7 +1722,8 @@ function addDynamicRow(tabIndex, kind) {
     } else if (kind === "execs") {
         rows.push("");
     } else {
-        rows.push({src: "", tgt_dir: "", tgt_name: "", type: "Shortcut"});
+        var previousLinkFolder = rows.length ? trimText(rows[rows.length - 1].tgt_dir) : "";
+        rows.push({src: "", tgt_dir: previousLinkFolder, tgt_name: "", type: "Symlink"});
     }
     markDirty();
     render();
@@ -1637,15 +1741,20 @@ function deleteDynamicRow(tabIndex, kind, index) {
 }
 
 function browseDynamicPath(tabIndex, index) {
+    captureState();
+    var initialPath = state.data[state.tabs[tabIndex]].paths[index].path;
     browseFile(function(path) {
         captureState();
         state.data[state.tabs[tabIndex]].paths[index].path = path;
         markDirty();
         render();
-    }, "");
+    }, "", initialPath);
 }
 
 function browseDynamic(tabIndex, kind, index, chooseFile) {
+    captureState();
+    var currentRow = state.data[state.tabs[tabIndex]][kind][index];
+    var initialPath = kind === "execs" ? currentRow : currentRow.val;
     var done = function(path) {
         captureState();
         var rows = state.data[state.tabs[tabIndex]][kind];
@@ -1658,13 +1767,15 @@ function browseDynamic(tabIndex, kind, index, chooseFile) {
         render();
     };
     if (chooseFile) {
-        browseFile(done, kind === "execs" ? ".exe" : "");
+        browseFile(done, kind === "execs" ? ".exe" : "", initialPath);
     } else {
-        browseFolder(done, "Select folder");
+        browseFolder(done, "Select folder", initialPath);
     }
 }
 
 function browseLinkSource(tabIndex, index, chooseFile) {
+    captureState();
+    var initialPath = state.data[state.tabs[tabIndex]].links[index].src;
     var done = function(path) {
         captureState();
         var row = state.data[state.tabs[tabIndex]].links[index];
@@ -1674,19 +1785,21 @@ function browseLinkSource(tabIndex, index, chooseFile) {
         render();
     };
     if (chooseFile) {
-        browseFile(done, "");
+        browseFile(done, "", initialPath);
     } else {
-        browseFolder(done, "Select source folder");
+        browseFolder(done, "Select source folder", initialPath);
     }
 }
 
 function browseLinkTarget(tabIndex, index) {
+    captureState();
+    var initialPath = state.data[state.tabs[tabIndex]].links[index].tgt_dir;
     browseFolder(function(path) {
         captureState();
         state.data[state.tabs[tabIndex]].links[index].tgt_dir = path;
         markDirty();
         render();
-    }, "Select target folder");
+    }, "Select link folder", initialPath);
 }
 
 function powerShellLiteral(value) {
@@ -1706,7 +1819,19 @@ function sanitizeBrowsedPath(path, isFolder) {
     return path;
 }
 
-function currentBrowseDirectory() {
+function currentBrowseDirectory(preferredPath) {
+    preferredPath = trimText(preferredPath);
+    if (preferredPath) {
+        try {
+            if (fso.FolderExists(preferredPath)) {
+                return preferredPath;
+            }
+            var preferredDirectory = fso.GetParentFolderName(preferredPath);
+            if (preferredDirectory && fso.FolderExists(preferredDirectory)) {
+                return preferredDirectory;
+            }
+        } catch (ignorePreferredBrowseDirectory) {}
+    }
     try {
         if (lastBrowseDirectory && fso.FolderExists(lastBrowseDirectory)) {
             return lastBrowseDirectory;
@@ -1745,13 +1870,13 @@ function runPickerScript(script) {
     return pathAt >= 0 ? trimText(output.substr(pathAt + pathMarker.length)) : "";
 }
 
-function browseFolder(callback, title) {
+function browseFolder(callback, title, initialPath) {
     var script = "$code=[System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('" +
         NATIVE_FOLDER_DIALOG_CSHARP + "'));" +
         "Add-Type -TypeDefinition $code -Language CSharp -ErrorAction Stop;" +
         "$selected=[PathConfig.NativeFolderDialog]::Show(" +
         powerShellLiteral(title || "Select folder") + "," +
-        powerShellLiteral(currentBrowseDirectory()) + ");" +
+        powerShellLiteral(currentBrowseDirectory(initialPath)) + ");" +
         "if($selected){[Console]::Out.Write('PATHCONFIG_PICKER:'+$selected)}";
     var path = sanitizeBrowsedPath(runPickerScript(script), true);
     if (path) {
@@ -1760,12 +1885,12 @@ function browseFolder(callback, title) {
     }
 }
 
-function browseFile(callback, accept) {
+function browseFile(callback, accept, initialPath) {
     var filter = lower(accept) === ".exe" ?
         "Executable files (*.exe)|*.exe|All files (*.*)|*.*" : "All files (*.*)|*.*";
     var script = "Add-Type -AssemblyName System.Windows.Forms;" +
         "$dialog=New-Object System.Windows.Forms.OpenFileDialog;" +
-        "$dialog.InitialDirectory=" + powerShellLiteral(currentBrowseDirectory()) + ";" +
+        "$dialog.InitialDirectory=" + powerShellLiteral(currentBrowseDirectory(initialPath)) + ";" +
         "$dialog.Filter=" + powerShellLiteral(filter) + ";" +
         "$dialog.CheckFileExists=$true;" +
         "$dialog.Multiselect=$false;" +
@@ -1872,8 +1997,73 @@ function deleteProgram() {
     render();
 }
 
+function browseButtonPath(button) {
+    var cell = button ? button.parentNode : null;
+    var valueCell = cell ? cell.previousSibling : null;
+    while (valueCell && valueCell.nodeType !== 1) {
+        valueCell = valueCell.previousSibling;
+    }
+    if (!valueCell) {
+        return "";
+    }
+    var inputs = valueCell.getElementsByTagName("input");
+    return inputs.length ? trimText(inputs[0].value) : "";
+}
+
+function showBrowseContextMenu(button) {
+    var path = browseButtonPath(button);
+    hideContextMenu();
+    hidePersistentRowMenu();
+    hideBrowseContextMenu();
+    browseMenuPath = path;
+    var menu = document.getElementById("browseContextMenu");
+    var findButton = document.getElementById("browseFindExplorer");
+    findButton.disabled = !path;
+    menu.style.display = "block";
+    var eventObject = window.event;
+    var rect = button.getBoundingClientRect();
+    var left = eventObject && typeof eventObject.clientX === "number" ?
+        eventObject.clientX + document.body.scrollLeft : rect.left + document.body.scrollLeft;
+    var top = eventObject && typeof eventObject.clientY === "number" ?
+        eventObject.clientY + document.body.scrollTop : rect.bottom + document.body.scrollTop;
+    menu.style.left = Math.max(0, left) + "px";
+    menu.style.top = Math.max(0, top) + "px";
+    if (eventObject) {
+        eventObject.cancelBubble = true;
+        eventObject.returnValue = false;
+    }
+    return false;
+}
+
+function hideBrowseContextMenu() {
+    var menu = document.getElementById("browseContextMenu");
+    if (menu) {
+        menu.style.display = "none";
+    }
+    browseMenuPath = "";
+}
+
+function findBrowsePathInExplorer() {
+    var path = expandPathVariables(browseMenuPath);
+    hideBrowseContextMenu();
+    if (!path) {
+        return;
+    }
+    try {
+        if (!fso.FileExists(path) && !fso.FolderExists(path)) {
+            alert("Path does not exist.\n\n" + path);
+            return;
+        }
+        var explorer = wsh.ExpandEnvironmentStrings("%SystemRoot%") + "\\explorer.exe";
+        wsh.Run(quoteArg(explorer) + " /select," + quoteArg(path), 1, false);
+    } catch (error) {
+        alert("Could not find the path in Explorer.\n\n" + error.message);
+    }
+}
+
 function showPersistentRowMenu(index, button) {
     captureState();
+    hideBrowseContextMenu();
     persistentMenuIndex = index;
     hideContextMenu();
     var menu = document.getElementById("persistentRowMenu");
@@ -1918,10 +2108,12 @@ function deletePersistentFromMenu() {
 function hideMenus() {
     hideContextMenu();
     hidePersistentRowMenu();
+    hideBrowseContextMenu();
 }
 
 function tabContextMenu() {
     hidePersistentRowMenu();
+    hideBrowseContextMenu();
     var eventObject = window.event;
     var target = eventObject.srcElement;
     var index = asNumber(target.getAttribute("data-tab-index"), -1);
@@ -2500,6 +2692,8 @@ function initialize() {
         window.setInterval(maintainLauncherBridge, 1000);
         document.attachEvent("onclick", function() { hideMenus(); });
         document.attachEvent("oninput", trackInputChange);
+        document.attachEvent("onkeyup", trackInputChange);
+        document.attachEvent("onpropertychange", trackInputChange);
         document.attachEvent("onchange", trackInputChange);
         window.attachEvent("onbeforeunload", handleBeforeUnload);
         window.attachEvent("onunload", cleanupLauncherBridge);
@@ -2519,6 +2713,9 @@ function initialize() {
 <div class="context-menu" id="persistentRowMenu">
     <button onclick="movePersistentToNewTabFromMenu()">Move to New Tab</button>
     <button id="persistentRowDelete" onclick="deletePersistentFromMenu()">Delete Row</button>
+</div>
+<div class="context-menu" id="browseContextMenu">
+    <button id="browseFindExplorer" onclick="findBrowsePathInExplorer()">Find in Explorer</button>
 </div>
 </body>
 </html>

@@ -6,9 +6,9 @@ Path-Config is a standalone Windows HTA application (HTML and legacy-compatible 
 
 Current approved baseline:
 
-- `Path-Config.hta` version `0.39`
+- `Path-Config.hta` version `0.51`
 - `Path-Config.exe`
-- `Test/Path-Config-Test_0.39.ps1`
+- `Test/Path-Config-Test_0.51.ps1`
 
 Continue development only from the latest approved baseline. Never rebuild from memory when the current source files are available.
 
@@ -53,9 +53,12 @@ Preserve the current dark UI style:
 - dark edits and controls
 - fake text-based dark buttons where already used
 - highlighted `CONFIG` and `APPLY` mode controls
+- render Save State as two distinct states: clean uses grey font, default cursor, resting v0.39 surface, no hover response, and no click handler; dirty restores the original v0.39 base class, white font, pointer/hover behavior, and direct save action; never use the native disabled attribute; auto-save pending Config edits before entering Apply and remain in Config if saving fails
+- in IE9-mode HTA, track input, keyup, propertychange, and change so typing/pasting immediately marks real value changes dirty; filter non-value property events
 - consistent row alignment
-- a window no wider than half the display, file-path edits at least 560 px wide, restored 20% Environment Variable columns, preserved 15% Target Name columns, compact fixed-width row-action columns across fixed Paths and every dynamic-tab section that produce exact visible 20 px gaps, flush outer controls, section Add buttons beside their labels on the left, and no inherited control margins
+- a window no wider than half the display, file-path edits at least 560 px wide, restored 20% Environment Variable columns, preserved 15% Config-mode Link Name columns and compact Source/Link path/Type Links rows in Apply mode, compact fixed-width row-action columns across fixed Paths and every dynamic-tab section that produce exact visible 20 px gaps, flush outer controls, section Add buttons beside their labels on the left, and no inherited control margins
 - larger icon-only Config-mode checkboxes
+- orange Source and Link folder/path values when the Source item's containing directory matches the configured Link folder
 
 The fixed first tab is always named `Paths`.
 
@@ -80,7 +83,8 @@ The row UI contains:
 
 - file path edit
 - Browse button using native Windows Forms file/folder dialogs with full-PC access
-- first browse starts at `C:\`; later dialogs in the same session start at the last selected directory; every returned path capitalizes its drive letter and folder results remove trailing backslashes except required drive roots
+- Browse starts at the current field path when populated; an empty field uses the last selected directory, falling back to `C:\` before any selection; every returned path capitalizes its drive letter and folder results remove trailing backslashes except required drive roots
+- every file/folder Browse button opens a right-click menu containing `Find in Explorer`; it reads the adjacent live path, expands `%NAME%` references, and selects an existing target in Explorer
 - Env var edit
 - Run as Admin checkbox
 - Run on startup checkbox

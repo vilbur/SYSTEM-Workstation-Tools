@@ -6,8 +6,8 @@ The test file version must always match the source version.
 
 Current pair:
 
-- `Path-Config.hta` version `0.39`
-- `Test/Path-Config-Test_0.39.ps1`
+- `Path-Config.hta` version `0.51`
+- `Test/Path-Config-Test_0.51.ps1`
 
 The canonical source filename remains `Path-Config.hta`; versioned PowerShell tests are stored under `Test/`, and the test filename advances with each version.
 
@@ -78,6 +78,7 @@ Check for all of the following:
 - burger row menu, Move to New Tab and Delete Row handlers, unique tab naming, complete-row transfer, and fixed-row invariant
 - source-update detection, unsaved-change deferral, HTA reload, launcher heartbeat/relaunch bridge, and unload cleanup
 - native Windows Forms file/folder Browse handlers and centralized selected-path sanitization
+- shared right-click Find in Explorer menu on every Browse/D/F picker button, using the live adjacent path with environment expansion, empty-value disabling, existence validation, and visible non-blocking Explorer selection
 - Apply Paths handler
 
 ### Persistence
@@ -124,7 +125,7 @@ Parser success does not replace runtime UI testing.
 - Confirm `Paths` is the first tab.
 - Confirm one empty fixed row exists.
 - Confirm the window is no wider than half the available display and File Path remains at least 560 px wide in both fixed and Programs path tables.
-- Confirm Environment Variable uses its restored 20% column and Links Target Name keeps its earlier 15% column.
+- Confirm Environment Variable uses its restored 20% column and Links Link Name keeps its earlier 15% column.
 - Confirm the first and last controls align flush with the left and right row edges.
 - Confirm every adjacent row control has the same visible 20 px horizontal gap in fixed Paths and all dynamic-tab sections, including compact Browse, D/F, checkbox, move, menu, and Delete controls; confirm paired D/F buttons also have 20 px between them and section Add buttons sit beside their labels on the left.
 - Confirm both checkboxes are visibly larger and have no Yes caption.
@@ -173,6 +174,10 @@ Repeat with both checkboxes checked.
 - Browse to a file with spaces and a lowercase drive letter and confirm the full path is stored with an uppercase drive letter.
 - Open another file or folder browser and confirm it starts at the directory selected previously.
 - Select a folder and confirm its drive letter is uppercase and its trailing backslash is removed; confirm a drive root remains valid as `C:\`, then confirm the next browser remembers the sanitized directory.
+- Right-click each Browse/D/F picker type in fixed Paths, Programs Paths, Environment Variables, Executables, and Links; confirm the same menu opens with `Find in Explorer`.
+- Confirm `Find in Explorer` selects the currently typed adjacent file or folder, including a valid `%NAME%` path that has not been saved yet.
+- Confirm the item is disabled for an empty field and a missing target reports an error without changing the row.
+- Confirm left-click still opens the original file or folder picker.
 - Save and reopen.
 
 ### 5. Environment variable
@@ -201,8 +206,8 @@ Use a harmless executable.
 - disable Run on startup
 - Apply Paths
 - confirm the executable has a per-user `RUNASADMIN` value under AppCompatFlags `Layers`
-- switch to Apply mode and confirm the column remains labeled `Run as admin`
-- confirm the displayed `Yes`/`No` reflects the checkbox state
+- switch to Apply mode and confirm the column remains labeled `Admin`
+- confirm the displayed uppercase `YES`/`NO` reflects the checkbox state
 - confirm the value is green when the Windows property matches and red when it differs
 - confirm the property status is shown without a helper console window
 - disable Run as Admin and apply again
@@ -266,9 +271,25 @@ Verify:
 - save and restore dynamic data
 - apply current dynamic tab
 - apply all dynamic tabs
+- add a Link after a row with a filled Link folder and confirm only that Link folder is prefilled; confirm Source and Link name stay empty and Type defaults to Symlink
+- add another Link after a blank Link folder and confirm the new Link folder remains blank
+- confirm CONFIG labels read Source, Link folder, Link name, and Type
+- set Source to an item whose containing directory equals Link folder using different letter case, slash direction, or a %NAME% reference; confirm Source and Link folder turn orange
+- switch to Apply mode and confirm Source and the combined Link path remain orange
+- change Link folder to a different directory and confirm the orange warning clears
+- in Apply mode, confirm Links shows only Source, Link path, and Type, with no separate Link name column
 - fixed Paths selection does not corrupt dynamic current-tab state
 
-### 13. Source-update restart
+### 13. Save-state and mode transition
+
+- Open Config mode without pending edits and confirm Save State uses grey font, the resting v0.39 border/background, default cursor, no hover response, and no click action.
+- Type into a path field without leaving it and confirm Save State immediately restores the original v0.39 base class, white font, pointer cursor, hover response, and direct manual-save action.
+- Repeat by pasting with the mouse and confirm Save State unfreezes immediately.
+- Save manually and confirm Save State returns to the separate frozen state with no native disabled shadow.
+- Make another edit, switch from Config to Apply, and confirm Path-Config.ini is saved before Apply mode opens.
+- Simulate or cause a save failure and confirm the window remains in Config mode with an error status.
+
+### 14. Source-update restart
 
 - Open Path-Config without unsaved edits and update `Path-Config.hta` to a newer version.
 - Confirm the running HTA reloads into the new version.

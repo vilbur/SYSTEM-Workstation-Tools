@@ -1,8 +1,12 @@
-# Apply Execution Log - Wednesday, 5 August 2026 19:23:35
+# Apply Execution Log - Saturday, 8 August 2026 08:25:44
 
-- OK: Program tab: PROGRAMS
+- OK: Program tab: MediaMonkey
 
-- OK: Environment variable poath_confg_test = W:\SYSTEM-Workstation-Tools\System-Path-Config\Test\Test-File-Tree\Source\foo.exe
+- OK: Enabled "Run this program as an administrator": M:\MediaMonkey\MediaMonkey-Portable\MediaMonkey.exe
 
-- OK: Symlink created: W:\SYSTEM-Workstation-Tools\System-Path-Config\Test\Test-File-Tree\Target\hardlink-test
+- OK: Symlink created: m:\MediaMonkey\MediaMonkey-Portable\Portable\MediaMonkey.ini
+
+- OK: Symlink created: m:\MediaMonkey\MediaMonkey-Portable\Portable\persistent.json
+
+- OK: Symlink created: M:\MediaMonkey\MediaMonkey-Portable\Portable\Thumbs
 

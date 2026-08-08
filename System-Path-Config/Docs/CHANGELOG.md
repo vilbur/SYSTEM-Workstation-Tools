@@ -1,5 +1,114 @@
 ﻿# Path-Config Changelog
 
+## 0.51
+
+Fixed Save State remaining frozen while editing path fields in the IE9-mode HTA.
+
+- listens for keyup so keyboard edits unfreeze Save State immediately without waiting for focus loss
+- listens for propertychange so paste and MSHTML value changes are detected immediately
+- retains input and change listeners for other supported edit paths
+- marks state dirty only when captureElement confirms the field value actually changed
+- ignores validation class and other non-value property events to prevent false unsaved changes
+- preserved the separate v0.39 available state, frozen appearance, direct save action, and Config-to-Apply auto-save
+- added Test/Path-Config-Test_0.51.ps1 immediate-edit, paste-event, false-positive filtering, parser, and full regression coverage
+## 0.50
+
+Separated Save State into a true frozen state and the original available state.
+
+- frozen state uses grey font, default cursor, the resting v0.39 surface, no hover response, and no click handler
+- available state restores the exact v0.39 base class, white font, pointer cursor, hover response, and direct saveState(true) action
+- removes the shared guarded handler so transitioning back to available restores the original behavior completely
+- continues to avoid the native disabled attribute and its unwanted MSHTML shadow
+- preserved dirty-state tracking, Config-to-Apply auto-save, and save-failure handling
+- added Test/Path-Config-Test_0.50.ps1 separate-state, handler-transition, v0.39-surface, parser, and full regression coverage
+## 0.49
+
+Restored the complete v0.39 Save State button appearance and changed clean-state freezing to application logic.
+
+- preserves the exact v0.39 border, background, dimensions, and hover surface
+- removes the native HTML disabled attribute that caused MSHTML to draw an unwanted shadow
+- changes only the font to grey while no changes are pending
+- routes clicks through a guarded handler that performs no save while frozen
+- restores the normal white font and saving action immediately when state becomes dirty
+- preserved Config-to-Apply auto-save and save-failure handling
+- added Test/Path-Config-Test_0.49.ps1 v0.39-surface, no-native-disabled, guarded-click, parser, and full regression coverage
+## 0.48
+
+Added an orange warning when Source and Link locations use the same directory.
+
+- compares the Source item's containing directory with Link folder
+- expands `%NAME%` references and normalizes case, slash direction, and trailing separators before comparison
+- colors both Source and Link folder orange in Config mode when they match
+- colors Source and the combined Link path orange in Apply mode when they match
+- leaves empty and different directories on their existing validation colors
+- added `Test/Path-Config-Test_0.48.ps1` normalized comparison, live-input, orange Config/Apply rendering, Symlink-default, auto-save, handler, parser, and full regression coverage
+## 0.47
+
+Changed the default type for newly added Links to Symlink.
+
+- new Link rows now select Symlink instead of Shortcut
+- preserves the inherited Link folder and empty Source/Link name defaults
+- preserves types stored in existing and migrated Link rows
+- added `Test/Path-Config-Test_0.47.ps1` Symlink-default, Link-folder inheritance, disabled-style, auto-save, handler, parser, and full regression coverage
+## 0.46
+
+Refined the disabled Save State appearance.
+
+- restored the normal Save State border and background from the enabled button style
+- uses grey font as the only disabled visual change
+- removed the custom disabled hover surface that produced a shadowed appearance
+- preserved disabled click behavior, dirty-state tracking, and Config-to-Apply auto-save
+- added Test/Path-Config-Test_0.46.ps1 text-only disabled-style, parser, and full regression coverage
+## 0.45
+
+Improved new-Link defaults and clarified Link terminology throughout the UI.
+
+- prefills a new Link row's Link folder from the immediately previous row when that folder is non-empty
+- leaves new Source and Link name values empty and retains the Shortcut type default
+- keeps Link folder empty when the previous row has no folder
+- renamed CONFIG labels to Link folder and Link name
+- renamed the combined APPLY label to Link path
+- renamed the native folder-picker title to Select link folder
+- added `Test/Path-Config-Test_0.45.ps1` Link-folder inheritance, clear-label, auto-save, handler, parser, and full regression coverage
+## 0.44
+
+Tied Config-to-Apply transitions and the Save State button to the unsaved-change state.
+
+- automatically saves pending Config edits before entering Apply mode
+- keeps Config mode active and reports a clear status if the automatic save fails
+- disables and greys out Save State when no changes are pending
+- enables Save State immediately when an editable value or structure changes
+- disables Save State again immediately after a successful manual save
+- added Test/Path-Config-Test_0.44.ps1 auto-save, failure-path, disabled-button, parser, and full regression coverage
+## 0.43
+
+Added a shared right-click menu to every file/folder Browse button.
+
+- adds `Find in Explorer` to fixed Paths, Programs Paths, Environment Variables, Executables, and Links picker buttons
+- reads the live adjacent field so unsaved edits are used
+- expands configured and Windows `%NAME%` references before locating the target
+- disables the action for empty values and reports missing paths without changing configuration
+- launches visible non-blocking Explorer with an existing file or folder selected
+- preserves every existing left-click file/folder picker action
+- added `Test/Path-Config-Test_0.43.ps1` menu coverage for all nine picker buttons, adjacent-field resolution, Explorer selection, handler checks, parser checks, and full regressions
+## 0.42
+
+Simplified dynamic-tab APPLY rows.
+
+- removed the redundant Links Target name column from APPLY mode
+- shows Links as Source, combined Target, and Type in APPLY mode while preserving the complete CONFIG editor and saved data
+- changed administrator and startup status values to uppercase YES and NO
+- added `Test/Path-Config-Test_0.42.ps1` APPLY-links layout, uppercase-status, parser, and full regression coverage
+
+## 0.41
+
+Made each Browse dialog start from the path already entered in its own field.
+
+- uses a populated folder path directly and the containing directory of a populated file path
+- falls back to the last successfully browsed directory when the field is empty or has no usable location
+- retains the initial C:\ fallback before any successful Browse operation
+- passes field values through fixed Paths, program Paths, executables, environment values, and link source/target Browse handlers
+- added Test/Path-Config-Test_0.41.ps1 field-priority, empty-field fallback, handler, parser, and full regression coverage
 ## 0.40
 
 Refined dynamic program-tab section labels, ordering, and empty-state layout.
