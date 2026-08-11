@@ -1,4 +1,43 @@
-# Path-Config Changelog
+﻿# Path-Config Changelog
+
+## 0.59
+
+Added existing Windows shortcut files to Start11 Menu pinning.
+
+- accepts an existing `.exe` or `.lnk` with an existing target when Menu is checked
+- copies configured `.lnk` files collision-safely into the current user pinned Start Menu folder
+- preserves shortcut targets and command-line arguments and uses both for duplicate detection
+- registers and verifies copied shortcuts in both Start11 groups
+- resolves Admin status through `.lnk` files to their executable target
+- added `Test/Path-Config-Test_0.59.ps1` full regression, approved 0.58 layout, shortcut-copy, signature, administrator-target, and parser coverage
+
+## 0.58
+
+Reordered fixed Persistent Paths row controls.
+
+- changed the left-to-right order to Menu button, ADMIN, STARTUP, MENU, Browse, File path, Environment variable, and position
+- applied the same column order in CONFIG and APPLY modes
+- preserved all existing control widths, 20 px gaps, handlers, values, and edge alignment
+- reused the v0.57 full regression suite with focused temporary v0.58 layout and parser checks; no permanent test file was added
+
+## 0.57
+
+Stopped incremental window-height growth when switching tabs.
+
+- added a render flag that suppresses content fitting when the caller must preserve the current outer window size
+- makes every fixed or dynamic tab selection render with size preservation enabled
+- prevents tab changes from scheduling resizeTo or moveTo through fitWindowToContent
+- retains startup sizing and content fitting for non-tab operations that genuinely change layout
+- allows taller tab content to use the existing scroll behavior without changing the window dimensions
+- added Test/Path-Config-Test_0.57.ps1 tab-size-preservation, conditional-fit, parser, and full regression coverage
+## 0.56
+
+Synchronized Path-Config startup entries with the Windows Startup Apps status.
+
+- removes stale `StartupApproved\Run` records only for Path-Config-owned startup names during reconciliation
+- writes the Windows enabled binary state for every successfully created fixed or Programs startup entry
+- preserves unrelated Startup Apps approval records and continues using the isolated `PathConfig_Path_` and `PathConfig_Program_` namespaces
+- added `Test/Path-Config-Test_0.56.ps1` ownership, enabled-state, parser, and full regression coverage
 
 ## 0.55
 

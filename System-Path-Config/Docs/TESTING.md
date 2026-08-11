@@ -1,13 +1,13 @@
-# Path-Config Testing Guide
+﻿# Path-Config Testing Guide
 
 ## Test files
 
-The test file version must always match the source version.
+Create a new permanent test file only when a change needs new lasting regression coverage; small layout changes may reuse the latest full suite with focused temporary checks.
 
-Current pair:
+Current source and latest full regression suite:
 
-- `Path-Config.hta` version `0.55`
-- `Test/Path-Config-Test_0.55.ps1`
+- `Path-Config.hta` version `0.59`
+- `Test/Path-Config-Test_0.59.ps1`
 
 The canonical source filename remains `Path-Config.hta`; versioned PowerShell tests are stored under `Test/`, and the test filename advances with each version.
 
@@ -69,10 +69,10 @@ Check for all of the following:
 - file-path edits at least 560 px wide in both path tables, supported by the minimum table canvas and half-display-width window
 - compact fixed-width action columns and exact visible 20 px horizontal spacing between adjacent controls in fixed Paths and every dynamic-tab section, without inherited button margins or unused percentage-column space
 - larger icon-only Config-mode checkboxes
-- left-aligned ordering button and right-aligned burger menu
+- left-aligned burger menu and right-aligned ordering button
 - Add Path handler
 - Delete Path handler
-- combined leftmost Move Path control
+- combined rightmost Move Path control
 - left-click down and right-click up handlers
 - right-click context-menu suppression
 - moved-row cursor destination and hidden cursor-position command
@@ -100,13 +100,17 @@ Check for all of the following:
 - administrator compatibility-property read/write/delete methods
 - managed startup cleanup
 - managed startup creation
+- scoped `StartupApproved\Run` cleanup
+- owned enabled-state `REG_BINARY` creation
 - startup command builder
 - apply-result reporting
+- existing `.lnk` source resolution, collision-safe copying, target-and-arguments duplicate detection, and resolved executable administrator handling
 
 ### Safety
 
 - startup cleanup filters by `PathConfig_Path_`
-- no broad deletion of all Run values
+- Startup Apps cleanup accepts only `PathConfig_Path_` or `PathConfig_Program_` values and respects the selected prefix scope
+- no broad deletion of all Run or StartupApproved values
 - environment target is HKCU, not HKLM
 - startup target is HKCU, not HKLM
 - `%NAME%` expansion is case-insensitive, nested, cycle-safe, and preserves unknown names
@@ -127,6 +131,7 @@ Parser success does not replace runtime UI testing.
 - Confirm `Paths` is the first tab.
 - Confirm one empty fixed row exists.
 - Confirm the window is no wider than half the available display and File Path remains at least 560 px wide in both fixed and Programs path tables.
+- Record the current outer window width and height, switch repeatedly between Paths and Programs tabs, and confirm both dimensions remain exactly unchanged with no incremental height growth or recentering.
 - Confirm Environment Variable uses its restored 20% column and Links Link Name keeps its earlier 15% column.
 - Confirm the first and last controls align flush with the left and right row edges.
 - Confirm every adjacent row control has the same visible 20 px horizontal gap in fixed Paths and all dynamic-tab sections, including compact Browse, D/F, checkbox, move, menu, and Delete controls; confirm paired D/F buttons also have 20 px between them and section Add buttons sit beside their labels on the left.
@@ -134,7 +139,7 @@ Parser success does not replace runtime UI testing.
 - Confirm ADMIN, STARTUP, and MENU are orange, green, and blue, with 16 px between adjacent labels.
 - Hover each checkbox and confirm its administrator, sign-in startup, or Start11 menu tooltip appears.
 - Confirm every boolean status displays the complete uppercase word YES or NO with no abbreviation, ellipsis, or clipping.
-- Confirm the move button is aligned left and the burger menu is aligned right.
+- Confirm the burger menu is aligned left and the position button is aligned right.
 - Confirm dynamic program tabs still appear after it.
 
 ### 2. Save and reload
@@ -220,7 +225,9 @@ Use a harmless executable.
 
 ### Start11 Menu
 
-Use a harmless executable. Enable Menu, confirm Apply mode reports a missing pin, then Apply and verify that the shortcut appears in the user pinned Start Menu folder and in both Start11 registry groups without restarting Explorer. Apply again and confirm there are no duplicates. Enable Admin, apply again, and confirm launching the shortcut requests elevation. Uncheck Menu and confirm Apply does not remove the existing pin.
+Use a harmless executable. Enable Menu, confirm Apply mode reports a missing pin, then Apply and verify that the shortcut appears in the user pinned Start Menu folder and in both Start11 registry groups without restarting Explorer. Apply again and confirm there are no duplicates. Enable Admin, apply again, and confirm launching the shortcut requests elevation.
+
+Repeat with an existing `.lnk` that has command-line arguments. Confirm Path-Config copies it into the pinned Start Menu folder without altering the original, preserves its target and arguments, registers it in both groups, and does not create a duplicate on the second Apply. If Admin is enabled, confirm RUNASADMIN is applied to the shortcut's resolved executable target. Uncheck Menu and confirm Apply does not remove either existing pin.
 ### 7. Run on startup
 
 - disable Run as Admin
@@ -229,10 +236,13 @@ Use a harmless executable. Enable Menu, confirm Apply mode reports a missing pin
 - inspect `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`
 - confirm one `PathConfig_Path_` value exists
 - confirm its command is correctly quoted
+- inspect `HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run`
+- confirm the matching value is `REG_BINARY` with data `020000000000000000000000`
+- reopen Windows Settings > Apps > Startup and confirm the Path-Config entry is On
 
 Then uncheck Run on startup and apply again.
 
-Confirm the owned value is removed.
+Confirm the owned Run value and its matching StartupApproved value are removed.
 
 ### 8. Elevated startup
 

@@ -4,7 +4,7 @@ This guide preserves the confirmed Start11 pinning mechanism so another GPT chat
 
 ## Confirmed behavior
 
-Start11 pins require both a Windows shortcut and registry entries. Creating the shortcut alone is not enough.
+Start11 pins require both a Windows shortcut and registry entries. Creating the shortcut alone is not enough. Path-Config accepts either an executable or an existing `.lnk`; configured shortcuts are copied into the pinned directory with their target and arguments preserved.
 
 Shortcut location:
 
@@ -91,17 +91,20 @@ Add only the `RUNASADMIN` token and preserve unrelated compatibility tokens. Lau
 
 ## Path-Config reference implementation
 
-The implementation is embedded in `Path-Config.hta` v0.54:
+The implementation is embedded in `Path-Config.hta` v0.59:
 
 ```text
 START11_PIN_GROUPS
 START11_PIN_DIRECTORY
 readStart11PinValues
+start11ShortcutDetails
+start11MenuSourceInfo
 getStart11PinRecords
-isStart11TargetPinned
+isStart11MenuSourcePinned
 availableStart11ShortcutPath
 createStart11Shortcut
-start11GroupContainsTarget
+copyStart11Shortcut
+start11GroupContainsSignature
 nextStart11ValueName
 ensureStart11MenuPin
 ```
@@ -115,6 +118,8 @@ Implement Start11 shortcut pinning using this confirmed mechanism. Do not replac
 
 Create or reuse a .lnk under:
 %APPDATA%\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu
+
+When the configured source is an existing .lnk, copy it collision-safely into this folder and preserve its target and arguments. Compare existing pins by normalized target plus arguments.
 
 Register it in both keys using each key's next numeric value:
 HKCU\Software\Stardock\Start8\Start8.ini\GroupContents\$PINNEDDEF$

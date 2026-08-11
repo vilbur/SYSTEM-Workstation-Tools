@@ -1,4 +1,4 @@
-# Path-Config Design Specification
+﻿# Path-Config Design Specification
 
 ## User-facing modes
 
@@ -60,15 +60,16 @@ Constraints:
 
 Required left-to-right control order:
 
-1. one leftmost ordering button (left-click moves down; right-click moves up)
-2. file path edit
-3. Browse button
-4. Env var edit
-5. Run as Admin checkbox
-6. Run on startup checkbox
-7. fixed-size burger menu containing Move to New Tab and Delete Row
+1. fixed-size burger menu containing Move to New Tab and Delete Row
+2. Run as Admin checkbox
+3. Run on startup checkbox
+4. Menu checkbox
+5. Browse button
+6. file path edit
+7. Env var edit
+8. one rightmost ordering button (left-click moves down; right-click moves up)
 
-The file-path edit receives the largest available share of the row and has a 560 px minimum width. Environment Variable uses its restored 20% column while Links Link Name keeps its earlier 15% column. Path tables retain a 1270 px minimum canvas and the application window is capped at half the available display width; narrower windows scroll horizontally instead of compressing File Path below its minimum. Compact fixed-width columns fit the 30 px edge buttons, 64 px Browse button, and 20 px checkboxes without unused column space in fixed Paths and Programs Paths; 10 px padding on each adjacent cell therefore produces an exact visible 20 px horizontal gap. Shared button styles must not add extra margins. The first and last controls align flush with the left and right row edges, and section Add buttons sit beside their labels on the left. Config-mode checkboxes are larger and icon-only, without a `Yes` caption. The ADMIN, STARTUP, and MENU labels use orange, green, and blue respectively, with 8 px padding on each side producing 16 px between adjacent labels. Each checkbox provides an action-specific tooltip. Boolean values must always display the complete uppercase words YES and NO. They must never be shortened, ellipsized, or clipped. Every row remains aligned with its column headers.
+The file-path edit receives the largest available share of the row and has a 560 px minimum width. Environment Variable uses its restored 20% column while Links Link Name keeps its earlier 15% column. Path tables retain a 1270 px minimum canvas and the application window is capped at half the available display width; narrower windows scroll horizontally instead of compressing File Path below its minimum. Compact fixed-width columns fit the 30 px edge buttons, 64 px Browse button, and 20 px checkboxes without unused column space in fixed Paths and Programs Paths; 10 px padding on each adjacent cell therefore produces an exact visible 20 px horizontal gap. Shared button styles must not add extra margins. The first and last controls align flush with the left and right row edges, and section Add buttons sit beside their labels on the left. Config-mode checkboxes are larger and icon-only, without a `Yes` caption. The ADMIN, STARTUP, and MENU labels use orange, green, and blue respectively, with 8 px padding on each side producing 16 px between adjacent labels. Each checkbox provides an action-specific tooltip. Boolean values must always display the complete uppercase words YES and NO. They must never be shortened, ellipsized, or clipped. Every row remains aligned with its column headers. Tab selection rerenders content without resizing or recentering the outer HTA window; repeated tab changes must preserve its exact current dimensions.
 
 ## Path browsing
 
@@ -88,11 +89,11 @@ Program startup registry values use the dedicated `PathConfig_Program_` namespac
 
 ## Persistent row ordering
 
-In Config mode, one leftmost ordering control appears on every persistent row. Left-click moves the complete row down; right-click moves it up and suppresses the context menu. The file path, environment variable, Run as Admin flag, Run on startup flag, and Menu flag must move together. The reordered array is saved in its visible order. The ordering control is not shown in Apply mode. After a successful move, the mouse cursor follows the merged control on the moved row.
+In Config mode, one rightmost ordering control appears on every persistent row. Left-click moves the complete row down; right-click moves it up and suppresses the context menu. The file path, environment variable, Run as Admin flag, Run on startup flag, and Menu flag must move together. The reordered array is saved in its visible order. The ordering control is not shown in Apply mode. After a successful move, the mouse cursor follows the merged control on the moved row.
 
 ## Persistent row menu
 
-Every fixed Paths row has a fixed-size burger menu on the right. Either left-click or right-click opens the same menu with two actions:
+Every fixed Paths row has a fixed-size burger menu on the left. Either left-click or right-click opens the same menu with two actions:
 
 1. `Move to New Tab` creates a uniquely named Programs tab containing the complete row data, removes the source row, and activates the new tab.
 2. `Delete Row` uses the existing deletion rule and remains disabled for the first row.
@@ -160,13 +161,14 @@ Validation:
 
 Action:
 
-- create current-user Run value owned by Path-Config
+- create a current-user Run value owned by Path-Config
+- set the matching Path-Config-owned `StartupApproved\Run` value to the 12-byte enabled state beginning with `02`
 
 When Run as Admin is also checked, store an elevation-capable startup command rather than a plain quoted path.
 
 ### Start11 Menu action
 
-When Menu is checked, require an existing .exe, resolve existing Start11 shortcuts to their executable targets, create a collision-safe shortcut only when missing, and ensure it is registered in both Start11 registry pin groups. Apply mode shows green YES for a ready requested pin and red NO when missing. Unchecked Menu rows leave existing pins unchanged. Admin-enabled rows must set and verify RUNASADMIN before the shortcut is accepted as ready.
+When Menu is checked, accept an existing `.exe` or an existing `.lnk` whose target exists. Executables receive a collision-safe generated shortcut only when missing. Configured shortcut files are copied to the pinned Start Menu directory without overwriting a different shortcut, preserving their target and arguments. Existing pins are compared by normalized target plus arguments and registered in both Start11 groups. Apply mode shows green YES for a ready requested pin and red NO when missing. Unchecked Menu rows leave existing pins unchanged. Admin-enabled shortcuts must resolve to an `.exe`; RUNASADMIN is set and verified on that resolved executable before the shortcut is accepted as ready.
 ## Startup reconciliation
 
 Startup state is declarative.
@@ -178,12 +180,15 @@ Apply algorithm:
 ```text
 collect PathConfig-owned Run values
 remove collected values
+collect PathConfig-owned StartupApproved\Run values in the same apply scope
+remove collected approval values
 for each enabled startup row
     validate target
-    recreate one owned value
+    recreate one owned Run value
+    write its enabled StartupApproved\Run binary value
 ```
 
-This ensures unchecked, deleted, or reordered rows do not leave stale startup entries.
+This ensures unchecked, deleted, or reordered rows do not leave stale startup entries or stale disabled Windows Startup Apps state. Cleanup and writes remain limited to the `PathConfig_Path_` and `PathConfig_Program_` namespaces.
 
 ## Apply result
 

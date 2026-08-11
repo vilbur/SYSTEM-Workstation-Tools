@@ -1,17 +1,17 @@
-# Path-Config Development Guide
+﻿# Path-Config Development Guide
 
 ## Current baseline
 
-The latest approved version is `0.55`.
+The latest approved version is `0.59`.
 
 Primary files:
 
 - `Path-Config.hta`
 - `Path-Config.exe` (generic HTA launcher)
-- `Test/Path-Config-Test_0.55.ps1`
+- `Test/Path-Config-Test_0.59.ps1`
 - `Path-Config.ini` at runtime
 
-The next code delivery must be version `0.56` unless another version has already been approved in the repository.
+The next code delivery must be version `0.60` unless another version has already been approved in the repository.
 
 ## Product purpose
 
@@ -80,7 +80,7 @@ Rules:
 - The first row cannot be deleted.
 - Additional rows can be added and deleted.
 - Browse uses Windows Forms `OpenFileDialog` for files and the native Windows `IFileOpenDialog` Common Item Dialog in folder-selection mode for folders, both with full-PC access. A populated path field supplies its own folder as the initial location; an empty field falls back to the last successfully selected directory, or `C:\` before any selection. A centralized post-selection sanitizer capitalizes drive letters for every browsed path and removes trailing backslashes from folder results while preserving drive roots such as `C:\`. Every file/folder picker button also exposes `Find in Explorer` on right-click; the action reads its adjacent live field, expands configured and Windows environment references, validates the target, and opens visible Explorer with it selected.
-- File Path remains at least 560 px wide; Environment Variable uses its restored 20% column and Links Link Name keeps its earlier 15% column. Fixed Paths and all dynamic-tab table actions use compact fixed-width columns sized to their controls, so the 10 px padding on each adjacent cell produces an exact visible 20 px gap; the first and last controls align flush to the left and right row edges. The window is capped at half the available display width, with horizontal scrolling retained when the minimum layout is wider. Section Add buttons sit beside their labels on the left.
+- File Path remains at least 560 px wide; Environment Variable uses its restored 20% column and Links Link Name keeps its earlier 15% column. Fixed Paths and all dynamic-tab table actions use compact fixed-width columns sized to their controls, so the 10 px padding on each adjacent cell produces an exact visible 20 px gap; the first and last controls align flush to the left and right row edges. The window is capped at half the available display width, with horizontal scrolling retained when the minimum layout is wider. Switching between the fixed and dynamic tabs must preserve the current outer window size and must not invoke content fitting. Section Add buttons sit beside their labels on the left.
 - The environment-variable name is optional.
 - All three checkboxes are independent.
 
@@ -129,9 +129,12 @@ On apply:
 1. Enumerate current-user Run values.
 2. Collect only values with the owned prefix.
 3. Remove those owned values.
-4. Recreate values for currently enabled rows.
+4. Enumerate `HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run`.
+5. Remove only approval values in the same selected Path-Config-owned prefix scope.
+6. Recreate Run values for currently enabled rows.
+7. Write the 12-byte enabled `REG_BINARY` state `020000000000000000000000` for each successfully recreated owned value.
 
-This prevents stale entries and avoids touching unrelated startup software.
+This prevents stale commands or disabled approval records while avoiding unrelated startup software and approval state.
 
 ## Environment variables
 
@@ -167,9 +170,9 @@ Expected Windows behavior: an elevated startup row may produce a UAC prompt afte
 
 ## Start11 Menu pins
 
-When menu is enabled, Path-Config resolves existing Start11 pin registry data through each referenced shortcut target. If no matching executable target exists, it creates a collision-safe shortcut under the current user pinned Start Menu directory. It then ensures the shortcut is registered under both established Stardock groups with the next numeric value and the matching group suffix.
+When Menu is enabled, Path-Config accepts an existing `.exe` or an existing `.lnk` whose target exists. Executables receive a generated collision-safe shortcut under the current user pinned Start Menu directory. Configured `.lnk` files are copied there without overwriting a different shortcut, preserving their target and arguments. Existing pins and filename collisions are compared by normalized target plus arguments so multiple shortcuts to one executable can remain distinct.
 
-Apply verifies the completed pin and reports errors per row. Unchecked Menu rows do not remove existing pins. When Admin is enabled, the executable RUNASADMIN property is set and verified first, so launching the shortcut requests elevation.
+Apply ensures the resulting shortcut is registered under both established Stardock groups with the next numeric value and matching group suffix, then verifies the completed pin. Unchecked Menu rows do not remove existing pins. When Admin is enabled, a shortcut must resolve to an executable; the executable RUNASADMIN property is set and verified on that target before the shortcut is accepted.
 ## Migration
 
 Version 0.03 stored fixed paths as plain numbered values in `[PersistentPaths]`.

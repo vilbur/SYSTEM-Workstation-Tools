@@ -1,4 +1,4 @@
-# Path-Config Codex Agent Instructions
+﻿# Path-Config Codex Agent Instructions
 
 ## Project
 
@@ -6,9 +6,9 @@ Path-Config is a standalone Windows HTA application (HTML and legacy-compatible 
 
 Current approved baseline:
 
-- `Path-Config.hta` version `0.55`
+- `Path-Config.hta` version `0.59`
 - `Path-Config.exe`
-- `Test/Path-Config-Test_0.55.ps1`
+- `Test/Path-Config-Test_0.59.ps1`
 
 Continue development only from the latest approved baseline. Never rebuild from memory when the current source files are available.
 
@@ -57,6 +57,7 @@ Preserve the current dark UI style:
 - in IE9-mode HTA, track input, keyup, propertychange, and change so typing/pasting immediately marks real value changes dirty; filter non-value property events
 - consistent row alignment
 - a window no wider than half the display, file-path edits at least 560 px wide, restored 20% Environment Variable columns, preserved 15% Config-mode Link Name columns and compact Source/Link path/Type Links rows in Apply mode, compact fixed-width row-action columns across fixed Paths and every dynamic-tab section that produce exact visible 20 px gaps, flush outer controls, section Add buttons beside their labels on the left, and no inherited control margins
+- preserve the exact current outer window size when switching tabs; tab selection must not schedule content fitting, resizing, or recentering
 - larger icon-only Config-mode checkboxes
 - ADMIN, STARTUP, and MENU headers use 8 px side padding for 16 px between adjacent labels and are orange, green, and blue respectively
 - every path-row checkbox exposes an action-specific tooltip
@@ -94,10 +95,10 @@ The row UI contains:
 - Run on startup checkbox
 - Menu checkbox
 - fixed-size burger menu opened by either left-click or right-click, with Move to New Tab and Delete Row actions; Delete Row remains disabled for the first row
-- one leftmost ordering button: left-click moves down and right-click moves up
+- one rightmost ordering button: left-click moves down and right-click moves up
 - right-click context-menu suppression on the ordering button
 - cursor follow-up to the merged ordering button on the moved row
-- left edge alignment for the ordering button and right edge alignment for the burger menu
+- left edge alignment for the burger menu and right edge alignment for the ordering button
 
 At least one row must always exist.
 
@@ -125,12 +126,14 @@ Run as Admin:
 
 Start11 Menu:
 
-- when Menu is checked, require an existing .exe
-- resolve Start11 registry pins through their .lnk targets before deciding a pin is missing
-- create a shortcut in the current user pinned Start Menu directory only when needed
+- when Menu is checked, accept either an existing `.exe` or an existing `.lnk` whose target exists
+- copy configured `.lnk` files into the current user pinned Start Menu directory without overwriting a different shortcut
+- preserve a configured shortcut's target and arguments
+- resolve Start11 registry pins through their `.lnk` target-and-arguments signature before deciding a pin is missing
+- create a new shortcut for configured executables only when needed
 - register the shortcut in both Start11 pin groups with the next numeric value and correct suffix
 - never remove pins when Menu is unchecked
-- when Admin is checked, set and verify RUNASADMIN before accepting the shortcut as ready
+- when Admin is checked, require an executable target and set and verify RUNASADMIN on that resolved target before accepting the shortcut as ready
 Run on startup:
 
 - manage current-user startup entries under:
@@ -138,7 +141,10 @@ Run on startup:
 - use only the dedicated value-name prefix owned by Path-Config:
   `PathConfig_Path_`
 - remove obsolete Path-Config-owned startup entries during apply
-- never delete unrelated startup values
+- synchronize matching Path-Config-owned values under `HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run`
+- write the 12-byte enabled state beginning with `02` after successfully creating each startup command
+- remove stale approval records only inside the selected `PathConfig_Path_` or `PathConfig_Program_` scope
+- never delete unrelated startup or approval values
 - when Run as Admin and Run on startup are both enabled, the startup command must request elevation
 
 `APPLY PATHS` applies only the fixed Paths rows.
