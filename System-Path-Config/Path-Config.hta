@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html>
 <head>
 <meta http-equiv="X-UA-Compatible" content="IE=9" />
@@ -420,11 +420,14 @@ button, input, select {
 }
 </style>
 <script language="JScript" type="text/javascript">
-var VERSION = "0.55";
+var VERSION = "0.57";
 var STARTUP_PREFIX = "PathConfig_Path_";
 var PROGRAM_STARTUP_PREFIX = "PathConfig_Program_";
 var REG_ENV = "HKCU\\Environment\\";
 var REG_RUN = "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\\";
+var STARTUP_APPROVED_KEY = "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run";
+var REG_STARTUP_APPROVED = STARTUP_APPROVED_KEY + "\\";
+var STARTUP_APPROVED_ENABLED = "020000000000000000000000";
 var APP_COMPAT_KEY = "HKCU\\Software\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Layers";
 var START11_PIN_GROUPS = [
     {key: "HKCU\\Software\\Stardock\\Start8\\Start8.ini\\GroupContents\\$PINNEDDEF$", suffix: "|-1|1|-1|-1"},
@@ -1137,7 +1140,7 @@ function showDirtyStatus() {
     }
 }
 
-function render() {
+function render(preserveWindowSize) {
     start11PinCache = null;
     document.title = "Path-Config v" + VERSION;
     var modeClass = lower(state.mode);
@@ -1183,7 +1186,9 @@ function render() {
         '<div class="status" id="status">Ready</div>';
     validateInputs();
     showDirtyStatus();
-    window.setTimeout(fitWindowToContent, 0);
+    if (!preserveWindowSize) {
+        window.setTimeout(fitWindowToContent, 0);
+    }
 }
 
 function fitWindowToContent() {
@@ -1827,7 +1832,7 @@ function selectTab(index) {
     if (index > 0) {
         state.activeProgramTab = index - 1;
     }
-    render();
+    render(true);
 }
 
 function toggleMode() {
@@ -2451,9 +2456,9 @@ function applyAll() {
     var dynamicErrors = 0;
     var dynamicMenuPins = 0;
     var dynamicMenuCreated = 0;
-    var programCleanup = {errors: 0};
+    var programCleanup = {errors: 0, error_count: 0};
     cleanupProgramStartup(PROGRAM_STARTUP_PREFIX, programCleanup);
-    dynamicErrors += programCleanup.errors;
+    dynamicErrors += programCleanup.errors + programCleanup.error_count;
     var i, result;
     for (i = 0; i < state.tabs.length; i++) {
         result = applyTabConfig(state.tabs[i], i, true);
@@ -2538,8 +2543,11 @@ function applyPersistentPaths() {
                 command = buildStartupCommand(path, row.run_as_admin);
                 try {
                     wsh.RegWrite(REG_RUN + startupName, command, "REG_SZ");
-                    result.startup_count++;
-                    persistentSuccess(result, "Startup entry " + startupName + " configured.");
+                    if (writeStartupApproval(startupName, result, "Row " + (i + 1))) {
+                        result.startup_count++;
+                        persistentSuccess(result, "Startup entry " + startupName +
+                            " configured and enabled in Windows Startup Apps.");
+                    }
                 } catch (errorStartup) {
                     persistentError(result, "Row " + (i + 1) + " startup entry failed: " + errorStartup.message);
                 }
@@ -2654,6 +2662,52 @@ function persistentSuccess(result, message) {
     appendLog(message, false);
 }
 
+function isOwnedStartupName(name) {
+    name = lower(trimText(name));
+    return name.substr(0, lower(STARTUP_PREFIX).length) === lower(STARTUP_PREFIX) ||
+        name.substr(0, lower(PROGRAM_STARTUP_PREFIX).length) === lower(PROGRAM_STARTUP_PREFIX);
+}
+
+function writeStartupApproval(name, result, rowLabel) {
+    if (!isOwnedStartupName(name)) {
+        persistentError(result, rowLabel + " refused an unowned Windows Startup Apps value: " + name);
+        return false;
+    }
+    var regExe = wsh.ExpandEnvironmentStrings("%SystemRoot%") + "\\System32\\reg.exe";
+    var command = quoteArg(regExe) + " add " + quoteArg(STARTUP_APPROVED_KEY) +
+        " /v " + quoteArg(name) + " /t REG_BINARY /d " + STARTUP_APPROVED_ENABLED + " /f";
+    try {
+        if (wsh.Run(command, 0, true) === 0) {
+            return true;
+        }
+    } catch (ignoreApprovalWrite) {}
+    persistentError(result, rowLabel + " could not enable Windows Startup Apps status: " + name);
+    return false;
+}
+
+function cleanupStartupApprovals(prefix, result) {
+    var regExe = wsh.ExpandEnvironmentStrings("%SystemRoot%") + "\\System32\\reg.exe";
+    var output = runCapture(quoteArg(regExe) + " query " + quoteArg(STARTUP_APPROVED_KEY));
+    var lines = output.split(/\r?\n/);
+    var normalizedPrefix = lower(prefix);
+    var i, match, name;
+    for (i = 0; i < lines.length; i++) {
+        match = /^\s*(PathConfig_[^\s]+)\s+REG_BINARY/i.exec(lines[i]);
+        if (!match) {
+            continue;
+        }
+        name = match[1];
+        if (isOwnedStartupName(name) && lower(name).substr(0, normalizedPrefix.length) === normalizedPrefix) {
+            try {
+                wsh.RegDelete(REG_STARTUP_APPROVED + name);
+            } catch (errorApprovalDelete) {
+                persistentError(result, "Could not remove owned Windows Startup Apps status " + name +
+                    ": " + errorApprovalDelete.message);
+            }
+        }
+    }
+}
+
 function cleanupOwnedStartup(result) {
     var regExe = wsh.ExpandEnvironmentStrings("%SystemRoot%") + "\\System32\\reg.exe";
     var command = quoteArg(regExe) + ' query "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run"';
@@ -2671,6 +2725,7 @@ function cleanupOwnedStartup(result) {
             }
         }
     }
+    cleanupStartupApprovals(STARTUP_PREFIX, result);
 }
 
 function cleanupProgramStartup(prefix, result) {
@@ -2693,6 +2748,7 @@ function cleanupProgramStartup(prefix, result) {
             }
         }
     }
+    cleanupStartupApprovals(prefix, result);
 }
 
 function runCapture(command) {
@@ -2780,8 +2836,11 @@ function applyTabConfig(tabName, tabIndex, startupAlreadyCleaned) {
                 command = buildStartupCommand(path, item.run_as_admin);
                 try {
                     wsh.RegWrite(REG_RUN + startupName, command, "REG_SZ");
-                    result.startup_count++;
-                    persistentSuccess(result, "Startup entry " + startupName + " configured.");
+                    if (writeStartupApproval(startupName, result, tabName + " row " + (i + 1))) {
+                        result.startup_count++;
+                        persistentSuccess(result, "Startup entry " + startupName +
+                            " configured and enabled in Windows Startup Apps.");
+                    }
                 } catch (errorStartup) {
                     persistentError(result, tabName + " row " + (i + 1) + " startup entry failed: " + errorStartup.message);
                 }
