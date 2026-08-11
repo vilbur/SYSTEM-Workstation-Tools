@@ -1,5 +1,43 @@
-﻿# Path-Config Changelog
+# Path-Config Changelog
 
+## 0.55
+
+Renamed the startup status header.
+
+- replaced START with STARTUP in both fixed and program path tables
+- preserved the green header styling, checkbox behavior, persistence, and Apply status values
+- added `Test/Path-Config-Test_0.55.ps1` label, parser, and full regression coverage
+
+## 0.54
+
+Made full boolean status words a permanent UI contract.
+
+- ADMIN, START, and MENU status cells always display the complete uppercase words YES and NO
+- added a dedicated non-truncating boolean-status style with no ellipsis or clipping
+- preserved neutral N/A status where a boolean check does not apply
+- documented the permanent prohibition against shortened Y/N values
+- added Test/Path-Config-Test_0.54.ps1 full-value, no-ellipsis, parser, and full regression coverage
+## 0.53
+
+Refined the ADMIN, START, and MENU path controls.
+
+- renamed the visible Startup header to START
+- added 16 px spacing between adjacent ADMIN, START, and MENU labels
+- colors ADMIN orange, START green, and MENU blue
+- added action-specific tooltips to all three checkboxes in fixed and Programs path rows
+- added Test/Path-Config-Test_0.53.ps1 spacing, color, tooltip, parser, and full regression coverage
+## 0.52
+
+Added declarative Start11 Menu pinning to fixed and Programs path rows.
+
+- added a saved Menu checkbox directly after Startup
+- shows Apply-mode pin status by resolving Start11 shortcuts to target executables
+- creates a collision-safe shortcut in the current user pinned Start Menu folder when missing
+- ensures both Stardock Start11 registry groups contain the shortcut with the next numeric value and correct suffix
+- preserves existing pins when Menu is unchecked and avoids duplicate entries
+- sets and verifies RUNASADMIN before accepting an Admin-enabled Menu shortcut
+- reports ready and created pin counts in Apply results and the adjacent log
+- added Test/Path-Config-Test_0.52.ps1 regression coverage
 ## 0.51
 
 Fixed Save State remaining frozen while editing path fields in the IE9-mode HTA.

@@ -1,12 +1,12 @@
-# Apply Execution Log - Saturday, 8 August 2026 08:25:44
+# Apply Execution Log - Tuesday, 11 August 2026 10:00:36
 
-- OK: Program tab: MediaMonkey
+- OK: Program tab: DisplayFusion
 
-- OK: Enabled "Run this program as an administrator": M:\MediaMonkey\MediaMonkey-Portable\MediaMonkey.exe
+- OK: Environment variable DisplayFusion_exe = C:\Program Files\DisplayFusion\DisplayFusion.exe
 
-- OK: Symlink created: m:\MediaMonkey\MediaMonkey-Portable\Portable\MediaMonkey.ini
+- OK: Startup entry PathConfig_Program_3_1 configured.
 
-- OK: Symlink created: m:\MediaMonkey\MediaMonkey-Portable\Portable\persistent.json
+- OK: Enabled "Run this program as an administrator": C:\Program Files\DisplayFusion\DisplayFusion.exe
 
-- OK: Symlink created: M:\MediaMonkey\MediaMonkey-Portable\Portable\Thumbs
+- OK: Start11 menu shortcut ready with administrator launch: C:\Users\vilbur\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu\DisplayFusion.lnk
 

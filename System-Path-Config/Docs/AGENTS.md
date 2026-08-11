@@ -1,4 +1,4 @@
-﻿# Path-Config Codex Agent Instructions
+# Path-Config Codex Agent Instructions
 
 ## Project
 
@@ -6,9 +6,9 @@ Path-Config is a standalone Windows HTA application (HTML and legacy-compatible 
 
 Current approved baseline:
 
-- `Path-Config.hta` version `0.51`
+- `Path-Config.hta` version `0.55`
 - `Path-Config.exe`
-- `Test/Path-Config-Test_0.51.ps1`
+- `Test/Path-Config-Test_0.55.ps1`
 
 Continue development only from the latest approved baseline. Never rebuild from memory when the current source files are available.
 
@@ -58,6 +58,9 @@ Preserve the current dark UI style:
 - consistent row alignment
 - a window no wider than half the display, file-path edits at least 560 px wide, restored 20% Environment Variable columns, preserved 15% Config-mode Link Name columns and compact Source/Link path/Type Links rows in Apply mode, compact fixed-width row-action columns across fixed Paths and every dynamic-tab section that produce exact visible 20 px gaps, flush outer controls, section Add buttons beside their labels on the left, and no inherited control margins
 - larger icon-only Config-mode checkboxes
+- ADMIN, STARTUP, and MENU headers use 8 px side padding for 16 px between adjacent labels and are orange, green, and blue respectively
+- every path-row checkbox exposes an action-specific tooltip
+- Boolean status values are a permanent UI contract: always render the complete uppercase words YES and NO; never abbreviate them to Y/N and never permit ellipsis or clipping
 - orange Source and Link folder/path values when the Source item's containing directory matches the configured Link folder
 
 The fixed first tab is always named `Paths`.
@@ -78,6 +81,7 @@ Each persistent row contains exactly these logical fields:
 - `env_var`
 - `run_as_admin`
 - `run_on_startup`
+- `menu`
 
 The row UI contains:
 
@@ -88,6 +92,7 @@ The row UI contains:
 - Env var edit
 - Run as Admin checkbox
 - Run on startup checkbox
+- Menu checkbox
 - fixed-size burger menu opened by either left-click or right-click, with Move to New Tab and Delete Row actions; Delete Row remains disabled for the first row
 - one leftmost ordering button: left-click moves down and right-click moves up
 - right-click context-menu suppression on the ordering button
@@ -118,6 +123,14 @@ Run as Admin:
 - perform property status checks without flashing a console window
 - report missing or invalid paths as errors
 
+Start11 Menu:
+
+- when Menu is checked, require an existing .exe
+- resolve Start11 registry pins through their .lnk targets before deciding a pin is missing
+- create a shortcut in the current user pinned Start Menu directory only when needed
+- register the shortcut in both Start11 pin groups with the next numeric value and correct suffix
+- never remove pins when Menu is unchecked
+- when Admin is checked, set and verify RUNASADMIN before accepting the shortcut as ready
 Run on startup:
 
 - manage current-user startup entries under:
@@ -144,6 +157,7 @@ Version 0.04 fields use keys equivalent to:
 - `<row>_EnvVar`
 - `<row>_RunAsAdmin`
 - `<row>_RunOnStartup`
+- `<row>_Menu`
 
 Preserve migration from version 0.03, where each row may exist as a plain numeric key containing only the path.
 

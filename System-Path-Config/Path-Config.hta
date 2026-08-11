@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
 <meta http-equiv="X-UA-Compatible" content="IE=9" />
@@ -208,6 +208,20 @@ button, input, select {
     padding-right: 10px;
     padding-left: 10px;
 }
+.path-table .status-header {
+    padding-right: 8px;
+    padding-left: 8px;
+    text-align: center;
+}
+.path-table .status-admin {
+    color: #f2a23a;
+}
+.path-table .status-start {
+    color: #69c77d;
+}
+.path-table .status-menu {
+    color: #5aa9e6;
+}
 .path-table {
     min-width: 1270px;
 }
@@ -299,6 +313,14 @@ button, input, select {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+.readonly.boolean-status {
+    min-width: 30px;
+    padding-right: 0;
+    padding-left: 0;
+    overflow: visible;
+    text-align: center;
+    text-overflow: clip;
 }
 .readonly.valid {
     color: #76df96;
@@ -398,12 +420,18 @@ button, input, select {
 }
 </style>
 <script language="JScript" type="text/javascript">
-var VERSION = "0.51";
+var VERSION = "0.55";
 var STARTUP_PREFIX = "PathConfig_Path_";
 var PROGRAM_STARTUP_PREFIX = "PathConfig_Program_";
 var REG_ENV = "HKCU\\Environment\\";
 var REG_RUN = "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\\";
 var APP_COMPAT_KEY = "HKCU\\Software\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Layers";
+var START11_PIN_GROUPS = [
+    {key: "HKCU\\Software\\Stardock\\Start8\\Start8.ini\\GroupContents\\$PINNEDDEF$", suffix: "|-1|1|-1|-1"},
+    {key: "HKCU\\Software\\Stardock\\Start8\\Start8.ini\\GroupContents11\\$$APPS$$", suffix: "|-1|0|-1|-1"}
+];
+var START11_PIN_DIRECTORY = "%APPDATA%\\Microsoft\\Internet Explorer\\Quick Launch\\User Pinned\\StartMenu";
+var start11PinCache = null;
 var NATIVE_FOLDER_DIALOG_CSHARP =
     "dXNpbmcgU3lzdGVtOwp1c2luZyBTeXN0ZW0uUnVudGltZS5JbnRlcm9wU2VydmljZXM7Cm5hbWVzcGFjZSBQYXRoQ29uZmlnIHsKICAgIFtGbGFnc10KICAg" +
     "IGludGVybmFsIGVudW0gRmlsZU9wZW5PcHRpb25zIDogdWludCB7CiAgICAgICAgUGlja0ZvbGRlcnMgPSAweDAwMDAwMDIwLAogICAgICAgIEZvcmNlRmls" +
@@ -742,7 +770,7 @@ function loadState() {
     if (!source) {
         state.tabs = ["PROGRAMS"];
         state.data = {"PROGRAMS": {paths: [emptyPathRow()], envs: [], execs: [], links: []}};
-        state.persistent = [{path: "", env_var: "", run_as_admin: 0, run_on_startup: 0}];
+        state.persistent = [{path: "", env_var: "", run_as_admin: 0, run_on_startup: 0, menu: 0}];
         return;
     }
 
@@ -790,11 +818,12 @@ function loadState() {
             path: pathValue || "",
             env_var: iniValue(ini, "PersistentPaths", i + "_EnvVar", ""),
             run_as_admin: asNumber(iniValue(ini, "PersistentPaths", i + "_RunAsAdmin", "0"), 0) ? 1 : 0,
-            run_on_startup: asNumber(iniValue(ini, "PersistentPaths", i + "_RunOnStartup", "0"), 0) ? 1 : 0
+            run_on_startup: asNumber(iniValue(ini, "PersistentPaths", i + "_RunOnStartup", "0"), 0) ? 1 : 0,
+            menu: asNumber(iniValue(ini, "PersistentPaths", i + "_Menu", "0"), 0) ? 1 : 0
         });
     }
     if (!state.persistent.length) {
-        state.persistent.push({path: "", env_var: "", run_as_admin: 0, run_on_startup: 0});
+        state.persistent.push({path: "", env_var: "", run_as_admin: 0, run_on_startup: 0, menu: 0});
     }
 
     state.data = {};
@@ -840,7 +869,8 @@ function emptyPathRow(path, envVar) {
         path: path || "",
         env_var: envVar || "",
         run_as_admin: 0,
-        run_on_startup: 0
+        run_on_startup: 0,
+        menu: 0
     };
 }
 
@@ -867,7 +897,8 @@ function loadProgramPathRows(ini, section) {
             path: path || "",
             env_var: envVar || "",
             run_as_admin: asNumber(iniValue(ini, section, i + "_RunAsAdmin", "0"), 0) ? 1 : 0,
-            run_on_startup: asNumber(iniValue(ini, section, i + "_RunOnStartup", "0"), 0) ? 1 : 0
+            run_on_startup: asNumber(iniValue(ini, section, i + "_RunOnStartup", "0"), 0) ? 1 : 0,
+            menu: asNumber(iniValue(ini, section, i + "_Menu", "0"), 0) ? 1 : 0
         });
     }
     return rows;
@@ -955,6 +986,7 @@ function saveState(showMessage, stateAlreadyCaptured) {
         entry(lines, (i + 1) + "_EnvVar", row.env_var);
         entry(lines, (i + 1) + "_RunAsAdmin", row.run_as_admin ? 1 : 0);
         entry(lines, (i + 1) + "_RunOnStartup", row.run_on_startup ? 1 : 0);
+        entry(lines, (i + 1) + "_Menu", row.menu ? 1 : 0);
     }
     lines.push("");
 
@@ -968,6 +1000,7 @@ function saveState(showMessage, stateAlreadyCaptured) {
             entry(lines, (j + 1) + "_EnvVar", row.env_var);
             entry(lines, (j + 1) + "_RunAsAdmin", row.run_as_admin ? 1 : 0);
             entry(lines, (j + 1) + "_RunOnStartup", row.run_on_startup ? 1 : 0);
+            entry(lines, (j + 1) + "_Menu", row.menu ? 1 : 0);
         }
         lines.push("");
         if (data.envs.length) {
@@ -1105,6 +1138,7 @@ function showDirtyStatus() {
 }
 
 function render() {
+    start11PinCache = null;
     document.title = "Path-Config v" + VERSION;
     var modeClass = lower(state.mode);
     var top = '<div class="topbar">' +
@@ -1190,10 +1224,9 @@ function renderPersistent() {
     }
     out += '</div><table class="data-table path-table"><colgroup>' +
         '<col style="width:40px"><col><col style="width:84px"><col style="width:20%">' +
-        '<col style="width:40px"><col style="width:40px"><col style="width:40px"></colgroup>' +
+        '<col style="width:56px"><col style="width:56px"><col style="width:56px"><col style="width:40px"></colgroup>' +
         '<thead><tr><th></th><th>File path</th><th></th><th>Environment variable</th>' +
-        '<th>Admin</th>' +
-        '<th>Startup</th><th></th></tr></thead><tbody>';
+        '<th class="status-header status-admin">ADMIN</th><th class="status-header status-start">STARTUP</th><th class="status-header status-menu">MENU</th><th></th></tr></thead><tbody>';
     var i, row;
     for (i = 0; i < state.persistent.length; i++) {
         row = state.persistent[i];
@@ -1207,6 +1240,7 @@ function renderPersistent() {
             out += fieldInput("persistent", "", i, "env_var", row.env_var, "");
             out += checkboxInput("persistent", "", i, "run_as_admin", row.run_as_admin);
             out += checkboxInput("persistent", "", i, "run_on_startup", row.run_on_startup);
+            out += checkboxInput("persistent", "", i, "menu", row.menu);
             out += '<td class="row-menu-cell"><button class="button button-small row-menu-button" id="persistentMenu_' + i +
                 '" title="Row menu" onclick="return showPersistentRowMenu(' + i + ',this)"' +
                 ' oncontextmenu="return showPersistentRowMenu(' + i + ',this)">&#9776;</button></td>';
@@ -1217,6 +1251,7 @@ function renderPersistent() {
             out += readonlyCell(row.env_var, "");
             out += adminPropertyMatchCell(row.path, row.run_as_admin);
             out += yesNoCell(row.run_on_startup);
+            out += menuPinMatchCell(row.path, row.menu);
             out += '<td></td>';
         }
         out += '</tr>';
@@ -1249,10 +1284,9 @@ function renderProgramPaths(tabIndex, rows) {
     }
     out += '</div><table class="data-table path-table"><colgroup>' +
         '<col><col style="width:84px"><col style="width:20%">' +
-        '<col style="width:40px"><col style="width:40px"><col style="width:40px"></colgroup>' +
+        '<col style="width:56px"><col style="width:56px"><col style="width:56px"><col style="width:40px"></colgroup>' +
         '<thead><tr><th>File path</th><th></th><th>Environment variable</th>' +
-        '<th>Admin</th>' +
-        '<th>Startup</th><th></th></tr></thead><tbody>';
+        '<th class="status-header status-admin">ADMIN</th><th class="status-header status-start">STARTUP</th><th class="status-header status-menu">MENU</th><th></th></tr></thead><tbody>';
     var i, row;
     for (i = 0; i < rows.length; i++) {
         row = rows[i];
@@ -1263,6 +1297,7 @@ function renderProgramPaths(tabIndex, rows) {
             out += fieldInput("dynamic", "paths", i, "env_var", row.env_var, 'data-tab="' + tabIndex + '"');
             out += checkboxInput("dynamic", "paths", i, "run_as_admin", row.run_as_admin, tabIndex);
             out += checkboxInput("dynamic", "paths", i, "run_on_startup", row.run_on_startup, tabIndex);
+            out += checkboxInput("dynamic", "paths", i, "menu", row.menu, tabIndex);
             out += '<td>' + (i > 0 ? '<button class="button button-small button-danger" onclick="deleteDynamicRow(' +
                 tabIndex + ',\'paths\',' + i + ')">X</button>' : '') + '</td>';
         } else {
@@ -1271,6 +1306,7 @@ function renderProgramPaths(tabIndex, rows) {
             out += readonlyCell(row.env_var, "");
             out += adminPropertyMatchCell(row.path, row.run_as_admin);
             out += yesNoCell(row.run_on_startup);
+            out += menuPinMatchCell(row.path, row.menu);
             out += '<td></td>';
         }
         out += '</tr>';
@@ -1391,9 +1427,24 @@ function fieldInput(scope, kind, index, field, value, extra) {
 
 function checkboxInput(scope, kind, index, field, checked, tabIndex) {
     var tabAttribute = typeof tabIndex === "number" ? ' data-tab="' + tabIndex + '"' : "";
-    return '<td><label class="check-wrap"><input type="checkbox" data-scope="' + scope +
-        '" data-kind="' + kind + '" data-index="' + index + '" data-field="' + field + '"' +
-        tabAttribute + (checked ? ' checked="checked"' : '') + '></label></td>';
+    var tooltip = checkboxTooltip(field);
+    return '<td><label class="check-wrap" title="' + html(tooltip) + '"><input type="checkbox" title="' +
+        html(tooltip) + '" data-scope="' + scope + '" data-kind="' + kind + '" data-index="' + index +
+        '" data-field="' + field + '"' + tabAttribute + (checked ? ' checked="checked"' : '') +
+        '></label></td>';
+}
+
+function checkboxTooltip(field) {
+    if (field === "run_as_admin") {
+        return "Run this executable as administrator";
+    }
+    if (field === "run_on_startup") {
+        return "Run this executable when you sign in";
+    }
+    if (field === "menu") {
+        return "Create or verify this executable's Start11 menu shortcut";
+    }
+    return "";
 }
 
 function readonlyCell(value, checkType) {
@@ -1411,18 +1462,18 @@ function readonlyCell(value, checkType) {
 }
 
 function yesNoCell(value) {
-    return '<td><div class="readonly ' + (value ? "yes" : "no") + '">' + (value ? "YES" : "NO") + '</div></td>';
+    return '<td><div class="readonly boolean-status ' + (value ? "yes" : "no") + '">' + (value ? "YES" : "NO") + '</div></td>';
 }
 
 function adminPropertyMatchCell(path, expected) {
     if (!trimText(path)) {
-        return '<td><div class="readonly no" title="No path configured">N/A</div></td>';
+        return '<td><div class="readonly no boolean-status" title="No path configured">N/A</div></td>';
     }
     var actual = hasRunAsAdminProperty(path);
     var matches = actual === (expected ? true : false);
     var detail = "Configured: " + (expected ? "Yes" : "No") +
         "; Windows property: " + (actual ? "Yes" : "No");
-    return '<td><div class="readonly ' + (matches ? "yes" : "mismatch") +
+    return '<td><div class="readonly boolean-status ' + (matches ? "yes" : "mismatch") +
         '" title="' + html(detail) + '">' + (expected ? "YES" : "NO") + '</div></td>';
 }
 
@@ -1443,6 +1494,231 @@ function hasRunAsAdminProperty(path) {
         }
     }
     return false;
+}
+
+function menuPinMatchCell(path, expected) {
+    if (!expected) {
+        return '<td><div class="readonly no boolean-status" title="Start11 menu pin not requested">NO</div></td>';
+    }
+    path = expandPathVariables(path);
+    if (!path || !pathExists(path) || lower(fso.GetExtensionName(path)) !== "exe") {
+        return '<td><div class="readonly mismatch boolean-status" title="Menu requires an existing .exe file">NO</div></td>';
+    }
+    var pinned = isStart11TargetPinned(path);
+    var detail = pinned ? "Shortcut exists in the Start11 menu" : "Shortcut is missing from the Start11 menu";
+    return '<td><div class="readonly boolean-status ' + (pinned ? "yes" : "mismatch") +
+        '" title="' + html(detail) + '">' + (pinned ? "YES" : "NO") + '</div></td>';
+}
+
+function normalizedStart11Path(path) {
+    path = trimText(expandPathVariables(path)).replace(/^"|"$/g, "").replace(/\//g, "\\");
+    if (!path) {
+        return "";
+    }
+    try {
+        path = fso.GetAbsolutePathName(path);
+    } catch (ignoreAbsolutePath) {}
+    return lower(path.replace(/\\+$/, ""));
+}
+
+function readStart11PinValues(registryKey) {
+    var regExe = wsh.ExpandEnvironmentStrings("%SystemRoot%") + "\\System32\\reg.exe";
+    var output = runCapture(quoteArg(regExe) + " query " + quoteArg(registryKey));
+    var lines = output.split(/\r?\n/);
+    var values = [];
+    var i, match, data, separator;
+    for (i = 0; i < lines.length; i++) {
+        match = /^\s*(\d+)\s+REG_(?:SZ|EXPAND_SZ)\s+(.+)$/i.exec(lines[i]);
+        if (match) {
+            data = trimText(match[2]);
+            separator = data.indexOf("|");
+            values.push({
+                name: match[1],
+                data: data,
+                shortcut_path: trimText(separator >= 0 ? data.substr(0, separator) : data)
+            });
+        }
+    }
+    return values;
+}
+
+function getStart11PinRecords() {
+    if (start11PinCache !== null) {
+        return start11PinCache;
+    }
+    start11PinCache = {targets: {}, shortcuts: {}};
+    var i, j, values, shortcutPath, shortcut, targetPath, shortcutKey, targetKey;
+    for (i = 0; i < START11_PIN_GROUPS.length; i++) {
+        values = readStart11PinValues(START11_PIN_GROUPS[i].key);
+        for (j = 0; j < values.length; j++) {
+            shortcutPath = values[j].shortcut_path;
+            shortcutKey = normalizedStart11Path(shortcutPath);
+            if (shortcutKey) {
+                start11PinCache.shortcuts[shortcutKey] = shortcutPath;
+            }
+            if (lower(fso.GetExtensionName(shortcutPath)) !== "lnk" || !pathExists(shortcutPath)) {
+                continue;
+            }
+            try {
+                shortcut = wsh.CreateShortcut(shortcutPath);
+                targetPath = shortcut.TargetPath;
+                targetKey = normalizedStart11Path(targetPath);
+                if (targetKey && lower(fso.GetExtensionName(targetPath)) === "exe") {
+                    start11PinCache.targets[targetKey] = shortcutPath;
+                }
+            } catch (ignoreShortcutRead) {}
+        }
+    }
+    return start11PinCache;
+}
+
+function isStart11TargetPinned(path) {
+    var targetKey = normalizedStart11Path(path);
+    return targetKey && getStart11PinRecords().targets[targetKey] ? true : false;
+}
+
+function ensureStart11Folder(path) {
+    if (fso.FolderExists(path)) {
+        return true;
+    }
+    var parent = fso.GetParentFolderName(path);
+    if (parent && parent !== path && !fso.FolderExists(parent) && !ensureStart11Folder(parent)) {
+        return false;
+    }
+    try {
+        fso.CreateFolder(path);
+        return true;
+    } catch (ignoreFolderCreate) {
+        return fso.FolderExists(path);
+    }
+}
+
+function start11ShortcutTarget(path) {
+    if (!fso.FileExists(path)) {
+        return "";
+    }
+    try {
+        return wsh.CreateShortcut(path).TargetPath;
+    } catch (ignoreShortcutTarget) {
+        return "";
+    }
+}
+
+function availableStart11ShortcutPath(targetPath) {
+    var directory = wsh.ExpandEnvironmentStrings(START11_PIN_DIRECTORY);
+    if (!ensureStart11Folder(directory)) {
+        return "";
+    }
+    var baseName = fso.GetBaseName(targetPath).replace(/[\\\/:*?"<>|]/g, "_") || "Path-Config";
+    var candidate = fso.BuildPath(directory, baseName + ".lnk");
+    var suffix = 2;
+    while (fso.FileExists(candidate) &&
+            normalizedStart11Path(start11ShortcutTarget(candidate)) !== normalizedStart11Path(targetPath)) {
+        candidate = fso.BuildPath(directory, baseName + " (" + suffix + ").lnk");
+        suffix++;
+    }
+    return candidate;
+}
+
+function createStart11Shortcut(shortcutPath, targetPath) {
+    try {
+        var shortcut = wsh.CreateShortcut(shortcutPath);
+        shortcut.TargetPath = targetPath;
+        shortcut.WorkingDirectory = fso.GetParentFolderName(targetPath);
+        shortcut.IconLocation = targetPath + ",0";
+        shortcut.Description = "Pinned by Path-Config";
+        shortcut.WindowStyle = 1;
+        shortcut.Save();
+        return fso.FileExists(shortcutPath);
+    } catch (ignoreShortcutCreate) {
+        return false;
+    }
+}
+
+function start11GroupContainsTarget(values, targetPath) {
+    var expected = normalizedStart11Path(targetPath);
+    var i, shortcutPath;
+    for (i = 0; i < values.length; i++) {
+        shortcutPath = values[i].shortcut_path;
+        if (lower(fso.GetExtensionName(shortcutPath)) === "lnk" && pathExists(shortcutPath) &&
+                normalizedStart11Path(start11ShortcutTarget(shortcutPath)) === expected) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function nextStart11ValueName(values) {
+    var maximum = -1;
+    var i, value;
+    for (i = 0; i < values.length; i++) {
+        value = parseInt(values[i].name, 10);
+        if (!isNaN(value) && value > maximum) {
+            maximum = value;
+        }
+    }
+    return String(maximum + 1);
+}
+
+function ensureStart11MenuPin(path, runAsAdmin, result, rowLabel) {
+    path = expandPathVariables(path);
+    if (!path || !pathExists(path) || lower(fso.GetExtensionName(path)) !== "exe") {
+        persistentError(result, rowLabel + " Menu requires an existing .exe file: " + path);
+        return;
+    }
+    if (runAsAdmin && !hasRunAsAdminProperty(path)) {
+        persistentError(result, rowLabel + " Menu shortcut cannot run as administrator because the administrator property was not set: " + path);
+        return;
+    }
+
+    var records = getStart11PinRecords();
+    var targetKey = normalizedStart11Path(path);
+    var shortcutPath = records.targets[targetKey] || "";
+    var shortcutCreated = false;
+    if (!shortcutPath) {
+        shortcutPath = availableStart11ShortcutPath(path);
+        if (!shortcutPath) {
+            persistentError(result, rowLabel + " could not select a Start11 shortcut path: " + path);
+            return;
+        }
+        if (!fso.FileExists(shortcutPath) ||
+                normalizedStart11Path(start11ShortcutTarget(shortcutPath)) !== targetKey) {
+            if (!createStart11Shortcut(shortcutPath, path)) {
+                persistentError(result, rowLabel + " could not create the Start11 shortcut: " + path);
+                return;
+            }
+            shortcutCreated = true;
+        }
+    }
+
+    var i, values, valueName, registryWrites = 0;
+    for (i = 0; i < START11_PIN_GROUPS.length; i++) {
+        values = readStart11PinValues(START11_PIN_GROUPS[i].key);
+        if (!start11GroupContainsTarget(values, path)) {
+            valueName = nextStart11ValueName(values);
+            try {
+                wsh.RegWrite(START11_PIN_GROUPS[i].key + "\\" + valueName,
+                    shortcutPath + START11_PIN_GROUPS[i].suffix, "REG_SZ");
+                registryWrites++;
+            } catch (errorPinWrite) {
+                persistentError(result, rowLabel + " could not register the Start11 shortcut: " + errorPinWrite.message);
+                return;
+            }
+        }
+    }
+
+    start11PinCache = null;
+    if (!isStart11TargetPinned(path)) {
+        persistentError(result, rowLabel + " Start11 shortcut verification failed: " + path);
+        return;
+    }
+    result.menu_pin_count++;
+    if (shortcutCreated) {
+        result.menu_created_count++;
+    }
+    persistentSuccess(result, "Start11 menu shortcut ready" +
+        (runAsAdmin ? " with administrator launch" : "") + ": " + shortcutPath +
+        (registryWrites ? " (" + registryWrites + " registry entr" + (registryWrites === 1 ? "y" : "ies") + " added)" : ""));
 }
 
 function option(value, selected) {
@@ -1570,7 +1846,7 @@ function toggleMode() {
 
 function addPersistent() {
     captureState();
-    state.persistent.push({path: "", env_var: "", run_as_admin: 0, run_on_startup: 0});
+    state.persistent.push({path: "", env_var: "", run_as_admin: 0, run_on_startup: 0, menu: 0});
     state.activeUiTab = 0;
     markDirty();
     render();
@@ -1687,7 +1963,8 @@ function movePersistentToNewTab(index) {
             path: row.path,
             env_var: row.env_var,
             run_as_admin: row.run_as_admin ? 1 : 0,
-            run_on_startup: row.run_on_startup ? 1 : 0
+            run_on_startup: row.run_on_startup ? 1 : 0,
+            menu: row.menu ? 1 : 0
         }],
         envs: [],
         execs: [],
@@ -1695,7 +1972,7 @@ function movePersistentToNewTab(index) {
     };
     state.persistent.splice(index, 1);
     if (!state.persistent.length) {
-        state.persistent.push({path: "", env_var: "", run_as_admin: 0, run_on_startup: 0});
+        state.persistent.push({path: "", env_var: "", run_as_admin: 0, run_on_startup: 0, menu: 0});
     }
     state.activeProgramTab = state.tabs.length - 1;
     state.activeUiTab = state.activeProgramTab + 1;
@@ -2172,6 +2449,8 @@ function applyAll() {
     var persistentResult = applyPersistentPaths();
     var envChanged = persistentResult.env_changed;
     var dynamicErrors = 0;
+    var dynamicMenuPins = 0;
+    var dynamicMenuCreated = 0;
     var programCleanup = {errors: 0};
     cleanupProgramStartup(PROGRAM_STARTUP_PREFIX, programCleanup);
     dynamicErrors += programCleanup.errors;
@@ -2180,6 +2459,8 @@ function applyAll() {
         result = applyTabConfig(state.tabs[i], i, true);
         envChanged = envChanged || result.env_changed;
         dynamicErrors += result.errors;
+        dynamicMenuPins += result.menu_pin_count;
+        dynamicMenuCreated += result.menu_created_count;
     }
     if (envChanged) {
         broadcastEnvironmentChange();
@@ -2188,6 +2469,8 @@ function applyAll() {
     alert("Apply All\n\nPersistent actions completed: " + persistentResult.success_count +
         "\nPersistent errors: " + persistentResult.error_count +
         "\nDynamic program tabs applied: " + state.tabs.length +
+        "\nStart11 menu pins ready: " + (persistentResult.menu_pin_count + dynamicMenuPins) +
+        "\nStart11 shortcuts created: " + (persistentResult.menu_created_count + dynamicMenuCreated) +
         "\nDynamic errors: " + dynamicErrors);
 }
 
@@ -2203,7 +2486,8 @@ function applyCurrentProgram() {
     if (result.env_changed) {
         broadcastEnvironmentChange();
     }
-    alert("Apply " + name + "\n\nCompleted with " + result.errors + " error(s).");
+    alert("Apply " + name + "\n\nStart11 menu pins ready: " + result.menu_pin_count +
+        "\nCompleted with " + result.errors + " error(s).");
 }
 
 function persistentSummary(title, result) {
@@ -2212,6 +2496,8 @@ function persistentSummary(title, result) {
         "\nAdministrator properties set: " + result.admin_property_count +
         "\nAdministrator properties removed: " + result.admin_removed_count +
         "\nStartup entries: " + result.startup_count +
+        "\nStart11 menu pins ready: " + result.menu_pin_count +
+        "\nStart11 shortcuts created: " + result.menu_created_count +
         "\nErrors: " + result.error_count;
 }
 
@@ -2221,6 +2507,8 @@ function applyPersistentPaths() {
         admin_property_count: 0,
         admin_removed_count: 0,
         startup_count: 0,
+        menu_pin_count: 0,
+        menu_created_count: 0,
         success_count: 0,
         error_count: 0
     };
@@ -2261,6 +2549,9 @@ function applyPersistentPaths() {
             setRunAsAdminProperty(path, row.run_as_admin ? true : false, result, i + 1);
         } else if (row.run_as_admin) {
             persistentError(result, "Row " + (i + 1) + " administrator-property target is empty.");
+        }
+        if (row.menu) {
+            ensureStart11MenuPin(path, row.run_as_admin ? true : false, result, "Row " + (i + 1));
         }
     }
     return result;
@@ -2463,7 +2754,9 @@ function applyTabConfig(tabName, tabIndex, startupAlreadyCleaned) {
         success_count: 0,
         admin_property_count: 0,
         admin_removed_count: 0,
-        startup_count: 0
+        startup_count: 0,
+        menu_pin_count: 0,
+        menu_created_count: 0
     };
     var variables = configuredEnvironmentVariables();
     var i, item, rawPath, path, envName, startupName, command;
@@ -2498,6 +2791,10 @@ function applyTabConfig(tabName, tabIndex, startupAlreadyCleaned) {
             setRunAsAdminProperty(path, item.run_as_admin ? true : false, result, tabName + " row " + (i + 1));
         } else if (item.run_as_admin) {
             persistentError(result, tabName + " row " + (i + 1) + " administrator-property target is empty.");
+        }
+        if (item.menu) {
+            ensureStart11MenuPin(path, item.run_as_admin ? true : false, result,
+                tabName + " row " + (i + 1));
         }
     }
     for (i = 0; i < data.envs.length; i++) {

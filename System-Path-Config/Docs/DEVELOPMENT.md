@@ -1,17 +1,17 @@
-﻿# Path-Config Development Guide
+# Path-Config Development Guide
 
 ## Current baseline
 
-The latest approved version is `0.51`.
+The latest approved version is `0.55`.
 
 Primary files:
 
 - `Path-Config.hta`
 - `Path-Config.exe` (generic HTA launcher)
-- `Test/Path-Config-Test_0.51.ps1`
+- `Test/Path-Config-Test_0.55.ps1`
 - `Path-Config.ini` at runtime
 
-The next code delivery must be version `0.52` unless another version has already been approved in the repository.
+The next code delivery must be version `0.56` unless another version has already been approved in the repository.
 
 ## Product purpose
 
@@ -69,7 +69,8 @@ Conceptual object:
     path: "C:\\Path\\Program.exe",
     env_var: "PROGRAM_EXE",
     run_as_admin: 0 or 1,
-    run_on_startup: 0 or 1
+    run_on_startup: 0 or 1,
+    menu: 0 or 1
 }
 ```
 
@@ -81,11 +82,11 @@ Rules:
 - Browse uses Windows Forms `OpenFileDialog` for files and the native Windows `IFileOpenDialog` Common Item Dialog in folder-selection mode for folders, both with full-PC access. A populated path field supplies its own folder as the initial location; an empty field falls back to the last successfully selected directory, or `C:\` before any selection. A centralized post-selection sanitizer capitalizes drive letters for every browsed path and removes trailing backslashes from folder results while preserving drive roots such as `C:\`. Every file/folder picker button also exposes `Find in Explorer` on right-click; the action reads its adjacent live field, expands configured and Windows environment references, validates the target, and opens visible Explorer with it selected.
 - File Path remains at least 560 px wide; Environment Variable uses its restored 20% column and Links Link Name keeps its earlier 15% column. Fixed Paths and all dynamic-tab table actions use compact fixed-width columns sized to their controls, so the 10 px padding on each adjacent cell produces an exact visible 20 px gap; the first and last controls align flush to the left and right row edges. The window is capped at half the available display width, with horizontal scrolling retained when the minimum layout is wider. Section Add buttons sit beside their labels on the left.
 - The environment-variable name is optional.
-- Both checkboxes are independent.
+- All three checkboxes are independent.
 
 ## Dynamic program path rows
 
-Each Programs tab stores path rows with the same four logical fields as a persistent row. Loading accepts the former `<row>_Name` and `<row>_Val` keys as migration sources for `env_var` and `path`. Program startup entries use the separate `PathConfig_Program_` prefix and are reconciled within the selected tab, or globally before Apply All.
+Each Programs tab stores path rows with the same five logical fields as a persistent row. Loading accepts the former `<row>_Name` and `<row>_Val` keys as migration sources for `env_var` and `path`. Program startup entries use the separate `PathConfig_Program_` prefix and are reconciled within the selected tab, or globally before Apply All.
 
 ## Apply scope
 
@@ -95,7 +96,7 @@ Processes only fixed Paths rows.
 
 For every row:
 
-1. Read and trim all four fields.
+1. Read and trim all five fields.
 2. Write the environment variable when both name and path are non-empty.
 3. Create a managed startup entry when enabled and valid.
 4. Set or remove the Windows `RUNASADMIN` compatibility property for configured executable paths.
@@ -164,11 +165,16 @@ Elevated startup:
 
 Expected Windows behavior: an elevated startup row may produce a UAC prompt after login.
 
+## Start11 Menu pins
+
+When menu is enabled, Path-Config resolves existing Start11 pin registry data through each referenced shortcut target. If no matching executable target exists, it creates a collision-safe shortcut under the current user pinned Start Menu directory. It then ensures the shortcut is registered under both established Stardock groups with the next numeric value and the matching group suffix.
+
+Apply verifies the completed pin and reports errors per row. Unchecked Menu rows do not remove existing pins. When Admin is enabled, the executable RUNASADMIN property is set and verified first, so launching the shortcut requests elevation.
 ## Migration
 
 Version 0.03 stored fixed paths as plain numbered values in `[PersistentPaths]`.
 
-Version 0.04 stores four keys per row.
+Current rows store five logical fields; older files without `_Menu` load it as false.
 
 Loading must:
 

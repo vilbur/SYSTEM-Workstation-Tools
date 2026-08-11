@@ -1,4 +1,4 @@
-﻿# Path-Config Testing Guide
+# Path-Config Testing Guide
 
 ## Test files
 
@@ -6,8 +6,8 @@ The test file version must always match the source version.
 
 Current pair:
 
-- `Path-Config.hta` version `0.51`
-- `Test/Path-Config-Test_0.51.ps1`
+- `Path-Config.hta` version `0.55`
+- `Test/Path-Config-Test_0.55.ps1`
 
 The canonical source filename remains `Path-Config.hta`; versioned PowerShell tests are stored under `Test/`, and the test filename advances with each version.
 
@@ -65,6 +65,7 @@ Check for all of the following:
 - Env var control
 - Run as Admin checkbox
 - Run on startup checkbox
+- Menu checkbox
 - file-path edits at least 560 px wide in both path tables, supported by the minimum table canvas and half-display-width window
 - compact fixed-width action columns and exact visible 20 px horizontal spacing between adjacent controls in fixed Paths and every dynamic-tab section, without inherited button margins or unused percentage-column space
 - larger icon-only Config-mode checkboxes
@@ -87,6 +88,7 @@ Check for all of the following:
 - row `_EnvVar` key
 - row `_RunAsAdmin` key
 - row `_RunOnStartup` key
+- row `_Menu` key
 - v0.03 numeric-key fallback
 - default first empty object row
 
@@ -128,7 +130,10 @@ Parser success does not replace runtime UI testing.
 - Confirm Environment Variable uses its restored 20% column and Links Link Name keeps its earlier 15% column.
 - Confirm the first and last controls align flush with the left and right row edges.
 - Confirm every adjacent row control has the same visible 20 px horizontal gap in fixed Paths and all dynamic-tab sections, including compact Browse, D/F, checkbox, move, menu, and Delete controls; confirm paired D/F buttons also have 20 px between them and section Add buttons sit beside their labels on the left.
-- Confirm both checkboxes are visibly larger and have no Yes caption.
+- Confirm all three checkboxes are visibly larger and have no Yes caption.
+- Confirm ADMIN, STARTUP, and MENU are orange, green, and blue, with 16 px between adjacent labels.
+- Hover each checkbox and confirm its administrator, sign-in startup, or Start11 menu tooltip appears.
+- Confirm every boolean status displays the complete uppercase word YES or NO with no abbreviation, ellipsis, or clipping.
 - Confirm the move button is aligned left and the burger menu is aligned right.
 - Confirm dynamic program tabs still appear after it.
 
@@ -145,16 +150,16 @@ Run on startup: unchecked
 
 Save, close, reopen, and confirm every value is restored.
 
-Repeat with both checkboxes checked.
+Repeat with all three checkboxes checked.
 
 ### 3. Add and delete rows
 
 - Add at least three rows.
-- Confirm each row has all four fields.
+- Confirm each row has all five fields.
 - Confirm the combined ordering control is the first control on every row.
 - Left-click it to move a row down and right-click it to move a row up.
 - Confirm right-click does not open a context menu.
-- Confirm the path, Env var, Run as Admin, and Run on startup values stay together.
+- Confirm the path, Env var, Run as Admin, Run on startup, and Menu values stay together.
 - Confirm the first row cannot move up and the last row cannot move down.
 - Confirm the mouse cursor follows the combined ordering button to the moved row after a valid move.
 - Delete the middle row.
@@ -162,7 +167,7 @@ Repeat with both checkboxes checked.
 - Confirm the moved order and all remaining row values and flags are restored.
 - Confirm every row has a same-sized burger menu in place of the old X button.
 - Confirm both left-click and right-click open the same menu showing Move to New Tab and Delete Row, with no browser context menu.
-- Move a populated row to a new tab and confirm all four fields transfer, the source row disappears, and the new tab opens.
+- Move a populated row to a new tab and confirm all five fields transfer, the source row disappears, and the new tab opens.
 - Confirm duplicate inferred tab names receive a numeric suffix.
 - Confirm moving the only fixed row leaves one empty Paths row.
 - Confirm Delete Row remains disabled for the first row and deletes later rows.
@@ -213,6 +218,9 @@ Use a harmless executable.
 - disable Run as Admin and apply again
 - confirm only the `RUNASADMIN` token is removed
 
+### Start11 Menu
+
+Use a harmless executable. Enable Menu, confirm Apply mode reports a missing pin, then Apply and verify that the shortcut appears in the user pinned Start Menu folder and in both Start11 registry groups without restarting Explorer. Apply again and confirm there are no duplicates. Enable Admin, apply again, and confirm launching the shortcut requests elevation. Uncheck Menu and confirm Apply does not remove the existing pin.
 ### 7. Run on startup
 
 - disable Run as Admin
@@ -259,7 +267,7 @@ Expected:
 
 ### 11. Programs-tab Paths controls
 
-For every Programs tab, confirm the Paths section contains the same file path, Browse, Env var, Run as Admin, Run on startup, and row-delete controls as the fixed Paths tab. Save, reload, and apply a harmless row. Confirm older `_Name`/`_Val` rows load into Env var and file path without data loss.
+For every Programs tab, confirm the Paths section contains the same file path, Browse, Env var, Run as Admin, Run on startup, Menu, and row-delete controls as the fixed Paths tab. Save, reload, and apply a harmless row. Confirm older `_Name`/`_Val` rows load into Env var and file path without data loss.
 
 ### 12. Dynamic-tab regression
 
