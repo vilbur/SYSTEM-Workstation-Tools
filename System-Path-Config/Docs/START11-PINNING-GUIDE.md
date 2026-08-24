@@ -75,7 +75,7 @@ Add only the `RUNASADMIN` token and preserve unrelated compatibility tokens. Lau
 - Treat missing Start11 keys as a reported operational failure.
 - Use hidden status commands so no console flashes.
 - Quote all registry keys and paths safely.
-- An unchecked Menu option must not remove an existing pin unless removal was explicitly requested.
+- In Path-Config's declarative MENU sync, an unchecked option removes only exact target-and-arguments matches; standalone callers should remove pins only when that behavior was explicitly requested.
 - Back up or log registry changes in a standalone tool.
 
 ## Verification checklist
@@ -91,16 +91,19 @@ Add only the `RUNASADMIN` token and preserve unrelated compatibility tokens. Lau
 
 ## Path-Config reference implementation
 
-The implementation is embedded in `Path-Config.hta` v0.59:
+The implementation is embedded in `Path-Config.hta` v0.60:
 
 ```text
 START11_PIN_GROUPS
+START11_PIN_ROOTS
 START11_PIN_DIRECTORY
 readStart11PinValues
+readStart11PinTreeValues
 start11ShortcutDetails
 start11MenuSourceInfo
 getStart11PinRecords
 isStart11MenuSourcePinned
+removeStart11MenuPin
 availableStart11ShortcutPath
 createStart11Shortcut
 copyStart11Shortcut
@@ -133,5 +136,5 @@ If Admin is enabled, set and verify RUNASADMIN under:
 HKCU\Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers
 Preserve unrelated compatibility tokens.
 
-Do not remove pins when unchecked. Do not delete or overwrite unrelated shortcuts or values. Run queries hidden, quote all paths, log beside the script, and test idempotency by applying twice.
+Treat checked/unchecked as desired present/absent state. Remove only exact target-and-arguments matches across Start11 group trees; do not delete or overwrite unrelated shortcuts or values. Refresh live state before every operation, run queries hidden, quote all paths, log beside the script, and test add/remove idempotency by applying twice.
 ```

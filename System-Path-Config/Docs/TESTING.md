@@ -1,4 +1,4 @@
-﻿# Path-Config Testing Guide
+# Path-Config Testing Guide
 
 ## Test files
 
@@ -6,8 +6,8 @@ Create a new permanent test file only when a change needs new lasting regression
 
 Current source and latest full regression suite:
 
-- `Path-Config.hta` version `0.59`
-- `Test/Path-Config-Test_0.59.ps1`
+- `Path-Config.hta` version `0.65`
+- `Test/Path-Config-Test_0.65.ps1`
 
 The canonical source filename remains `Path-Config.hta`; versioned PowerShell tests are stored under `Test/`, and the test filename advances with each version.
 
@@ -24,6 +24,7 @@ The automated test must not:
 It may:
 
 - inspect source text
+- run `Debug/Print-Startup-Registry.ps1 -PassThru`, which only opens registry keys for reading
 - validate required strings
 - validate generated-HTML handler and function names
 - run a Windows JScript parser-only check
@@ -101,7 +102,11 @@ Check for all of the following:
 - managed startup cleanup
 - managed startup creation
 - scoped `StartupApproved\Run` cleanup
-- owned enabled-state `REG_BINARY` creation
+- owned enabled-state REG_BINARY creation
+- existing current-user Run command parsing and exact executable-target matching
+- live StartupApproved On/Off status reading
+- unique existing-entry approval synchronization without Run-command rewrites
+- timestamped disabled-state creation and owned-entry fallback
 - startup command builder
 - apply-result reporting
 - existing `.lnk` source resolution, collision-safe copying, target-and-arguments duplicate detection, and resolved executable administrator handling
@@ -109,8 +114,10 @@ Check for all of the following:
 ### Safety
 
 - startup cleanup filters by `PathConfig_Path_`
-- Startup Apps cleanup accepts only `PathConfig_Path_` or `PathConfig_Program_` values and respects the selected prefix scope
+- Startup Apps cleanup accepts only `PathConfig_Path_` or `PathConfig_Program_` values and respects the selected prefix scope; non-owned approval writes require one exact unique executable match
 - no broad deletion of all Run or StartupApproved values
+- matched non-owned Run values retain their original name, command, type, and arguments
+- ambiguous non-owned executable matches are reported and left unchanged
 - environment target is HKCU, not HKLM
 - startup target is HKCU, not HKLM
 - `%NAME%` expansion is case-insensitive, nested, cycle-safe, and preserves unknown names
@@ -128,7 +135,7 @@ Parser success does not replace runtime UI testing.
 ### 1. First launch
 
 - Start without an existing `Path-Config.ini`.
-- Confirm `Paths` is the first tab.
+- Confirm `Common` is the first tab and program tabs cannot be named `Common` or `Paths`.
 - Confirm one empty fixed row exists.
 - Confirm the window is no wider than half the available display and File Path remains at least 560 px wide in both fixed and Programs path tables.
 - Record the current outer window width and height, switch repeatedly between Paths and Programs tabs, and confirm both dimensions remain exactly unchanged with no incremental height growth or recentering.
@@ -138,7 +145,7 @@ Parser success does not replace runtime UI testing.
 - Confirm all three checkboxes are visibly larger and have no Yes caption.
 - Confirm ADMIN, STARTUP, and MENU are orange, green, and blue, with 16 px between adjacent labels.
 - Hover each checkbox and confirm its administrator, sign-in startup, or Start11 menu tooltip appears.
-- Confirm every boolean status displays the complete uppercase word YES or NO with no abbreviation, ellipsis, or clipping.
+- Confirm Apply-mode YES statuses display `✔` in green when matching and `✘` in red when mismatching; confirm every NO and N/A status is blank.
 - Confirm the burger menu is aligned left and the position button is aligned right.
 - Confirm dynamic program tabs still appear after it.
 
@@ -182,6 +189,8 @@ Repeat with all three checkboxes checked.
 - On the first file or folder browse, confirm the native Windows dialog starts at `C:\`.
 - Confirm the dialog can navigate drives, Desktop, and the full PC rather than being rooted at the Path-Config program directory.
 - Browse to a file with spaces and a lowercase drive letter and confirm the full path is stored with an uppercase drive letter.
+- In Config mode, type a lowercase direct-drive directory and confirm the drive becomes uppercase and the existing directory ends with `\`; repeat with a `%NAME%`-based directory and confirm the variable text is preserved.
+- Browse to a directory with and without a trailing separator and confirm the stored folder ends with exactly one `\`.
 - Open another file or folder browser and confirm it starts at the directory selected previously.
 - Select a folder and confirm its drive letter is uppercase and its trailing backslash is removed; confirm a drive root remains valid as `C:\`, then confirm the next browser remembers the sanitized directory.
 - Right-click each Browse/D/F picker type in fixed Paths, Programs Paths, Environment Variables, Executables, and Links; confirm the same menu opens with `Find in Explorer`.
@@ -217,7 +226,7 @@ Use a harmless executable.
 - Apply Paths
 - confirm the executable has a per-user `RUNASADMIN` value under AppCompatFlags `Layers`
 - switch to Apply mode and confirm the column remains labeled `Admin`
-- confirm the displayed uppercase `YES`/`NO` reflects the checkbox state
+- confirm a checked value displays a green `✔` when Windows matches or a red `✘` when it does not, while every unchecked and N/A value remains blank
 - confirm the value is green when the Windows property matches and red when it differs
 - confirm the property status is shown without a helper console window
 - disable Run as Admin and apply again
@@ -225,24 +234,28 @@ Use a harmless executable.
 
 ### Start11 Menu
 
-Use a harmless executable. Enable Menu, confirm Apply mode reports a missing pin, then Apply and verify that the shortcut appears in the user pinned Start Menu folder and in both Start11 registry groups without restarting Explorer. Apply again and confirm there are no duplicates. Enable Admin, apply again, and confirm launching the shortcut requests elevation.
+Use a harmless executable. Enable Menu, confirm Apply mode reports the live pin as missing, then Apply and verify that the shortcut appears in the user pinned Start Menu folder and Start11 without restarting Explorer. Apply again and confirm there are no duplicates. Move the pin into a custom Start11 group, return to/reload Apply mode, and confirm MENU remains YES and another Apply does not recreate a root duplicate. Enable Admin, apply again, and confirm launching the shortcut requests elevation.
 
-Repeat with an existing `.lnk` that has command-line arguments. Confirm Path-Config copies it into the pinned Start Menu folder without altering the original, preserves its target and arguments, registers it in both groups, and does not create a duplicate on the second Apply. If Admin is enabled, confirm RUNASADMIN is applied to the shortcut's resolved executable target. Uncheck Menu and confirm Apply does not remove either existing pin.
+Repeat with an existing `.lnk` that has command-line arguments. Confirm Path-Config copies it into the pinned Start Menu folder without altering the original, preserves its target and arguments, registers it in Start11, and does not create a duplicate on the second Apply. If Admin is enabled, confirm RUNASADMIN is applied to the shortcut's resolved executable target. Uncheck Menu and Apply; confirm matching registrations and the matching pinned-directory shortcut are removed, unrelated pins remain, and MENU becomes NO. Apply again and confirm removal is idempotent. Recheck Menu and confirm it can be added again.
 ### 7. Run on startup
 
-- disable Run as Admin
-- enable Run on startup
-- Apply Paths
-- inspect `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`
-- confirm one `PathConfig_Path_` value exists
-- confirm its command is correctly quoted
-- inspect `HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run`
-- confirm the matching value is `REG_BINARY` with data `020000000000000000000000`
-- reopen Windows Settings > Apps > Startup and confirm the Path-Config entry is On
+First use an executable that already has exactly one non-PathConfig value under `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`.
 
-Then uncheck Run on startup and apply again.
+- record that Run value's name, type, command, and arguments
+- open Windows Settings > Apps > Startup and note its current state
+- confirm Apply mode STARTUP mirrors the live Windows state
+- check Run on startup and Apply Paths; confirm the existing Run value is unchanged and its matching `StartupApproved\Run` data is `020000000000000000000000`
+- reopen Windows Settings and confirm the existing app is On without a duplicate PathConfig entry
+- uncheck Run on startup and apply; confirm the Run value is still unchanged, its approval data begins with `03000000` and contains a timestamp, and Windows Settings shows Off
 
-Confirm the owned Run value and its matching StartupApproved value are removed.
+Then use an executable with no matching non-PathConfig Run value.
+
+- check Run on startup and apply
+- confirm one correctly quoted `PathConfig_Path_` fallback exists and its approval data is `020000000000000000000000`
+- uncheck and apply again
+- confirm the owned Run value and matching owned approval value are removed
+
+If two non-owned Run values resolve to the same executable, confirm Apply reports an ambiguity and changes neither approval value.
 
 ### 8. Elevated startup
 
@@ -253,11 +266,7 @@ Confirm the owned Run value and its matching StartupApproved value are removed.
 
 ### 9. Startup isolation
 
-Create or identify an unrelated current-user Run value.
-
-Apply Paths.
-
-Confirm the unrelated value remains unchanged.
+Create or identify an unrelated current-user Run value whose executable does not match any Path-Config row. Apply Paths and confirm both its Run value and approval state remain unchanged. For a uniquely matching existing entry, confirm only its approval state changes and its Run command remains byte-for-byte unchanged.
 
 ### 10. Invalid targets
 
@@ -273,7 +282,7 @@ Expected:
 - idle empty row is skipped
 - enabled path-dependent actions report errors
 - no invalid startup value is created
-- an empty path shows a neutral `N/A` administrator-property status rather than a green match
+- an empty path shows a blank neutral administrator-property status rather than a green match
 
 ### 11. Programs-tab Paths controls
 
@@ -297,6 +306,9 @@ Verify:
 - change Link folder to a different directory and confirm the orange warning clears
 - in Apply mode, confirm Links shows only Source, Link path, and Type, with no separate Link name column
 - fixed Paths selection does not corrupt dynamic current-tab state
+- move the selected program tab left and right from both toolbar and right-click menu; confirm its full data and selection follow it
+- confirm boundary actions disable and no program tab can move before `Common`
+- save and reload; confirm the reordered tab sequence persists
 
 ### 13. Save-state and mode transition
 

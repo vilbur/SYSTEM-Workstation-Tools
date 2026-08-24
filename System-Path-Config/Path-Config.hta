@@ -87,6 +87,7 @@ button, input, select {
     color: #686d75;
     cursor: default;
 }
+
 .button-primary.config {
     border-color: #e58d19;
     color: #ffad3e;
@@ -420,7 +421,7 @@ button, input, select {
 }
 </style>
 <script language="JScript" type="text/javascript">
-var VERSION = "0.63";
+var VERSION = "0.65";
 var STARTUP_PREFIX = "PathConfig_Path_";
 var PROGRAM_STARTUP_PREFIX = "PathConfig_Program_";
 var REG_ENV = "HKCU\\Environment\\";
@@ -1207,6 +1208,12 @@ function render(preserveWindowSize) {
     if (state.mode === "Config") {
         tools += '<button class="button button-small" onclick="addProgram()">+ PROGRAM TAB</button>';
         if (state.activeUiTab > 0) {
+            tools += state.activeProgramTab > 0 ?
+                '<button class="button button-small" title="Move tab left" onclick="moveProgramTab(-1)">&#8592;</button>' :
+                '<button class="button button-small save-state-frozen" title="Tab is already at the left boundary">&#8592;</button>';
+            tools += state.activeProgramTab < state.tabs.length - 1 ?
+                '<button class="button button-small" title="Move tab right" onclick="moveProgramTab(1)">&#8594;</button>' :
+                '<button class="button button-small save-state-frozen" title="Tab is already at the right boundary">&#8594;</button>';
             tools += '<button class="button button-small" onclick="renameProgram()">RENAME</button>';
             tools += '<button class="button button-small button-danger" onclick="deleteProgram()">DELETE</button>';
         }
@@ -2592,6 +2599,26 @@ function addProgram() {
     }, ".exe");
 }
 
+function moveProgramTab(direction) {
+    if (state.mode !== "Config" || state.activeUiTab <= 0) {
+        return false;
+    }
+    captureState();
+    var index = state.activeUiTab - 1;
+    var targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= state.tabs.length) {
+        return false;
+    }
+    var tabName = state.tabs[index];
+    state.tabs[index] = state.tabs[targetIndex];
+    state.tabs[targetIndex] = tabName;
+    state.activeProgramTab = targetIndex;
+    state.activeUiTab = targetIndex + 1;
+    markDirty();
+    render(true);
+    return false;
+}
+
 function renameProgram() {
     if (state.activeUiTab === 0) {
         return;
@@ -2780,6 +2807,8 @@ function tabContextMenu() {
     }
     selectTab(index);
     var menu = document.getElementById("contextMenu");
+    document.getElementById("tabMoveLeft").disabled = state.activeProgramTab <= 0;
+    document.getElementById("tabMoveRight").disabled = state.activeProgramTab >= state.tabs.length - 1;
     menu.style.left = eventObject.clientX + document.body.scrollLeft + "px";
     menu.style.top = eventObject.clientY + document.body.scrollTop + "px";
     menu.style.display = "block";
@@ -3504,6 +3533,8 @@ function initialize() {
 <body onload="initialize()">
 <div class="app" id="app"></div>
 <div class="context-menu" id="contextMenu">
+    <button id="tabMoveLeft" onclick="moveProgramTab(-1)">Move tab left</button>
+    <button id="tabMoveRight" onclick="moveProgramTab(1)">Move tab right</button>
     <button onclick="renameProgram()">Rename current tab</button>
     <button onclick="deleteProgram()">Delete current tab</button>
 </div>

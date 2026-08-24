@@ -1,4 +1,4 @@
-﻿# Path-Config Codex Development Files
+# Path-Config Codex Development Files
 
 This folder contains the development context Codex should read before changing Path-Config.
 
@@ -14,11 +14,12 @@ Start11 shortcut integration is documented separately in `START11-PINNING-GUIDE.
 
 ## Current approved baseline
 
-- `Path-Config.hta` version `0.59`
+- `Path-Config.hta` version `0.65`
 - `Path-Config.exe` generic launcher
-- `Test/Path-Config-Test_0.59.ps1`
+- `Debug/Print-Startup-Registry.ps1` read-only startup registry inventory
+- `Test/Path-Config-Test_0.65.ps1`
 
-The next version is `0.60`, unless the project already contains a newer user-approved baseline.
+The next version is `0.66`, unless the project already contains a newer user-approved baseline.
 
 ## Codex start prompt
 

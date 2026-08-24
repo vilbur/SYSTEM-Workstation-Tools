@@ -1,4 +1,4 @@
-﻿# Path-Config Codex Agent Instructions
+# Path-Config Codex Agent Instructions
 
 ## Project
 
@@ -6,9 +6,9 @@ Path-Config is a standalone Windows HTA application (HTML and legacy-compatible 
 
 Current approved baseline:
 
-- `Path-Config.hta` version `0.59`
+- `Path-Config.hta` version `0.65`
 - `Path-Config.exe`
-- `Test/Path-Config-Test_0.59.ps1`
+- `Test/Path-Config-Test_0.65.ps1`
 
 Continue development only from the latest approved baseline. Never rebuild from memory when the current source files are available.
 
@@ -61,18 +61,19 @@ Preserve the current dark UI style:
 - larger icon-only Config-mode checkboxes
 - ADMIN, STARTUP, and MENU headers use 8 px side padding for 16 px between adjacent labels and are orange, green, and blue respectively
 - every path-row checkbox exposes an action-specific tooltip
-- Boolean status values are a permanent UI contract: always render the complete uppercase words YES and NO; never abbreviate them to Y/N and never permit ellipsis or clipping
+- Apply-mode Boolean status values are icon-only: render YES as a green `✔` when matching or a red `✘` when mismatching; render every NO and N/A state as a blank cell while preserving its match/mismatch class and tooltip
 - orange Source and Link folder/path values when the Source item's containing directory matches the configured Link folder
 
-The fixed first tab is always named `Paths`.
+The fixed first tab is always displayed as `Common`. Its existing persistent-path storage and apply scope remain unchanged.
 
-The `Paths` tab:
+The `Common` tab:
 
 - must remain the first tab
 - is not dynamic
 - cannot be renamed
 - cannot be deleted
 - must not shift or corrupt internal dynamic program-tab indices
+- remains permanently first while program tabs may be reordered left or right and retain their complete data and active selection
 
 ## Fixed Paths row data
 
@@ -88,7 +89,8 @@ The row UI contains:
 
 - file path edit
 - Browse button using native Windows Forms file/folder dialogs with full-PC access
-- Browse starts at the current field path when populated; an empty field uses the last selected directory, falling back to `C:\` before any selection; every returned path capitalizes its drive letter and folder results remove trailing backslashes except required drive roots
+- Browse starts at the current field path when populated; an empty field uses the last selected directory, falling back to `C:\` before any selection; every returned path capitalizes its drive letter and folder results end with one trailing backslash
+- in Config mode, every path-like edit capitalizes a direct drive letter and gains a trailing backslash when its expanded value is an existing directory; raw `%NAME%` references remain intact
 - every file/folder Browse button opens a right-click menu containing `Find in Explorer`; it reads the adjacent live path, expands `%NAME%` references, and selects an existing target in Explorer
 - Env var edit
 - Run as Admin checkbox
@@ -132,20 +134,21 @@ Start11 Menu:
 - resolve Start11 registry pins through their `.lnk` target-and-arguments signature before deciding a pin is missing
 - create a new shortcut for configured executables only when needed
 - register the shortcut in both Start11 pin groups with the next numeric value and correct suffix
-- never remove pins when Menu is unchecked
+- synchronize unchecked Menu rows to absent by removing only exact matching registrations and shortcuts
 - when Admin is checked, require an executable target and set and verify RUNASADMIN on that resolved target before accepting the shortcut as ready
 Run on startup:
 
 - manage current-user startup entries under:
   `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`
-- use only the dedicated value-name prefix owned by Path-Config:
-  `PathConfig_Path_`
-- remove obsolete Path-Config-owned startup entries during apply
-- synchronize matching Path-Config-owned values under `HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run`
-- write the 12-byte enabled state beginning with `02` after successfully creating each startup command
-- remove stale approval records only inside the selected `PathConfig_Path_` or `PathConfig_Program_` scope
-- never delete unrelated startup or approval values
-- when Run as Admin and Run on startup are both enabled, the startup command must request elevation
+- resolve the executable target of existing current-user Run commands and compare normalized paths exactly
+- when exactly one non-PathConfig Run value matches the configured executable, preserve its value name and command and synchronize only its `StartupApproved\Run` state
+- write the 12-byte enabled state beginning with `02` for checked rows and the disabled state beginning with `03` plus a current FILETIME for unchecked rows
+- report multiple matching non-PathConfig Run values as an ambiguity and modify none of them
+- when no non-PathConfig Run value matches, retain the dedicated `PathConfig_Path_` or `PathConfig_Program_` owned-entry behavior
+- remove obsolete Path-Config-owned startup entries and approval records only inside the selected owned prefix scope
+- show Apply-mode STARTUP from the live matching Windows Startup Apps state
+- never rewrite or delete a matched non-PathConfig Run value and never delete unrelated approval values
+- when Run as Admin and Run on startup are both enabled, an owned fallback startup command must request elevation
 
 `APPLY PATHS` applies only the fixed Paths rows.
 
@@ -189,7 +192,7 @@ Preserve add, rename, delete, save, load, apply, and migration behavior.
 
 - Do not delete arbitrary registry values.
 - Do not delete arbitrary files.
-- Do not modify startup entries outside the application-owned `PathConfig_Path_` and `PathConfig_Program_` prefixes.
+- Do not rewrite or delete startup Run values outside the application-owned prefixes; only an exact unique executable match may have its `StartupApproved\Run` On/Off state synchronized.
 - Do not apply configurations from the automated parser/static test.
 - Do not require administrator privileges merely to open the manager UI.
 - Elevate only the specific requested launch action.

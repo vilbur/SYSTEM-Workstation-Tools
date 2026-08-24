@@ -1,4 +1,67 @@
-﻿# Path-Config Changelog
+# Path-Config Changelog
+
+## 0.65
+
+Added a read-only startup registry debug inventory.
+
+- added `Debug/Print-Startup-Registry.ps1` to print startup commands from current-user and machine-wide 32-bit and 64-bit registry views
+- includes Run, RunOnce, RunOnceEx, policy Run, Windows Load/Run, Winlogon, and Windows StartupApproved records
+- decodes standard On/Off approval bytes, disabled timestamps, raw approval data, registry value types, and exact registry paths
+- leaves unknown approval codes visible with their raw bytes and never writes to the registry
+- added `Test/Path-Config-Test_0.65.ps1` parser, read-only safety, runtime inventory, v0.64 tab-order, and full regression coverage
+
+## 0.64
+
+Added program-tab reordering.
+
+- added left/right controls for the selected program tab in Config mode
+- added the same Move tab left/right actions to the tab right-click menu
+- keeps Common permanently first and disables movement at both program-tab boundaries
+- preserves the moved tab's complete keyed configuration, active selection, saved order, and current window size
+- reused the v0.63 full regression suite with focused temporary ordering and parser checks; no permanent test file was added
+
+## 0.63
+
+Mirrored existing Windows Startup Apps entries by executable path.
+
+- resolves current-user Run commands and reuses one exact unique non-PathConfig executable match
+- preserves the matched Run value's name, type, command, and arguments while synchronizing only its StartupApproved state
+- writes On as `020000000000000000000000` and Off as `03` plus a current FILETIME
+- reports ambiguous matching Run entries without changing them
+- retains PathConfig-owned startup creation and cleanup when no existing entry matches
+- shows Apply-mode STARTUP from live Windows Run and StartupApproved state
+- added `Test/Path-Config-Test_0.63.ps1` parser, static, live-state, On/Off, ambiguity, fallback, and full regression coverage
+
+## 0.62
+
+Replaced Apply-mode YES/NO/N/A labels with compact status symbols.
+
+- changed matching YES to a green `✔`
+- changed mismatching YES to a red `✘`
+- made every NO and N/A state visually blank while preserving its status class and tooltip
+- added `Test/Path-Config-Test_0.62.ps1` regression coverage
+
+## 0.61
+
+Normalized Config-mode paths and renamed the fixed tab.
+
+- renamed the fixed first tab label from `Paths` to `Common` while preserving its persistent-path behavior
+- reserved both `Common` and legacy `Paths` names for the fixed tab
+- capitalized direct drive letters in typed and browsed path values
+- added one trailing backslash when a Config-mode path resolves to an existing directory
+- made folder Browse results end with exactly one trailing backslash
+- added `Test/Path-Config-Test_0.61.ps1` regression coverage
+
+## 0.60
+
+Made Start11 MENU a repeatable live synchronization.
+
+- refreshes Start11 registry state before each add/remove operation and each UI render
+- detects pins recursively across the standard and custom Start11 groups
+- shows MENU YES/NO from the real current Start11 registration rather than the saved checkbox or an older cache snapshot
+- ensures checked rows are present and removes unchecked rows by exact resolved shortcut target-and-arguments signature
+- deletes only matching shortcuts from the pinned Start Menu directory and verifies both addition and removal
+- added `Test/Path-Config-Test_0.60.ps1` live-state, custom-group, repeat-add, repeat-remove, fixed/Programs sync, parser, and full regression coverage
 
 ## 0.59
 
