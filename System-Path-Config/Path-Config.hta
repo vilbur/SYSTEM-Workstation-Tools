@@ -96,6 +96,11 @@ button, input, select {
     border-color: #397dd1;
     color: #71b2ff;
 }
+.button-apply-action,
+.button-apply-action:hover {
+    border-color: #34794c;
+    color: #76df96;
+}
 .button-danger {
     border-color: #713f46;
     color: #ff9aa7;
@@ -421,7 +426,7 @@ button, input, select {
 }
 </style>
 <script language="JScript" type="text/javascript">
-var VERSION = "0.65";
+var VERSION = "0.70";
 var STARTUP_PREFIX = "PathConfig_Path_";
 var PROGRAM_STARTUP_PREFIX = "PathConfig_Program_";
 var REG_ENV = "HKCU\\Environment\\";
@@ -1117,9 +1122,43 @@ function captureElement(element) {
     if (rows[index]) {
         oldValue = rows[index][field];
         rows[index][field] = value;
-        return String(oldValue) !== String(value);
+        var valueChanged = String(oldValue) !== String(value);
+        var linkNameChanged = kind === "links" && field === "src" ?
+            autofillLinkName(element, rows[index], oldValue) : false;
+        return valueChanged || linkNameChanged;
     }
     return false;
+}
+
+function linkNameFromSource(source) {
+    source = trimText(source).replace(/[\\\/]+$/, "");
+    return source ? fso.GetFileName(source) : "";
+}
+
+function autofillLinkName(sourceInput, row, oldSource) {
+    var currentName = trimText(row.tgt_name);
+    var oldDefault = linkNameFromSource(oldSource);
+    if (currentName && currentName !== oldDefault) {
+        return false;
+    }
+    var linkName = linkNameFromSource(row.src);
+    if (!linkName || currentName === linkName) {
+        return false;
+    }
+    row.tgt_name = linkName;
+    var inputs = document.getElementsByTagName("input");
+    var i;
+    for (i = 0; i < inputs.length; i++) {
+        if (inputs[i].getAttribute("data-scope") === "dynamic" &&
+                inputs[i].getAttribute("data-kind") === "links" &&
+                inputs[i].getAttribute("data-tab") === sourceInput.getAttribute("data-tab") &&
+                inputs[i].getAttribute("data-index") === sourceInput.getAttribute("data-index") &&
+                inputs[i].getAttribute("data-field") === "tgt_name") {
+            inputs[i].value = linkName;
+            break;
+        }
+    }
+    return true;
 }
 
 function normalizeConfigPathValue(element, value) {
@@ -1190,7 +1229,7 @@ function render(preserveWindowSize) {
             top += '<button id="saveStateButton" class="button save-state-frozen">SAVE STATE</button>';
         }
     } else {
-        top += '<button class="button" onclick="applyAll()">APPLY ALL</button>';
+        top += '<button class="button button-apply-action" onclick="applyAll()">APPLY ALL</button>';
     }
     top += '</div><div class="clear"></div></div>';
 
@@ -1304,7 +1343,7 @@ function renderPersistent() {
     }
     out += '</tbody></table></div>';
     if (state.mode === "Apply") {
-        out += '<div class="footer-actions"><button class="button button-primary apply" onclick="applyPaths()">APPLY PATHS</button></div>';
+        out += '<div class="footer-actions"><button class="button button-apply-action" onclick="applyPaths()">APPLY PATHS</button></div>';
     }
     return out;
 }
@@ -1317,7 +1356,7 @@ function renderProgram(tabIndex) {
     out += renderNameValueSection(tabIndex, "envs", "Environment Variables", data.envs, false);
     out += renderExecSection(tabIndex, data.execs);
     if (state.mode === "Apply") {
-        out += '<div class="footer-actions"><button class="button button-primary apply" onclick="applyCurrentProgram()">APPLY ' +
+        out += '<div class="footer-actions"><button class="button button-apply-action" onclick="applyCurrentProgram()">APPLY ' +
             html(name).toUpperCase() + '</button></div>';
     }
     return out;
@@ -1885,20 +1924,88 @@ function start11ShortcutSignature(path) {
     return details ? details.signature : "";
 }
 
-function availableStart11ShortcutPath(sourceInfo) {
+function canonicalStart11ShortcutPath(sourceInfo) {
     var directory = wsh.ExpandEnvironmentStrings(START11_PIN_DIRECTORY);
     if (!ensureStart11Folder(directory)) {
         return "";
     }
     var namingPath = sourceInfo.shortcut_path || sourceInfo.target_path;
     var baseName = fso.GetBaseName(namingPath).replace(/[\\\/:*?"<>|]/g, "_") || "Path-Config";
-    var candidate = fso.BuildPath(directory, baseName + ".lnk");
-    var suffix = 2;
-    while (fso.FileExists(candidate) && start11ShortcutSignature(candidate) !== sourceInfo.signature) {
-        candidate = fso.BuildPath(directory, baseName + " (" + suffix + ").lnk");
-        suffix++;
+    return fso.BuildPath(directory, baseName + ".lnk");
+}
+
+function cleanupStart11ShortcutConflicts(sourceInfo, shortcutPath, result, rowLabel) {
+    var directory = wsh.ExpandEnvironmentStrings(START11_PIN_DIRECTORY);
+    var canonicalKey = normalizedStart11Path(shortcutPath);
+    var deletePaths = [];
+    var deleteKeys = {};
+    var i, j, file, filePath, fileKey, fileSignature, files, values, valueKey;
+
+    if (fso.FolderExists(directory)) {
+        files = new Enumerator(fso.GetFolder(directory).Files);
+        for (; !files.atEnd(); files.moveNext()) {
+            file = files.item();
+            filePath = String(file.Path);
+            if (lower(fso.GetExtensionName(filePath)) !== "lnk") {
+                continue;
+            }
+            fileKey = normalizedStart11Path(filePath);
+            fileSignature = start11ShortcutSignature(filePath);
+            if ((fileKey === canonicalKey && fileSignature !== sourceInfo.signature) ||
+                    (fileKey !== canonicalKey && fileSignature === sourceInfo.signature)) {
+                deletePaths.push(filePath);
+                deleteKeys[fileKey] = true;
+            }
+        }
     }
-    return candidate;
+    if (!fso.FileExists(shortcutPath)) {
+        deleteKeys[canonicalKey] = true;
+    }
+
+    var removedRegistrations = 0;
+    var registryDeleteFailed = false;
+    for (i = 0; i < START11_PIN_ROOTS.length; i++) {
+        values = readStart11PinTreeValues(START11_PIN_ROOTS[i]);
+        for (j = 0; j < values.length; j++) {
+            valueKey = normalizedStart11Path(values[j].shortcut_path);
+            if (!deleteKeys[valueKey]) {
+                continue;
+            }
+            try {
+                wsh.RegDelete(values[j].registry_key + "\\" + values[j].name);
+                removedRegistrations++;
+            } catch (errorConflictRegistration) {
+                registryDeleteFailed = true;
+                persistentError(result, rowLabel + " could not remove a conflicting Start11 registration: " +
+                    errorConflictRegistration.message);
+            }
+        }
+    }
+    if (registryDeleteFailed) {
+        start11PinCache = null;
+        return false;
+    }
+
+    var deletedShortcuts = 0;
+    for (i = 0; i < deletePaths.length; i++) {
+        try {
+            fso.DeleteFile(deletePaths[i], false);
+            deletedShortcuts++;
+        } catch (errorConflictShortcut) {
+            persistentError(result, rowLabel + " could not delete the conflicting Start11 shortcut: " +
+                deletePaths[i] + ": " + errorConflictShortcut.message);
+            start11PinCache = null;
+            return false;
+        }
+    }
+
+    start11PinCache = null;
+    if (removedRegistrations || deletedShortcuts) {
+        result.menu_removed_count++;
+        appendLog("Removed conflicting or duplicate Start11 shortcut state for " + shortcutPath +
+            " (registry=" + removedRegistrations + ", shortcuts=" + deletedShortcuts + ")", false);
+    }
+    return true;
 }
 
 function createStart11Shortcut(shortcutPath, targetPath) {
@@ -2051,27 +2158,27 @@ function ensureStart11MenuPin(path, runAsAdmin, result, rowLabel) {
         return;
     }
 
-    var records = getStart11PinRecords();
-    var shortcutPath = records.signatures[sourceInfo.signature] || "";
-    var shortcutCreated = false;
+    var shortcutPath = canonicalStart11ShortcutPath(sourceInfo);
     if (!shortcutPath) {
-        shortcutPath = availableStart11ShortcutPath(sourceInfo);
-        if (!shortcutPath) {
-            persistentError(result, rowLabel + " could not select a Start11 shortcut path: " + path);
-            return;
-        }
-        if (!fso.FileExists(shortcutPath) || start11ShortcutSignature(shortcutPath) !== sourceInfo.signature) {
-            if (sourceInfo.shortcut_path) {
-                if (!copyStart11Shortcut(sourceInfo.shortcut_path, shortcutPath)) {
-                    persistentError(result, rowLabel + " could not copy the Start11 shortcut: " + path);
-                    return;
-                }
-            } else if (!createStart11Shortcut(shortcutPath, sourceInfo.target_path)) {
-                persistentError(result, rowLabel + " could not create the Start11 shortcut: " + path);
+        persistentError(result, rowLabel + " could not select a Start11 shortcut path: " + path);
+        return;
+    }
+    if (!cleanupStart11ShortcutConflicts(sourceInfo, shortcutPath, result, rowLabel)) {
+        return;
+    }
+
+    var shortcutCreated = false;
+    if (!fso.FileExists(shortcutPath) || start11ShortcutSignature(shortcutPath) !== sourceInfo.signature) {
+        if (sourceInfo.shortcut_path) {
+            if (!copyStart11Shortcut(sourceInfo.shortcut_path, shortcutPath)) {
+                persistentError(result, rowLabel + " could not copy the Start11 shortcut: " + path);
                 return;
             }
-            shortcutCreated = true;
+        } else if (!createStart11Shortcut(shortcutPath, sourceInfo.target_path)) {
+            persistentError(result, rowLabel + " could not create the Start11 shortcut: " + path);
+            return;
         }
+        shortcutCreated = true;
     }
 
     var pinnedTreeHasShortcut = start11TreeContainsSignature(START11_PIN_ROOTS[0], sourceInfo.signature, "") ||
@@ -2440,8 +2547,12 @@ function browseLinkSource(tabIndex, index, chooseFile) {
     var done = function(path) {
         captureState();
         var row = state.data[state.tabs[tabIndex]].links[index];
+        var oldSource = row.src;
         row.src = path;
-        row.tgt_name = fso.GetFileName(path);
+        var oldDefault = linkNameFromSource(oldSource);
+        if (!trimText(row.tgt_name) || trimText(row.tgt_name) === oldDefault) {
+            row.tgt_name = linkNameFromSource(path);
+        }
         markDirty();
         render();
     };
@@ -2848,7 +2959,11 @@ function applyPaths() {
     if (result.env_changed) {
         broadcastEnvironmentChange();
     }
-    render();
+    if (result.error_count === 0) {
+        render(true);
+    } else {
+        render();
+    }
     alert(persistentSummary("Apply Paths", result));
 }
 
@@ -2876,7 +2991,11 @@ function applyAll() {
     if (envChanged) {
         broadcastEnvironmentChange();
     }
-    render();
+    if (persistentResult.error_count === 0 && dynamicErrors === 0) {
+        render(true);
+    } else {
+        render();
+    }
     alert("Apply All\n\nPersistent actions completed: " + persistentResult.success_count +
         "\nPersistent errors: " + persistentResult.error_count +
         "\nDynamic program tabs applied: " + state.tabs.length +
@@ -2897,6 +3016,9 @@ function applyCurrentProgram() {
     var result = applyTabConfig(name, state.activeUiTab - 1, false);
     if (result.env_changed) {
         broadcastEnvironmentChange();
+    }
+    if (result.errors === 0) {
+        render(true);
     }
     alert("Apply " + name + "\n\nStart11 menu pins ready: " + result.menu_pin_count +
         "\nStart11 shortcuts removed: " + result.menu_removed_count +
@@ -3433,27 +3555,31 @@ function createConfiguredLink(link, result) {
     }
 }
 
+function availableLinkBackupPath(path) {
+    var base = path + ".default";
+    var candidate = base;
+    var suffix = 2;
+    while (fso.FileExists(candidate) || fso.FolderExists(candidate)) {
+        candidate = base + "." + suffix;
+        suffix++;
+    }
+    return candidate;
+}
+
 function prepareLinkTarget(path) {
-    var backup = path + ".default";
     if (fso.FileExists(path)) {
         var file = fso.GetFile(path);
         if ((file.Attributes & 1024) === 1024) {
             fso.DeleteFile(path, true);
         } else {
-            if (fso.FileExists(backup) || fso.FolderExists(backup)) {
-                throw new Error("Backup target already exists: " + backup);
-            }
-            fso.MoveFile(path, backup);
+            fso.MoveFile(path, availableLinkBackupPath(path));
         }
     } else if (fso.FolderExists(path)) {
         var folder = fso.GetFolder(path);
         if ((folder.Attributes & 1024) === 1024) {
             fso.DeleteFolder(path, true);
         } else {
-            if (fso.FileExists(backup) || fso.FolderExists(backup)) {
-                throw new Error("Backup target already exists: " + backup);
-            }
-            fso.MoveFolder(path, backup);
+            fso.MoveFolder(path, availableLinkBackupPath(path));
         }
     }
 }

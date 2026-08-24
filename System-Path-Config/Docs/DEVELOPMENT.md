@@ -1,18 +1,18 @@
-# Path-Config Development Guide
+﻿# Path-Config Development Guide
 
-## Current baseline
+## Current stable baseline
 
-The latest approved version is `0.65`.
+The latest approved stable version is `0.70`. The root `STABLE_VERSION` marker must remain `0.70` until the user explicitly promotes a newer release.
 
 Primary files:
 
 - `Path-Config.hta`
 - `Path-Config.exe` (generic HTA launcher)
 - `Debug/Print-Startup-Registry.ps1` (read-only startup registry inventory)
-- `Test/Path-Config-Test_0.65.ps1`
+- `Test/Path-Config-Test_0.70.ps1`
 - `Path-Config.ini` at runtime
 
-The next code delivery must be version `0.66` unless another version has already been approved in the repository.
+The next code delivery must be version `0.71` unless another version has already been approved in the repository.
 
 ## Product purpose
 
@@ -91,6 +91,8 @@ Each Programs tab stores path rows with the same five logical fields as a persis
 
 ## Apply scope
 
+Every error-free Apply action redraws the selected Apply-mode view from live Windows state with ender(true), preserving the current outer window size. Apply Paths and Apply All retain their earlier ordinary redraw when errors occur so partial state remains visible; a failed selected-tab Apply keeps its current view while the result alert reports errors.
+
 ### Apply Paths
 
 Processes only fixed Paths rows.
@@ -159,7 +161,7 @@ Expected Windows behavior: an elevated startup row may produce a UAC prompt afte
 
 ## Start11 Menu pins
 
-When Menu is enabled, Path-Config accepts an existing `.exe` or an existing `.lnk` whose target exists. Executables receive a generated collision-safe shortcut under the current user pinned Start Menu directory. Configured `.lnk` files are copied there without overwriting a different shortcut, preserving their target and arguments. Existing pins and filename collisions are compared by normalized target plus arguments so multiple shortcuts to one executable can remain distinct.
+When Menu is enabled, Path-Config accepts an existing `.exe` or an existing `.lnk` whose target exists. Executables and configured `.lnk` files use one canonical unsuffixed shortcut name under the current user pinned Start Menu directory. Before addition, Path-Config removes registry entries that reference a same-name conflicting shortcut, deletes that conflicting file, and removes other pinned-directory shortcuts with the requested target-and-arguments signature. It then creates or copies the canonical shortcut while preserving configured shortcut targets and arguments. A correct existing canonical shortcut and its custom-group registration are reused.
 
 Apply synchronizes the checkbox with live Start11 state. Checked rows are ensured present, including detection of items moved into custom Start11 groups; unchecked rows remove numeric registrations recursively from the Start11 group trees and delete only pinned-directory shortcuts with the exact same resolved target and arguments. Every operation refreshes registry state and verifies the result. When Admin is enabled, a shortcut must resolve to an executable; the executable RUNASADMIN property is set and verified on that target before the shortcut is accepted.
 ## Migration

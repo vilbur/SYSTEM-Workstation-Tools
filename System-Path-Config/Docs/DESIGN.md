@@ -31,6 +31,7 @@ Expected capabilities:
 - apply fixed Paths rows
 - apply current dynamic program tab
 - apply all configurations
+- refresh the selected Apply-mode view from live state after a successful action without changing the outer window size
 
 Structural editing controls should be hidden or disabled in Apply mode.
 
@@ -167,7 +168,7 @@ When Run as Admin is also checked and an owned fallback is created, store an ele
 
 ### Start11 Menu action
 
-Menu is a declarative live synchronization. Checked rows accept an existing `.exe` or an existing `.lnk` whose target exists, create or reuse a collision-safe pinned-directory shortcut, and ensure Start11 registration without duplicating items moved to custom groups. Unchecked rows remove matching registrations recursively and delete only shortcuts with the exact resolved target-and-arguments signature. Apply mode shows the real current pin state: a green `✔` when registered and a blank red-class status when absent, independent of cached or saved checkbox state. Admin-enabled shortcuts must resolve to an `.exe`; RUNASADMIN is set and verified on that resolved executable before the shortcut is accepted as ready.
+Menu is a declarative live synchronization. Checked rows accept an existing `.exe` or an existing `.lnk` whose target exists, select the unsuffixed canonical pinned-directory shortcut name, remove exact registrations plus the file for a same-name conflict, remove duplicate pinned-directory shortcuts with the requested target-and-arguments signature, and then create or reuse one canonical shortcut. A correct canonical shortcut already moved into a custom group remains registered there. Unchecked rows remove matching registrations recursively and delete only shortcuts with the exact resolved target-and-arguments signature. Apply mode shows the real current pin state: a green `✔` when registered and a blank red-class status when absent, independent of cached or saved checkbox state. Admin-enabled shortcuts must resolve to an `.exe`; RUNASADMIN is set and verified on that resolved executable before the shortcut is accepted as ready.
 ## Startup reconciliation
 
 Startup state is declarative.

@@ -1,16 +1,17 @@
-# Path-Config Codex Agent Instructions
+﻿# Path-Config Codex Agent Instructions
 
 ## Project
 
 Path-Config is a standalone Windows HTA application (HTML and legacy-compatible JScript) for storing and applying Windows path-related configuration. `Path-Config.exe` is a generic launcher that loads the adjacent HTA source.
 
-Current approved baseline:
+Current stable approved baseline:
 
-- `Path-Config.hta` version `0.65`
+- `Path-Config.hta` version `0.70`
+- release status: **Stable** (`STABLE_VERSION` = `0.70`)
 - `Path-Config.exe`
-- `Test/Path-Config-Test_0.65.ps1`
+- `Test/Path-Config-Test_0.70.ps1`
 
-Continue development only from the latest approved baseline. Never rebuild from memory when the current source files are available.
+Continue development only from the latest stable approved baseline. Never rebuild from memory when the current source files are available.
 
 ## Mandatory workflow
 
@@ -106,6 +107,8 @@ At least one row must always exist.
 
 ## Apply behavior
 
+After any error-free Apply Paths, Apply Current Tab, or Apply All action, redraw live Apply-mode status in place while preserving the current window size. Existing Apply Paths and Apply All error redraws remain available so partial results are visible.
+
 Applying fixed Paths rows must process every row independently.
 
 Environment variable:
@@ -129,7 +132,7 @@ Run as Admin:
 Start11 Menu:
 
 - when Menu is checked, accept either an existing `.exe` or an existing `.lnk` whose target exists
-- copy configured `.lnk` files into the current user pinned Start Menu directory without overwriting a different shortcut
+- use the unsuffixed source or executable base name in the current user pinned Start Menu directory; before adding, remove exact Start11 registrations for a same-name conflicting shortcut, delete that conflicting file, and remove other pinned-directory shortcuts with the requested target-and-arguments signature
 - preserve a configured shortcut's target and arguments
 - resolve Start11 registry pins through their `.lnk` target-and-arguments signature before deciding a pin is missing
 - create a new shortcut for configured executables only when needed

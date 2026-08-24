@@ -1,4 +1,4 @@
-# Path-Config Testing Guide
+﻿# Path-Config Testing Guide
 
 ## Test files
 
@@ -6,8 +6,9 @@ Create a new permanent test file only when a change needs new lasting regression
 
 Current source and latest full regression suite:
 
-- `Path-Config.hta` version `0.65`
-- `Test/Path-Config-Test_0.65.ps1`
+- `Path-Config.hta` version `0.70`
+- `Test/Path-Config-Test_0.70.ps1`
+- stable release marker: `STABLE_VERSION` = `0.70`
 
 The canonical source filename remains `Path-Config.hta`; versioned PowerShell tests are stored under `Test/`, and the test filename advances with each version.
 
@@ -236,7 +237,7 @@ Use a harmless executable.
 
 Use a harmless executable. Enable Menu, confirm Apply mode reports the live pin as missing, then Apply and verify that the shortcut appears in the user pinned Start Menu folder and Start11 without restarting Explorer. Apply again and confirm there are no duplicates. Move the pin into a custom Start11 group, return to/reload Apply mode, and confirm MENU remains YES and another Apply does not recreate a root duplicate. Enable Admin, apply again, and confirm launching the shortcut requests elevation.
 
-Repeat with an existing `.lnk` that has command-line arguments. Confirm Path-Config copies it into the pinned Start Menu folder without altering the original, preserves its target and arguments, registers it in Start11, and does not create a duplicate on the second Apply. If Admin is enabled, confirm RUNASADMIN is applied to the shortcut's resolved executable target. Uncheck Menu and Apply; confirm matching registrations and the matching pinned-directory shortcut are removed, unrelated pins remain, and MENU becomes NO. Apply again and confirm removal is idempotent. Recheck Menu and confirm it can be added again.
+Repeat with an existing `.lnk` that has command-line arguments. First place a different-target shortcut with the same filename and a requested-target ` (2).lnk` duplicate in the pinned Start Menu folder, with Start11 registrations for both. Confirm Apply removes both exact registrations and files, copies the source to the unsuffixed canonical filename without altering the original, preserves its target and arguments, registers that one canonical shortcut in Start11, and does not create a duplicate on the second Apply. If Admin is enabled, confirm RUNASADMIN is applied to the shortcut's resolved executable target. Uncheck Menu and Apply; confirm matching registrations and the matching pinned-directory shortcut are removed, unrelated pins remain, and MENU becomes NO. Apply again and confirm removal is idempotent. Recheck Menu and confirm it can be added again.
 ### 7. Run on startup
 
 First use an executable that already has exactly one non-PathConfig value under `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`.
@@ -296,10 +297,14 @@ Verify:
 - rename dynamic tab
 - delete dynamic tab
 - save and restore dynamic data
-- apply current dynamic tab
-- apply all dynamic tabs
+- apply current dynamic tab; after an error-free result, confirm the selected Apply-mode status redraws immediately without switching tabs and the outer window size does not change
+- apply all dynamic tabs; after an error-free result, confirm live status redraws immediately without changing the outer window size
+- apply fixed Paths successfully and confirm it performs the same size-preserving live-status redraw
 - add a Link after a row with a filled Link folder and confirm only that Link folder is prefilled; confirm Source and Link name stay empty and Type defaults to Symlink
 - add another Link after a blank Link folder and confirm the new Link folder remains blank
+- type or browse a Link Source while Link Name is empty and confirm Link Name defaults to the Source file or folder name
+- enter a custom Link Name, change the Source, and confirm the custom Link Name is preserved
+- replace a managed file symlink with a regular file while its .default backup already exists, Apply again, and confirm the current file moves to .default.2 before the symlink is recreated
 - confirm CONFIG labels read Source, Link folder, Link name, and Type
 - set Source to an item whose containing directory equals Link folder using different letter case, slash direction, or a %NAME% reference; confirm Source and Link folder turn orange
 - switch to Apply mode and confirm Source and the combined Link path remain orange

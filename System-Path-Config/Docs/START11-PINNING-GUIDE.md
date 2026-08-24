@@ -38,13 +38,14 @@ For each requested executable:
 4. Parse numeric `REG_SZ` or `REG_EXPAND_SZ` values.
 5. Take the text before the first `|` as the shortcut path.
 6. Open each existing `.lnk` and compare its normalized target with the requested executable.
-7. Reuse an existing matching shortcut.
-8. Otherwise create a shortcut in the pinned Start Menu directory.
-9. Avoid filename collisions by adding ` (2)`, ` (3)`, and so on when a same-named shortcut targets another executable.
-10. Ensure each registry group contains a shortcut targeting the executable. Do not add duplicates.
-11. For a missing entry, use `maximum numeric value + 1` and that group's suffix.
-12. Clear cached pin data and query again to verify the completed pin.
-13. Log success or failure beside the calling script or application.
+7. Select the unsuffixed canonical shortcut name from the configured source or executable base name.
+8. If that exact pinned-directory filename belongs to another target, delete registry values referencing that path, then delete the conflicting shortcut file.
+9. Delete registry values and pinned-directory shortcut files for other names with the requested target-and-arguments signature.
+10. Create or copy one canonical shortcut; reuse it when its signature already matches.
+11. Ensure each registry group contains the canonical shortcut. Do not add duplicates.
+12. For a missing entry, use `maximum numeric value + 1` and that group's suffix.
+13. Clear cached pin data and query again to verify the completed pin.
+14. Log success or failure beside the calling script or application.
 
 Compare pins by resolved shortcut target, not merely by shortcut filename or raw registry data.
 
@@ -70,7 +71,7 @@ Add only the `RUNASADMIN` token and preserve unrelated compatibility tokens. Lau
 
 - Work only under `HKCU`.
 - Never delete unrelated Start11 values.
-- Never overwrite a shortcut targeting a different executable.
+- Never overwrite a shortcut targeting a different executable. Delete it only when its exact path is the canonical filename selected for the requested item, and remove Start11 registry references to that path first.
 - Never assume the two Start11 groups use the same suffix or next numeric value.
 - Treat missing Start11 keys as a reported operational failure.
 - Use hidden status commands so no console flashes.
@@ -122,7 +123,7 @@ Implement Start11 shortcut pinning using this confirmed mechanism. Do not replac
 Create or reuse a .lnk under:
 %APPDATA%\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu
 
-When the configured source is an existing .lnk, copy it collision-safely into this folder and preserve its target and arguments. Compare existing pins by normalized target plus arguments.
+When the configured source is an existing .lnk, preserve its target and arguments and copy it to the unsuffixed canonical filename. Before copying, remove exact registry references plus a same-name conflicting file, and remove other pinned-directory files and registrations with the requested target-and-arguments signature. Compare existing pins by normalized target plus arguments.
 
 Register it in both keys using each key's next numeric value:
 HKCU\Software\Stardock\Start8\Start8.ini\GroupContents\$PINNEDDEF$
@@ -130,7 +131,7 @@ HKCU\Software\Stardock\Start8\Start8.ini\GroupContents\$PINNEDDEF$
 HKCU\Software\Stardock\Start8\Start8.ini\GroupContents11\$$APPS$$
   Data: <shortcut path>|-1|0|-1|-1
 
-Detect existing pins by resolving registered .lnk targets and comparing normalized executable paths. Reuse matches, repair a missing group entry, avoid duplicates and filename collisions, and verify by querying again. No Explorer restart is required.
+Detect existing pins by resolving registered .lnk targets and comparing normalized executable paths. Reuse a correct canonical match, replace a same-name conflict, remove duplicate-signature pinned shortcuts, repair missing group entries, and verify by querying again. No Explorer restart is required.
 
 If Admin is enabled, set and verify RUNASADMIN under:
 HKCU\Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers

@@ -1,4 +1,50 @@
-# Path-Config Changelog
+﻿# Path-Config Changelog
+
+## 0.70
+
+**Release status: Stable**
+
+Canonicalized Start11 shortcut addition by removing filename conflicts and duplicates.
+
+- uses the unsuffixed configured source or executable base name under the current user pinned Start Menu directory
+- removes Start11 registry values referencing a same-name conflicting shortcut before deleting that file
+- removes other pinned-directory shortcuts and registrations with the requested target-and-arguments signature
+- preserves and reuses a correct canonical shortcut, including a pin moved into a custom Start11 group
+- added `Test/Path-Config-Test_0.70.ps1` conflict deletion, duplicate cleanup, canonical creation, repeat-add, parser, and full regression coverage
+
+## 0.69
+
+Refreshed live Apply-mode status after successful actions.
+
+- redraws successful Apply Paths and Apply All results from live state while preserving the current outer window size
+- adds the missing successful refresh after applying the selected program tab
+- preserves the existing ordinary redraw for partial Apply Paths and Apply All results when errors occur
+- added `Test/Path-Config-Test_0.69.ps1` Apply refresh success/error runtime behavior, v0.68 action styling, parser, and full regression coverage
+
+## 0.68
+
+Accented Apply action buttons in green.
+
+- applies the existing success-green palette to Apply All, Apply Paths, and the selected program-tab Apply action
+- preserves button size, spacing, behavior, and the Apply-mode selector color
+
+## 0.67
+
+Restored repeatable file-symlink creation when backups already exist.
+
+- chooses the first available .default, .default.2, .default.3, and later backup name
+- preserves a regular file or folder that replaced a managed link before recreating it
+- prevents an earlier .default backup from blocking Apply
+- added Test/Path-Config-Test_0.67.ps1 collision handling, runtime behavior, parser, and full regression coverage
+
+## 0.66
+
+Added default Link Name autofill.
+
+- fills an empty Link Name from the selected or typed Source file or folder name
+- preserves a custom Link Name when Source changes
+- handles trailing separators on folder Source paths
+- added Test/Path-Config-Test_0.66.ps1 static, runtime behavior, parser, and full regression coverage
 
 ## 0.65
 

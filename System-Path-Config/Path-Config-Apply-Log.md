@@ -1,4 +1,4 @@
-# Apply Execution Log - Monday, 24 August 2026 10:23:47
+# Apply Execution Log - Monday, 24 August 2026 12:10:16
 
 - OK: Program tab: MediaMonkey
 
@@ -6,13 +6,23 @@
 
 - OK: Enabled "Run this program as an administrator": M:\MediaMonkey-AUDIO\MediaMonkey.exe
 
-- OK: Start11 menu shortcut ready with administrator launch: C:\Users\vilbur\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu\MediaMonkey (2).lnk
+- OK: Removed conflicting or duplicate Start11 shortcut state for C:\Users\vilbur\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu\MediaMonkey.lnk (registry=1, shortcuts=1)
 
-- OK: Environment variable MEDIAMONKEY_EXE_VIDEO = M:\MediaMonkey-VIDEO\MediaMonkey.exe
+- OK: Start11 menu shortcut ready with administrator launch: C:\Users\vilbur\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu\MediaMonkey.lnk (2 registry entries added)
 
-- OK: Enabled "Run this program as an administrator": M:\MediaMonkey-VIDEO\MediaMonkey.exe
+- OK: Environment variable MEDIAMONKEY_EXE_MOVIES = M:\MediaMonkey-VIDEO\MediaMonkey-MOVIES.exe
 
-- OK: Start11 menu shortcut ready with administrator launch: C:\Users\vilbur\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu\MediaMonkey (3).lnk
+- OK: Enabled "Run this program as an administrator": M:\MediaMonkey-VIDEO\MediaMonkey-MOVIES.exe
+
+- OK: Start11 menu shortcut ready with administrator launch: C:\Users\vilbur\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu\MediaMonkey-MOVIES.lnk
 
 - OK: Symlink created: M:\MediaMonkey-AUDIO\Portable\MediaMonkey.ini
+
+- OK: Symlink created: M:\MediaMonkey-VIDEO\Portable\MediaMonkey.ini
+
+- OK: Symlink created: M:\MediaMonkey-AUDIO\Portable\Thumbs
+
+- OK: Symlink created: M:\MediaMonkey-VIDEO\Portable\Thumbs
+
+- OK: Symlink created: M:\MediaMonkey-VIDEO\Portable\VideoThumbnails
 
