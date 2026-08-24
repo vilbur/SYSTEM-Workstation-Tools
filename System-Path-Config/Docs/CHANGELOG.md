@@ -1,5 +1,24 @@
 ﻿# Path-Config Changelog
 
+## 0.72
+
+Refined Apply-mode action placement and Config-mode path validation styling.
+
+- moves `APPLY {TAB NAME}` from the program-tab footer to immediately left of `MODE: APPLY`
+- keeps the current-tab action visible only on program tabs in Apply mode
+- removes the green border from valid Config-mode paths while retaining the red border for missing paths
+- adds `Test/Path-Config-Test_0.72.ps1` regression coverage for the new placement and validation styling, while retaining the v0.71 Links ordering checks
+
+## 0.71
+
+Added Links row ordering controls.
+
+- adds the Common-tab arrow interaction to every Links row in Config mode
+- left-click moves a complete Link row down and right-click moves it up
+- places the arrow at the far right after Delete and keeps the cursor with the moved row
+- preserves Apply-mode layout and persists the reordered Links sequence
+- reused the v0.70 suite with focused temporary checks; no permanent test file was added
+
 ## 0.70
 
 **Release status: Stable**

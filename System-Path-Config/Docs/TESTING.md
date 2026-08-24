@@ -6,8 +6,8 @@ Create a new permanent test file only when a change needs new lasting regression
 
 Current source and latest full regression suite:
 
-- `Path-Config.hta` version `0.70`
-- `Test/Path-Config-Test_0.70.ps1`
+- `Path-Config.hta` development version `0.72`
+- `Test/Path-Config-Test_0.72.ps1`
 - stable release marker: `STABLE_VERSION` = `0.70`
 
 The canonical source filename remains `Path-Config.hta`; versioned PowerShell tests are stored under `Test/`, and the test filename advances with each version.
@@ -147,6 +147,8 @@ Parser success does not replace runtime UI testing.
 - Confirm ADMIN, STARTUP, and MENU are orange, green, and blue, with 16 px between adjacent labels.
 - Hover each checkbox and confirm its administrator, sign-in startup, or Start11 menu tooltip appears.
 - Confirm Apply-mode YES statuses display `✔` in green when matching and `✘` in red when mismatching; confirm every NO and N/A status is blank.
+- In Config mode, confirm existing paths retain the normal field border and missing paths use a red border.
+- On a program tab in Apply mode, confirm APPLY {TAB NAME} appears immediately left of MODE: APPLY and no duplicate appears below the tab content.
 - Confirm the burger menu is aligned left and the position button is aligned right.
 - Confirm dynamic program tabs still appear after it.
 
@@ -306,6 +308,8 @@ Verify:
 - enter a custom Link Name, change the Source, and confirm the custom Link Name is preserved
 - replace a managed file symlink with a regular file while its .default backup already exists, Apply again, and confirm the current file moves to .default.2 before the symlink is recreated
 - confirm CONFIG labels read Source, Link folder, Link name, and Type
+- confirm every Links row has a rightmost arrow after Delete; left-click moves the complete row down, right-click moves it up, and the cursor follows the moved row
+- save and reload, then confirm the reordered Links sequence persists; confirm no arrow appears in Apply mode
 - set Source to an item whose containing directory equals Link folder using different letter case, slash direction, or a %NAME% reference; confirm Source and Link folder turn orange
 - switch to Apply mode and confirm Source and the combined Link path remain orange
 - change Link folder to a different directory and confirm the orange warning clears

@@ -21,7 +21,7 @@ Start11 shortcut integration is documented separately in `START11-PINNING-GUIDE.
 - `Debug/Print-Startup-Registry.ps1` read-only startup registry inventory
 - `Test/Path-Config-Test_0.70.ps1`
 
-Version `0.70` is the current stable release. The next development version is `0.71`, unless the project already contains a newer user-approved baseline.
+Version `0.70` remains the current stable release. `Path-Config.hta` version `0.72` is the current development source; the next development version is `0.73`.
 
 ## Codex start prompt
 

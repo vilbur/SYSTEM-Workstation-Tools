@@ -300,7 +300,6 @@ button, input, select {
     border-color: #727984;
 }
 .field.valid {
-    border-color: #34794c;
     color: #76df96;
 }
 .field.invalid {
@@ -426,7 +425,7 @@ button, input, select {
 }
 </style>
 <script language="JScript" type="text/javascript">
-var VERSION = "0.70";
+var VERSION = "0.72";
 var STARTUP_PREFIX = "PathConfig_Path_";
 var PROGRAM_STARTUP_PREFIX = "PathConfig_Program_";
 var REG_ENV = "HKCU\\Environment\\";
@@ -1220,8 +1219,13 @@ function render(preserveWindowSize) {
     var top = '<div class="topbar">' +
         '<div class="brand"><div class="brand-title">Path-Config</div>' +
         '<div class="brand-version">HTA edition &middot; v' + VERSION + '</div></div>' +
-        '<div class="top-actions">' +
-        '<button class="button button-primary ' + modeClass + '" onclick="toggleMode()">MODE: ' + state.mode.toUpperCase() + '</button>';
+        '<div class="top-actions">';
+    if (state.mode === "Apply" && state.activeUiTab > 0) {
+        top += '<button class="button button-apply-action" onclick="applyCurrentProgram()">APPLY ' +
+            html(state.tabs[state.activeUiTab - 1]).toUpperCase() + '</button>';
+    }
+    top += '<button class="button button-primary ' + modeClass + '" onclick="toggleMode()">MODE: ' +
+        state.mode.toUpperCase() + '</button>';
     if (state.mode === "Config") {
         if (hasUnsavedChanges) {
             top += '<button id="saveStateButton" class="button" onclick="saveState(true)">SAVE STATE</button>';
@@ -1355,10 +1359,6 @@ function renderProgram(tabIndex) {
     out += renderLinksSection(tabIndex, data.links);
     out += renderNameValueSection(tabIndex, "envs", "Environment Variables", data.envs, false);
     out += renderExecSection(tabIndex, data.execs);
-    if (state.mode === "Apply") {
-        out += '<div class="footer-actions"><button class="button button-apply-action" onclick="applyCurrentProgram()">APPLY ' +
-            html(name).toUpperCase() + '</button></div>';
-    }
     return out;
 }
 
@@ -1472,8 +1472,8 @@ function renderLinksSection(tabIndex, rows) {
     }
     if (state.mode === "Config") {
         out += '<table class="data-table program-table"><colgroup><col><col style="width:100px"><col>' +
-            '<col style="width:50px"><col style="width:15%"><col style="width:130px"><col style="width:40px"></colgroup>' +
-            '<thead><tr><th>Source</th><th></th><th>Link folder</th><th></th><th>Link name</th><th>Type</th><th></th></tr></thead><tbody>';
+            '<col style="width:50px"><col style="width:15%"><col style="width:130px"><col style="width:40px"><col style="width:40px"></colgroup>' +
+            '<thead><tr><th>Source</th><th></th><th>Link folder</th><th></th><th>Link name</th><th>Type</th><th></th><th></th></tr></thead><tbody>';
     } else {
         out += '<table class="data-table program-table links-apply-table"><colgroup><col><col><col style="width:130px"></colgroup>' +
             '<thead><tr><th>Source</th><th>Link path</th><th>Type</th></tr></thead><tbody>';
@@ -1493,6 +1493,9 @@ function renderLinksSection(tabIndex, rows) {
                 '" data-tab="' + tabIndex + '" data-field="type">' +
                 option("Shortcut", row.type) + option("Symlink", row.type) + option("Hardlink", row.type) + '</select></td>';
             out += '<td><button class="button button-small button-danger" onclick="deleteDynamicRow(' + tabIndex + ',\'links\',' + i + ')">X</button></td>';
+            out += '<td class="move-cell"><button class="button button-small" id="linkMove_' + tabIndex + '_' + i +
+                '" title="Left click: move down; right click: move up" onclick="moveDynamicLink(' + tabIndex + ',' + i +
+                ',1)" oncontextmenu="return moveDynamicLinkUp(' + tabIndex + ',' + i + ')">&#8597;</button></td>';
         } else {
             target = joinPath(row.tgt_dir, row.tgt_name + (row.type === "Shortcut" && !/\.lnk$/i.test(row.tgt_name) ? ".lnk" : ""));
             sameDirectory = linkDirectoriesAreSame(row.src, row.tgt_dir);
@@ -2508,6 +2511,69 @@ function deleteDynamicRow(tabIndex, kind, index) {
     render();
 }
 
+function moveDynamicLink(tabIndex, index, direction) {
+    var cursorState = null;
+    var eventObject = typeof window !== "undefined" ? window.event : null;
+    var source = eventObject ? eventObject.srcElement : null;
+    if (source && source.getBoundingClientRect && typeof eventObject.screenX === "number") {
+        var sourceRect = source.getBoundingClientRect();
+        cursorState = {
+            screen_x: eventObject.screenX,
+            screen_y: eventObject.screenY,
+            control_left: sourceRect.left,
+            control_top: sourceRect.top,
+            window_left: typeof window.screenLeft === "number" ? window.screenLeft : 0,
+            window_top: typeof window.screenTop === "number" ? window.screenTop : 0
+        };
+    }
+    captureState();
+    var rows = state.data[state.tabs[tabIndex]].links;
+    var targetIndex = index + direction;
+    if (index < 0 || index >= rows.length || targetIndex < 0 || targetIndex >= rows.length) {
+        return;
+    }
+    var row = rows[index];
+    rows[index] = rows[targetIndex];
+    rows[targetIndex] = row;
+    markDirty();
+    render();
+    queueDynamicLinkMoveCursor(tabIndex, targetIndex, cursorState);
+}
+
+function moveDynamicLinkUp(tabIndex, index) {
+    var eventObject = typeof window !== "undefined" ? window.event : null;
+    moveDynamicLink(tabIndex, index, -1);
+    if (eventObject) {
+        eventObject.returnValue = false;
+    }
+    return false;
+}
+
+function queueDynamicLinkMoveCursor(tabIndex, index, cursorState) {
+    if (!cursorState || typeof window === "undefined") {
+        return;
+    }
+    window.setTimeout(function() {
+        var target = document.getElementById("linkMove_" + tabIndex + "_" + index);
+        if (!target || !target.getBoundingClientRect) {
+            return;
+        }
+        var targetRect = target.getBoundingClientRect();
+        var currentWindowLeft = typeof window.screenLeft === "number" ? window.screenLeft : 0;
+        var currentWindowTop = typeof window.screenTop === "number" ? window.screenTop : 0;
+        var x = Math.round(cursorState.screen_x + currentWindowLeft - cursorState.window_left +
+            targetRect.left - cursorState.control_left);
+        var y = Math.round(cursorState.screen_y + currentWindowTop - cursorState.window_top +
+            targetRect.top - cursorState.control_top);
+        var command = 'powershell.exe -NoProfile -WindowStyle Hidden -Command "' +
+            'Add-Type -AssemblyName System.Windows.Forms;' +
+            '[System.Windows.Forms.Cursor]::Position=(New-Object System.Drawing.Point -ArgumentList ' +
+            x + ',' + y + ')"';
+        try {
+            wsh.Run(command, 0, false);
+        } catch (ignoreCursorMove) {}
+    }, 60);
+}
 function browseDynamicPath(tabIndex, index) {
     captureState();
     var initialPath = state.data[state.tabs[tabIndex]].paths[index].path;

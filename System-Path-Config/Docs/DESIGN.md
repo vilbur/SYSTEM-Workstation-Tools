@@ -1,4 +1,4 @@
-# Path-Config Design Specification
+﻿# Path-Config Design Specification
 
 ## User-facing modes
 
@@ -29,11 +29,13 @@ Expected capabilities:
 
 - inspect configured values
 - apply fixed Paths rows
-- apply current dynamic program tab
+- apply the current dynamic program tab from `APPLY {TAB NAME}` immediately left of `MODE: APPLY` in the top bar
 - apply all configurations
 - refresh the selected Apply-mode view from live state after a successful action without changing the outer window size
 
 Structural editing controls should be hidden or disabled in Apply mode.
+
+In Config mode, existing paths keep the neutral field border; only missing paths receive the red validation border. Existing green valid text and orange same-directory warnings remain unchanged.
 
 ## Source-update restart
 
@@ -84,7 +86,7 @@ Every file/folder Browse button, including compact D/F controls, opens a shared 
 
 ## Programs-tab path rows
 
-Every dynamic Programs tab uses the same minimum-560-px file path, compact 64 px Browse button, restored 20% Env var, larger icon-only Run as Admin, larger icon-only Run on startup, and compact 30 px Delete controls with the same exact visible 20 px horizontal spacing and flush outer alignment. Environment Variables, Executables, and Links also use compact fixed-width D/F/Browse/Delete action columns; paired D/F buttons are separated by exactly 20 px, first fields are flush left, and Delete buttons are flush right. Links keeps Link Name at 15% in Config mode; Apply mode combines Link folder and Link name into one Link path column, so the visible labels are Source, Link path, and Type. Rows are saved inside that tab's `_Paths` section. Legacy `_Name` and `_Val` keys migrate to the new Env var and file path fields.
+Every dynamic Programs tab uses the same minimum-560-px file path, compact 64 px Browse button, restored 20% Env var, larger icon-only Run as Admin, larger icon-only Run on startup, and compact 30 px Delete controls with the same exact visible 20 px horizontal spacing and flush outer alignment. Environment Variables and Executables use compact fixed-width D/F/Browse/Delete action columns. Links rows add the Common-style ordering arrow after Delete as the flush-right control; left-click moves the complete row down, right-click moves it up, and the cursor follows the moved row. Paired D/F buttons remain separated by exactly 20 px and first fields stay flush left. Links keeps Link Name at 15% in Config mode; Apply mode combines Link folder and Link name into one Link path column, so the visible labels are Source, Link path, and Type. Rows are saved inside that tab's `_Paths` section. Legacy `_Name` and `_Val` keys migrate to the new Env var and file path fields.
 
 New Link rows inherit the immediately previous row's non-empty Link folder. Source and Link name remain empty and Type starts as Symlink; if the previous Link folder is blank, the new row stays blank.
 
