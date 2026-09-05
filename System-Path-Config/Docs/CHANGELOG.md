@@ -1,5 +1,26 @@
 ﻿# Path-Config Changelog
 
+## 0.74
+
+Refined the program Paths Start Menu naming control.
+
+- moves the MENU checkbox before the custom-name edit, producing STARTUP, MENU, START MENU NAME
+- renames the visible LINK NAME label to START MENU NAME in Config and Apply modes
+- preserves the existing _LinkName persistence key and Start11 naming behavior for compatibility
+- reuses the v0.72 suite with focused temporary order and label checks; no permanent test file was added
+
+## 0.73
+
+Added a configurable Start11 shortcut name to program Paths rows.
+
+- adds a 15% LINK NAME edit between STARTUP and MENU in Config mode and shows its saved value in Apply mode
+- stores the optional value as <row>_LinkName in each program tab's _Paths section
+- uses the custom name for the canonical Start11 shortcut while an empty value retains the executable-derived name
+- removes a trailing .lnk and replaces invalid filename characters before creating the shortcut
+- shortens only the program Paths File path edit from a 560 px to a 500 px minimum to keep the existing row width
+- preserves Common-row layout, older configuration loading, spacing, and the stable v0.70 marker
+- reuses the v0.72 suite with focused temporary schema, layout, and runtime checks; no permanent test file was added
+
 ## 0.72
 
 Refined Apply-mode action placement and Config-mode path validation styling.

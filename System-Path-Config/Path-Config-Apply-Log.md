@@ -1,14 +1,18 @@
-# Apply Execution Log - Monday, 24 August 2026 12:43:11
+# Apply Execution Log - Saturday, 5 September 2026 04:35:33
 
-- OK: Program tab: DisplayFusion
+- OK: Program tab: AutoHotkey
 
-- OK: Environment variable DisplayFusion_exe = C:\Program Files\DisplayFusion\DisplayFusion.exe
+- OK: Enabled "Run this program as an administrator": C:\Program Files\AutoHotkey\AutoHotkey.exe
 
-- OK: Existing Windows Startup Apps entry DisplayFusion set to On: C:\Program Files\DisplayFusion\DisplayFusion.exe
+- OK: Start11 menu shortcut already absent: C:\Program Files\AutoHotkey\AutoHotkey.exe
 
-- OK: Enabled "Run this program as an administrator": C:\Program Files\DisplayFusion\DisplayFusion.exe
+- OK: Enabled "Run this program as an administrator": D:\GoogleDrive\\ProgramsData\SYSTEM\SYSTEM-Workstation-Tools\Everything-Assistance\Everything-Assistance.exe
 
-- OK: Start11 menu shortcut ready with administrator launch: C:\Users\vilbur\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu\DisplayFusion.lnk
+- OK: Start11 menu shortcut already absent: D:\GoogleDrive\\ProgramsData\SYSTEM\SYSTEM-Workstation-Tools\Everything-Assistance\Everything-Assistance.exe
 
-- OK: Shortcut created: C:\Users\vilbur\Documents\DisplayFusion Backups\Settings.lnk
+- OK: Startup entry PathConfig_Program_3_3 configured and enabled in Windows Startup Apps.
+
+- OK: Enabled "Run this program as an administrator": D:\GoogleDrive\\ProgramsData\CORE\AutoHotkey\Ahk-start.exe
+
+- OK: Start11 menu shortcut ready with administrator launch: C:\Users\vilbur\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu\Ahk-start.lnk (1 registry entry added)
 

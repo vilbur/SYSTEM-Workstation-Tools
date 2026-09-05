@@ -234,6 +234,9 @@ button, input, select {
 .path-field {
     min-width: 560px;
 }
+.path-table input[data-scope="dynamic"][data-kind="paths"][data-field="path"] {
+    min-width: 500px;
+}
 .path-table td:first-child {
     padding-left: 0;
     text-align: left;
@@ -425,7 +428,7 @@ button, input, select {
 }
 </style>
 <script language="JScript" type="text/javascript">
-var VERSION = "0.72";
+var VERSION = "0.74";
 var STARTUP_PREFIX = "PathConfig_Path_";
 var PROGRAM_STARTUP_PREFIX = "PathConfig_Program_";
 var REG_ENV = "HKCU\\Environment\\";
@@ -877,12 +880,13 @@ function loadNameValueRows(ini, section) {
     return rows;
 }
 
-function emptyPathRow(path, envVar) {
+function emptyPathRow(path, envVar, linkName) {
     return {
         path: path || "",
         env_var: envVar || "",
         run_as_admin: 0,
         run_on_startup: 0,
+        link_name: linkName || "",
         menu: 0
     };
 }
@@ -911,6 +915,7 @@ function loadProgramPathRows(ini, section) {
             env_var: envVar || "",
             run_as_admin: asNumber(iniValue(ini, section, i + "_RunAsAdmin", "0"), 0) ? 1 : 0,
             run_on_startup: asNumber(iniValue(ini, section, i + "_RunOnStartup", "0"), 0) ? 1 : 0,
+            link_name: iniValue(ini, section, i + "_LinkName", ""),
             menu: asNumber(iniValue(ini, section, i + "_Menu", "0"), 0) ? 1 : 0
         });
     }
@@ -1013,6 +1018,7 @@ function saveState(showMessage, stateAlreadyCaptured) {
             entry(lines, (j + 1) + "_EnvVar", row.env_var);
             entry(lines, (j + 1) + "_RunAsAdmin", row.run_as_admin ? 1 : 0);
             entry(lines, (j + 1) + "_RunOnStartup", row.run_on_startup ? 1 : 0);
+            entry(lines, (j + 1) + "_LinkName", row.link_name || "");
             entry(lines, (j + 1) + "_Menu", row.menu ? 1 : 0);
         }
         lines.push("");
@@ -1369,9 +1375,9 @@ function renderProgramPaths(tabIndex, rows) {
     }
     out += '</div><table class="data-table path-table"><colgroup>' +
         '<col><col style="width:84px"><col style="width:20%">' +
-        '<col style="width:56px"><col style="width:56px"><col style="width:56px"><col style="width:40px"></colgroup>' +
+        '<col style="width:56px"><col style="width:56px"><col style="width:56px"><col style="width:15%"><col style="width:40px"></colgroup>' +
         '<thead><tr><th>File path</th><th></th><th>Environment variable</th>' +
-        '<th class="status-header status-admin">ADMIN</th><th class="status-header status-start">STARTUP</th><th class="status-header status-menu">MENU</th><th></th></tr></thead><tbody>';
+        '<th class="status-header status-admin">ADMIN</th><th class="status-header status-start">STARTUP</th><th class="status-header status-menu">MENU</th><th>START MENU NAME</th><th></th></tr></thead><tbody>';
     var i, row;
     for (i = 0; i < rows.length; i++) {
         row = rows[i];
@@ -1383,6 +1389,7 @@ function renderProgramPaths(tabIndex, rows) {
             out += checkboxInput("dynamic", "paths", i, "run_as_admin", row.run_as_admin, tabIndex);
             out += checkboxInput("dynamic", "paths", i, "run_on_startup", row.run_on_startup, tabIndex);
             out += checkboxInput("dynamic", "paths", i, "menu", row.menu, tabIndex);
+            out += fieldInput("dynamic", "paths", i, "link_name", row.link_name || "", 'data-tab="' + tabIndex + '"');
             out += '<td>' + (i > 0 ? '<button class="button button-small button-danger" onclick="deleteDynamicRow(' +
                 tabIndex + ',\'paths\',' + i + ')">X</button>' : '') + '</td>';
         } else {
@@ -1392,6 +1399,7 @@ function renderProgramPaths(tabIndex, rows) {
             out += adminPropertyMatchCell(row.path, row.run_as_admin);
             out += startupMatchCell(row.path, row.run_on_startup);
             out += menuPinMatchCell(row.path, row.menu);
+            out += readonlyCell(row.link_name || "", "");
             out += '<td></td>';
         }
         out += '</tr>';
@@ -1933,7 +1941,8 @@ function canonicalStart11ShortcutPath(sourceInfo) {
         return "";
     }
     var namingPath = sourceInfo.shortcut_path || sourceInfo.target_path;
-    var baseName = fso.GetBaseName(namingPath).replace(/[\\\/:*?"<>|]/g, "_") || "Path-Config";
+    var requestedName = arguments.length > 1 ? trimText(arguments[1]).replace(/\.lnk$/i, "") : "";
+    var baseName = (requestedName || fso.GetBaseName(namingPath)).replace(/[\\\/:*?"<>|]/g, "_") || "Path-Config";
     return fso.BuildPath(directory, baseName + ".lnk");
 }
 
@@ -2161,7 +2170,8 @@ function ensureStart11MenuPin(path, runAsAdmin, result, rowLabel) {
         return;
     }
 
-    var shortcutPath = canonicalStart11ShortcutPath(sourceInfo);
+    var linkName = arguments.length > 4 ? arguments[4] : "";
+    var shortcutPath = canonicalStart11ShortcutPath(sourceInfo, linkName);
     if (!shortcutPath) {
         persistentError(result, rowLabel + " could not select a Start11 shortcut path: " + path);
         return;
@@ -3509,7 +3519,7 @@ function applyTabConfig(tabName, tabIndex, startupAlreadyCleaned) {
         }
         if (item.menu) {
             ensureStart11MenuPin(path, item.run_as_admin ? true : false, result,
-                tabName + " row " + (i + 1));
+                tabName + " row " + (i + 1), item.link_name || "");
         } else if (path) {
             removeStart11MenuPin(path, result, tabName + " row " + (i + 1));
         }

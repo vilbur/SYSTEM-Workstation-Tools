@@ -6,7 +6,7 @@ Create a new permanent test file only when a change needs new lasting regression
 
 Current source and latest full regression suite:
 
-- `Path-Config.hta` development version `0.72`
+- `Path-Config.hta` development version `0.74`
 - `Test/Path-Config-Test_0.72.ps1`
 - stable release marker: `STABLE_VERSION` = `0.70`
 
@@ -289,7 +289,7 @@ Expected:
 
 ### 11. Programs-tab Paths controls
 
-For every Programs tab, confirm the Paths section contains the same file path, Browse, Env var, Run as Admin, Run on startup, Menu, and row-delete controls as the fixed Paths tab. Save, reload, and apply a harmless row. Confirm older `_Name`/`_Val` rows load into Env var and file path without data loss.
+For every Programs tab, confirm the Paths section contains File path, Browse, Env var, Run as Admin, Run on startup, Menu, START MENU NAME, and row-delete controls. Confirm the order is STARTUP, MENU, START MENU NAME, the program File path edit is shortened while Common remains unchanged, and existing 20 px spacing is preserved. Save and reload a custom Start Menu Name, then apply a harmless Menu-enabled row and confirm the canonical Start11 shortcut uses that name. Clear Start Menu Name and apply again; confirm the executable-derived shortcut name is used. Confirm older `_Name`/`_Val` rows load into Env var and file path with an empty Start Menu Name and no data loss.
 
 ### 12. Dynamic-tab regression
 

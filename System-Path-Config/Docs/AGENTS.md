@@ -11,7 +11,7 @@ Current stable approved baseline:
 - `Path-Config.exe`
 - `Test/Path-Config-Test_0.70.ps1`
 
-Continue development only from the latest stable approved baseline. Never rebuild from memory when the current source files are available. The current development source is `Path-Config.hta` version `0.72`; the stable marker remains `0.70`.
+Continue development only from the latest stable approved baseline. Never rebuild from memory when the current source files are available. The current development source is `Path-Config.hta` version `0.74`; the stable marker remains `0.70`.
 
 ## Mandatory workflow
 
@@ -57,7 +57,7 @@ Preserve the current dark UI style:
 - render Save State as two distinct states: clean uses grey font, default cursor, resting v0.39 surface, no hover response, and no click handler; dirty restores the original v0.39 base class, white font, pointer/hover behavior, and direct save action; never use the native disabled attribute; auto-save pending Config edits before entering Apply and remain in Config if saving fails
 - in IE9-mode HTA, track input, keyup, propertychange, and change so typing/pasting immediately marks real value changes dirty; filter non-value property events
 - consistent row alignment
-- a window no wider than half the display, file-path edits at least 560 px wide, restored 20% Environment Variable columns, preserved 15% Config-mode Link Name columns and compact Source/Link path/Type Links rows in Apply mode, compact fixed-width row-action columns across fixed Paths and every dynamic-tab section that produce exact visible 20 px gaps, flush outer controls, section Add buttons beside their labels on the left, and no inherited control margins
+- a window no wider than half the display, Common file-path edits at least 560 px wide, program Paths file-path edits at least 500 px wide, restored 20% Environment Variable columns, preserved 15% Config-mode Link Name columns and compact Source/Link path/Type Links rows in Apply mode, compact fixed-width row-action columns across fixed Paths and every dynamic-tab section that produce exact visible 20 px gaps, flush outer controls, section Add buttons beside their labels on the left, and no inherited control margins
 - preserve the exact current outer window size when switching tabs; tab selection must not schedule content fitting, resizing, or recentering
 - larger icon-only Config-mode checkboxes
 - ADMIN, STARTUP, and MENU headers use 8 px side padding for 16 px between adjacent labels and are orange, green, and blue respectively

@@ -2,7 +2,7 @@
 
 ## Current stable baseline
 
-The latest approved stable version is `0.70`. The root `STABLE_VERSION` marker remains `0.70` until the user explicitly promotes a newer release. The current development source is `Path-Config.hta` version `0.72`.
+The latest approved stable version is `0.70`. The root `STABLE_VERSION` marker remains `0.70` until the user explicitly promotes a newer release. The current development source is `Path-Config.hta` version `0.74`.
 
 Primary files:
 
@@ -12,7 +12,7 @@ Primary files:
 - `Test/Path-Config-Test_0.70.ps1`
 - `Path-Config.ini` at runtime
 
-The next code delivery must be version `0.73` unless another version has already been approved in the repository.
+The next code delivery must be version `0.75` unless another version has already been approved in the repository.
 
 ## Product purpose
 
@@ -87,7 +87,7 @@ Rules:
 
 ## Dynamic program path rows
 
-Each Programs tab stores path rows with the same five logical fields as a persistent row. Loading accepts the former `<row>_Name` and `<row>_Val` keys as migration sources for `env_var` and `path`. Program startup entries use the separate `PathConfig_Program_` prefix and are reconciled within the selected tab, or globally before Apply All.
+Each Programs tab stores the five persistent-row fields plus an optional `link_name`. It is saved as `<row>_LinkName`, appears after the MENU checkbox under the `START MENU NAME` label, and supplies the canonical Start11 shortcut filename. An empty value keeps the executable-derived name. Loading accepts missing `_LinkName` as empty and the former `<row>_Name` and `<row>_Val` keys as migration sources for `env_var` and `path`. Program startup entries use the separate `PathConfig_Program_` prefix and are reconciled within the selected tab, or globally before Apply All.
 
 ## Apply scope
 
