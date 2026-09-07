@@ -2,7 +2,7 @@
 
 ## Current stable baseline
 
-The latest approved stable version is `0.70`. The root `STABLE_VERSION` marker remains `0.70` until the user explicitly promotes a newer release. The current development source is `Path-Config.hta` version `0.74`.
+The latest approved stable version is `0.70`. The root `STABLE_VERSION` marker remains `0.70` until the user explicitly promotes a newer release. The current development source is `Path-Config.hta` version `0.83`.
 
 Primary files:
 
@@ -12,7 +12,7 @@ Primary files:
 - `Test/Path-Config-Test_0.70.ps1`
 - `Path-Config.ini` at runtime
 
-The next code delivery must be version `0.75` unless another version has already been approved in the repository.
+The next code delivery must be version `0.80` unless another version has already been approved in the repository.
 
 ## Product purpose
 
@@ -80,26 +80,27 @@ Rules:
 - Empty rows are allowed while editing.
 - The first row cannot be deleted.
 - Additional rows can be added and deleted.
-- Browse uses Windows Forms `OpenFileDialog` for files and the native Windows `IFileOpenDialog` Common Item Dialog in folder-selection mode for folders, both with full-PC access. A populated path field supplies its own folder as the initial location; an empty field falls back to the last successfully selected directory, or `C:\` before any selection. A centralized post-selection sanitizer capitalizes direct drive letters for every browsed path and gives folder results exactly one trailing backslash. In Config mode, typed path-like values use the same drive-letter rule and gain a trailing backslash when their expanded value is an existing directory; raw `%NAME%` references remain intact. Every file/folder picker button also exposes `Find in Explorer` on right-click; the action reads its adjacent live field, expands configured and Windows environment references, validates the target, and opens visible Explorer with it selected.
+- Browse uses Windows Forms OpenFileDialog for files and the native Windows IFileOpenDialog Common Item Dialog in folder-selection mode for folders, both with full-PC access. A populated path field supplies its own folder as the initial location; an empty field falls back to the last successfully selected directory, or C:\ before any selection. A centralized post-selection sanitizer converts separators to native backslashes, collapses repeated backslashes, capitalizes direct drive letters, and gives folder results exactly one trailing backslash. In Config mode, typed path-like values remain untouched during editing; after focus loss they use the same separator and drive-letter rules and gain a trailing backslash when their expanded value is an existing directory. Raw `%NAME%` references remain intact. Every file/folder picker button also exposes Find in Explorer on right-click; the action reads its adjacent live field, expands configured and Windows environment references, validates the target, and opens visible Explorer with it selected.
 - File Path remains at least 560 px wide; Environment Variable uses its restored 20% column and Links Link Name keeps its earlier 15% column. Fixed Paths and all dynamic-tab table actions use compact fixed-width columns sized to their controls, so the 10 px padding on each adjacent cell produces an exact visible 20 px gap; the first and last controls align flush to the left and right row edges. The window is capped at half the available display width, with horizontal scrolling retained when the minimum layout is wider. Switching between the fixed and dynamic tabs must preserve the current outer window size and must not invoke content fitting. Section Add buttons sit beside their labels on the left.
 - The environment-variable name is optional.
 - All three checkboxes are independent.
 
 ## Dynamic program path rows
 
-Each Programs tab stores the five persistent-row fields plus an optional `link_name`. It is saved as `<row>_LinkName`, appears after the MENU checkbox under the `START MENU NAME` label, and supplies the canonical Start11 shortcut filename. An empty value keeps the executable-derived name. Loading accepts missing `_LinkName` as empty and the former `<row>_Name` and `<row>_Val` keys as migration sources for `env_var` and `path`. Program startup entries use the separate `PathConfig_Program_` prefix and are reconciled within the selected tab, or globally before Apply All.
+Common and each Programs tab store the original five path-row fields plus an optional `link_name`. It is saved as `<row>_LinkName`, appears after the MENU checkbox under the `START MENU NAME` label, and supplies the canonical Start11 shortcut filename. An empty value keeps the executable-derived name. Loading accepts missing `_LinkName` as empty and the former `<row>_Name` and `<row>_Val` keys as migration sources for `env_var` and `path`. Program startup entries use the separate `PathConfig_Program_` prefix and are reconciled within the selected tab, or globally before Apply All.
 
 ## Apply scope
 
-Every error-free Apply action redraws the selected Apply-mode view from live Windows state with ender(true), preserving the current outer window size. Apply Paths and Apply All retain their earlier ordinary redraw when errors occur so partial state remains visible; a failed selected-tab Apply keeps its current view while the result alert reports errors.
+Every error-free Apply action redraws the selected Apply-mode view from live Windows state with
+ender(true), preserving the current outer window size. Apply Paths and Apply All retain their earlier ordinary redraw when errors occur so partial state remains visible; a failed selected-tab Apply keeps its current view while the result alert reports errors.
 
 ### Apply Paths
 
-Processes only fixed Paths rows.
+Processes only fixed Common rows, including their optional Start Menu Name.
 
 For every row:
 
-1. Read and trim all five fields.
+1. Read and trim all six fields.
 2. Write the environment variable when both name and path are non-empty.
 3. Create a managed startup entry when enabled and valid.
 4. Set or remove the Windows `RUNASADMIN` compatibility property for configured executable paths.

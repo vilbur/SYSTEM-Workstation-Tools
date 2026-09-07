@@ -101,6 +101,13 @@ button, input, select {
     border-color: #34794c;
     color: #76df96;
 }
+.button-apply-action.button-apply-running,
+.button-apply-action.button-apply-running:hover {
+    border-color: #444850;
+    background: #2a2d32;
+    color: #686d75;
+    cursor: default;
+}
 .button-danger {
     border-color: #713f46;
     color: #ff9aa7;
@@ -428,7 +435,7 @@ button, input, select {
 }
 </style>
 <script language="JScript" type="text/javascript">
-var VERSION = "0.74";
+var VERSION = "0.83";
 var STARTUP_PREFIX = "PathConfig_Path_";
 var PROGRAM_STARTUP_PREFIX = "PathConfig_Program_";
 var REG_ENV = "HKCU\\Environment\\";
@@ -448,6 +455,7 @@ var START11_PIN_ROOTS = [
 var START11_PIN_DIRECTORY = "%APPDATA%\\Microsoft\\Internet Explorer\\Quick Launch\\User Pinned\\StartMenu";
 var start11PinCache = null;
 var startupStateCache = null;
+var applyInProgress = false;
 var NATIVE_FOLDER_DIALOG_CSHARP =
     "dXNpbmcgU3lzdGVtOwp1c2luZyBTeXN0ZW0uUnVudGltZS5JbnRlcm9wU2VydmljZXM7Cm5hbWVzcGFjZSBQYXRoQ29uZmlnIHsKICAgIFtGbGFnc10KICAg" +
     "IGludGVybmFsIGVudW0gRmlsZU9wZW5PcHRpb25zIDogdWludCB7CiAgICAgICAgUGlja0ZvbGRlcnMgPSAweDAwMDAwMDIwLAogICAgICAgIEZvcmNlRmls" +
@@ -506,6 +514,8 @@ var lastBrowseDirectory = "C:\\";
 var iniPath = "";
 var legacyIniPath = "";
 var logPath = "";
+var errorsLogPath = "";
+var applyErrorLogCount = 0;
 var saveTimer = null;
 var sourcePath = "";
 var sourceSignature = "";
@@ -528,6 +538,10 @@ var state = {
 
 function trimText(value) {
     return String(value == null ? "" : value).replace(/^\s+|\s+$/g, "");
+}
+
+function normalizePathSeparators(value) {
+    return trimText(value).replace(/\//g, "\\").replace(/\\+/g, "\\");
 }
 
 function html(value) {
@@ -612,11 +626,11 @@ function expandEnvironmentText(value, variables, resolving, depth) {
 }
 
 function expandPathVariables(value, variables) {
-    var text = trimText(value);
+    var text = normalizePathSeparators(value);
     if (text.indexOf("%") < 0) {
         return text;
     }
-    return expandEnvironmentText(text, variables || configuredEnvironmentVariables(), {}, 0);
+    return normalizePathSeparators(expandEnvironmentText(text, variables || configuredEnvironmentVariables(), {}, 0));
 }
 
 function environmentRegistryType(value) {
@@ -786,7 +800,7 @@ function loadState() {
     if (!source) {
         state.tabs = ["PROGRAMS"];
         state.data = {"PROGRAMS": {paths: [emptyPathRow()], envs: [], execs: [], links: []}};
-        state.persistent = [{path: "", env_var: "", run_as_admin: 0, run_on_startup: 0, menu: 0}];
+        state.persistent = [{path: "", env_var: "", run_as_admin: 0, run_on_startup: 0, link_name: "", menu: 0}];
         return;
     }
 
@@ -835,11 +849,12 @@ function loadState() {
             env_var: iniValue(ini, "PersistentPaths", i + "_EnvVar", ""),
             run_as_admin: asNumber(iniValue(ini, "PersistentPaths", i + "_RunAsAdmin", "0"), 0) ? 1 : 0,
             run_on_startup: asNumber(iniValue(ini, "PersistentPaths", i + "_RunOnStartup", "0"), 0) ? 1 : 0,
+            link_name: iniValue(ini, "PersistentPaths", i + "_LinkName", ""),
             menu: asNumber(iniValue(ini, "PersistentPaths", i + "_Menu", "0"), 0) ? 1 : 0
         });
     }
     if (!state.persistent.length) {
-        state.persistent.push({path: "", env_var: "", run_as_admin: 0, run_on_startup: 0, menu: 0});
+        state.persistent.push({path: "", env_var: "", run_as_admin: 0, run_on_startup: 0, link_name: "", menu: 0});
     }
 
     state.data = {};
@@ -1004,6 +1019,7 @@ function saveState(showMessage, stateAlreadyCaptured) {
         entry(lines, (i + 1) + "_EnvVar", row.env_var);
         entry(lines, (i + 1) + "_RunAsAdmin", row.run_as_admin ? 1 : 0);
         entry(lines, (i + 1) + "_RunOnStartup", row.run_on_startup ? 1 : 0);
+        entry(lines, (i + 1) + "_LinkName", row.link_name || "");
         entry(lines, (i + 1) + "_Menu", row.menu ? 1 : 0);
     }
     lines.push("");
@@ -1081,7 +1097,7 @@ function captureState() {
     var i, changed;
     var anyChanged = false;
     for (i = 0; i < inputs.length; i++) {
-        changed = captureElement(inputs[i]);
+        changed = captureElement(inputs[i], true);
         anyChanged = anyChanged || changed;
     }
     for (i = 0; i < selects.length; i++) {
@@ -1093,7 +1109,7 @@ function captureState() {
     }
 }
 
-function captureElement(element) {
+function captureElement(element, normalizePaths) {
     var scope = element.getAttribute("data-scope");
     if (!scope) {
         return false;
@@ -1101,7 +1117,7 @@ function captureElement(element) {
     var field = element.getAttribute("data-field");
     var index = asNumber(element.getAttribute("data-index"), -1);
     var value = element.type === "checkbox" ? (element.checked ? 1 : 0) : element.value;
-    if (element.type !== "checkbox" && state.mode === "Config") {
+    if (element.type !== "checkbox" && state.mode === "Config" && normalizePaths) {
         value = normalizeConfigPathValue(element, value);
         if (element.value !== value) {
             element.value = value;
@@ -1174,7 +1190,7 @@ function normalizeConfigPathValue(element, value) {
     if (!isPath) {
         return value;
     }
-    value = trimText(value).replace(/\//g, "\\");
+    value = normalizePathSeparators(value);
     if (/^[a-z]:\\/i.test(value)) {
         value = value.charAt(0).toUpperCase() + value.substr(1);
     }
@@ -1205,7 +1221,7 @@ function trackInputChange() {
     var eventObject = window.event;
     var target = eventObject ? eventObject.srcElement : null;
     if (target && target.getAttribute && target.getAttribute("data-scope")) {
-        if (captureElement(target)) {
+        if (captureElement(target, eventObject.type === "focusout")) {
             markDirty();
         }
     }
@@ -1226,9 +1242,13 @@ function render(preserveWindowSize) {
         '<div class="brand"><div class="brand-title">Path-Config</div>' +
         '<div class="brand-version">HTA edition &middot; v' + VERSION + '</div></div>' +
         '<div class="top-actions">';
-    if (state.mode === "Apply" && state.activeUiTab > 0) {
-        top += '<button class="button button-apply-action" onclick="applyCurrentProgram()">APPLY ' +
-            html(state.tabs[state.activeUiTab - 1]).toUpperCase() + '</button>';
+    if (state.mode === "Apply") {
+        if (state.activeUiTab === 0) {
+            top += '<button class="button button-apply-action" onclick="return runApplyAction(applyPaths)">APPLY PATHS</button>';
+        } else {
+            top += '<button class="button button-apply-action" onclick="return runApplyAction(applyCurrentProgram)">APPLY ' +
+                html(state.tabs[state.activeUiTab - 1]).toUpperCase() + '</button>';
+        }
     }
     top += '<button class="button button-primary ' + modeClass + '" onclick="toggleMode()">MODE: ' +
         state.mode.toUpperCase() + '</button>';
@@ -1239,7 +1259,7 @@ function render(preserveWindowSize) {
             top += '<button id="saveStateButton" class="button save-state-frozen">SAVE STATE</button>';
         }
     } else {
-        top += '<button class="button button-apply-action" onclick="applyAll()">APPLY ALL</button>';
+        top += '<button class="button button-apply-action" onclick="return runApplyAction(applyAll)">APPLY ALL</button>';
     }
     top += '</div><div class="clear"></div></div>';
 
@@ -1275,6 +1295,7 @@ function render(preserveWindowSize) {
         '<div class="status" id="status">Ready</div>';
     validateInputs();
     showDirtyStatus();
+    updateApplyActionButtons();
     if (!preserveWindowSize) {
         window.setTimeout(fitWindowToContent, 0);
     }
@@ -1317,11 +1338,11 @@ function renderPersistent() {
         out += '<button class="section-action" onclick="addPersistent()">+ Add file path</button>';
     }
     out += '</div><table class="data-table path-table"><colgroup>' +
-        '<col style="width:40px"><col style="width:56px"><col style="width:56px"><col style="width:56px">' +
-        '<col style="width:84px"><col><col style="width:20%"><col style="width:40px"></colgroup>' +
-        '<thead><tr><th></th><th class="status-header status-admin">ADMIN</th>' +
-        '<th class="status-header status-start">STARTUP</th><th class="status-header status-menu">MENU</th>' +
-        '<th></th><th>File path</th><th>Environment variable</th><th></th></tr></thead><tbody>';
+        '<col style="width:40px"><col style="width:84px"><col><col style="width:20%">' +
+        '<col style="width:56px"><col style="width:56px"><col style="width:56px"><col style="width:15%"><col style="width:40px"></colgroup>' +
+        '<thead><tr><th></th><th></th><th>File path</th><th>Environment variable</th>' +
+        '<th class="status-header status-admin">ADMIN</th><th class="status-header status-start">STARTUP</th>' +
+        '<th class="status-header status-menu">MENU</th><th>START MENU NAME</th><th></th></tr></thead><tbody>';
     var i, row;
     for (i = 0; i < state.persistent.length; i++) {
         row = state.persistent[i];
@@ -1330,31 +1351,31 @@ function renderPersistent() {
             out += '<td class="row-menu-cell"><button class="button button-small row-menu-button" id="persistentMenu_' + i +
                 '" title="Row menu" onclick="return showPersistentRowMenu(' + i + ',this)"' +
                 ' oncontextmenu="return showPersistentRowMenu(' + i + ',this)">&#9776;</button></td>';
-            out += checkboxInput("persistent", "", i, "run_as_admin", row.run_as_admin);
-            out += checkboxInput("persistent", "", i, "run_on_startup", row.run_on_startup);
-            out += checkboxInput("persistent", "", i, "menu", row.menu);
             out += '<td><button class="button button-small path-browse-button" onclick="browsePersistent(' + i + ')" oncontextmenu="return showBrowseContextMenu(this)">Browse</button></td>';
             out += fieldInput("persistent", "", i, "path", row.path, 'data-pathcheck="1"');
             out += fieldInput("persistent", "", i, "env_var", row.env_var, "");
+            out += checkboxInput("persistent", "", i, "run_as_admin", row.run_as_admin);
+            out += checkboxInput("persistent", "", i, "run_on_startup", row.run_on_startup);
+            out += checkboxInput("persistent", "", i, "menu", row.menu);
+            out += fieldInput("persistent", "", i, "link_name", row.link_name || "", "");
             out += '<td class="move-cell"><button class="button button-small" id="persistentMove_' + i +
                 '" title="Left click: move down; right click: move up" onclick="movePersistent(' + i +
                 ',1)" oncontextmenu="return movePersistentUp(' + i + ')">&#8597;</button></td>';
         } else {
             out += '<td></td>';
-            out += adminPropertyMatchCell(row.path, row.run_as_admin);
-            out += startupMatchCell(row.path, row.run_on_startup);
-            out += menuPinMatchCell(row.path, row.menu);
             out += '<td></td>';
             out += readonlyCell(row.path, "pathcheck");
             out += readonlyCell(row.env_var, "");
+            out += adminPropertyMatchCell(row.path, row.run_as_admin);
+            out += startupMatchCell(row.path, row.run_on_startup);
+            out += menuPinMatchCell(row.path, row.menu);
+            out += readonlyCell(row.link_name || "", "");
             out += '<td></td>';
         }
         out += '</tr>';
     }
     out += '</tbody></table></div>';
-    if (state.mode === "Apply") {
-        out += '<div class="footer-actions"><button class="button button-apply-action" onclick="applyPaths()">APPLY PATHS</button></div>';
-    }
+
     return out;
 }
 
@@ -2350,7 +2371,7 @@ function toggleMode() {
 
 function addPersistent() {
     captureState();
-    state.persistent.push({path: "", env_var: "", run_as_admin: 0, run_on_startup: 0, menu: 0});
+    state.persistent.push({path: "", env_var: "", run_as_admin: 0, run_on_startup: 0, link_name: "", menu: 0});
     state.activeUiTab = 0;
     markDirty();
     render();
@@ -2468,6 +2489,7 @@ function movePersistentToNewTab(index) {
             env_var: row.env_var,
             run_as_admin: row.run_as_admin ? 1 : 0,
             run_on_startup: row.run_on_startup ? 1 : 0,
+            link_name: row.link_name || "",
             menu: row.menu ? 1 : 0
         }],
         envs: [],
@@ -2476,7 +2498,7 @@ function movePersistentToNewTab(index) {
     };
     state.persistent.splice(index, 1);
     if (!state.persistent.length) {
-        state.persistent.push({path: "", env_var: "", run_as_admin: 0, run_on_startup: 0, menu: 0});
+        state.persistent.push({path: "", env_var: "", run_as_admin: 0, run_on_startup: 0, link_name: "", menu: 0});
     }
     state.activeProgramTab = state.tabs.length - 1;
     state.activeUiTab = state.activeProgramTab + 1;
@@ -2655,7 +2677,7 @@ function powerShellLiteral(value) {
 }
 
 function sanitizeBrowsedPath(path, isFolder) {
-    path = trimText(path).replace(/\//g, "\\");
+    path = normalizePathSeparators(path);
     if (/^[a-z]:\\/i.test(path)) {
         path = path.charAt(0).toUpperCase() + path.substr(1);
     }
@@ -3019,13 +3041,82 @@ function joinPath(dir, name) {
 
 function resetLog() {
     var now = new Date();
+    applyErrorLogCount = 0;
     writeText(logPath, "# Apply Execution Log - " + now.toLocaleString() + "\r\n\r\n");
+    try {
+        if (fso.FileExists(errorsLogPath)) {
+            fso.DeleteFile(errorsLogPath, true);
+        }
+    } catch (ignoreStaleErrorLog) {}
+}
+
+function appendErrorLog(message) {
+    try {
+        if (applyErrorLogCount === 0) {
+            writeText(errorsLogPath, "# Path-Config Errors - " + new Date().toLocaleString() + "\r\n\r\n");
+        }
+        var stream = fso.OpenTextFile(errorsLogPath, 8, true, 0);
+        stream.Write("- FAILED: " + message + "\r\n\r\n");
+        stream.Close();
+        applyErrorLogCount++;
+    } catch (ignoreErrorLogWrite) {}
 }
 
 function appendLog(message, failed) {
     var stream = fso.OpenTextFile(logPath, 8, true, 0);
     stream.Write((failed ? "- FAILED: " : "- OK: ") + message + "\r\n\r\n");
     stream.Close();
+    if (failed) {
+        appendErrorLog(message);
+    }
+}
+
+function openErrorsLogIfNeeded() {
+    if (applyErrorLogCount === 0 || !fso.FileExists(errorsLogPath)) {
+        return;
+    }
+    try {
+        wsh.Run(quoteArg(errorsLogPath), 1, false);
+    } catch (errorOpenLog) {
+        try {
+            wsh.Run("notepad.exe " + quoteArg(errorsLogPath), 1, false);
+        } catch (ignoreOpenErrorLog) {}
+    }
+}
+
+function updateApplyActionButtons() {
+    var buttons = document.getElementsByTagName("button");
+    var i, button, className;
+    for (i = 0; i < buttons.length; i++) {
+        button = buttons[i];
+        className = " " + button.className + " ";
+        if (className.indexOf(" button-apply-action ") < 0) {
+            continue;
+        }
+        button.disabled = applyInProgress;
+        className = className.replace(/ button-apply-running /g, " ");
+        if (applyInProgress) {
+            className += "button-apply-running ";
+        }
+        button.className = trimText(className);
+    }
+}
+
+function runApplyAction(action) {
+    if (applyInProgress) {
+        return false;
+    }
+    applyInProgress = true;
+    updateApplyActionButtons();
+    window.setTimeout(function() {
+        try {
+            action();
+        } finally {
+            applyInProgress = false;
+            updateApplyActionButtons();
+        }
+    }, 0);
+    return false;
 }
 
 function applyPaths() {
@@ -3041,6 +3132,7 @@ function applyPaths() {
         render();
     }
     alert(persistentSummary("Apply Paths", result));
+    openErrorsLogIfNeeded();
 }
 
 function applyAll() {
@@ -3073,12 +3165,13 @@ function applyAll() {
         render();
     }
     alert("Apply All\n\nPersistent actions completed: " + persistentResult.success_count +
-        "\nPersistent errors: " + persistentResult.error_count +
-        "\nDynamic program tabs applied: " + state.tabs.length +
-        "\nStart11 menu pins ready: " + (persistentResult.menu_pin_count + dynamicMenuPins) +
-        "\nStart11 shortcuts created: " + (persistentResult.menu_created_count + dynamicMenuCreated) +
-        "\nStart11 shortcuts removed: " + (persistentResult.menu_removed_count + dynamicMenuRemoved) +
-        "\nDynamic errors: " + dynamicErrors);
+        "\n\nPersistent errors: " + persistentResult.error_count +
+        "\n\nDynamic program tabs applied: " + state.tabs.length +
+        "\n\nStart11 menu pins ready: " + (persistentResult.menu_pin_count + dynamicMenuPins) +
+        "\n\nStart11 shortcuts created: " + (persistentResult.menu_created_count + dynamicMenuCreated) +
+        "\n\nStart11 shortcuts removed: " + (persistentResult.menu_removed_count + dynamicMenuRemoved) +
+        "\n\nDynamic errors: " + dynamicErrors);
+    openErrorsLogIfNeeded();
 }
 
 function applyCurrentProgram() {
@@ -3097,20 +3190,21 @@ function applyCurrentProgram() {
         render(true);
     }
     alert("Apply " + name + "\n\nStart11 menu pins ready: " + result.menu_pin_count +
-        "\nStart11 shortcuts removed: " + result.menu_removed_count +
-        "\nCompleted with " + result.errors + " error(s).");
+        "\n\nStart11 shortcuts removed: " + result.menu_removed_count +
+        "\n\nCompleted with " + result.errors + " error(s).");
+    openErrorsLogIfNeeded();
 }
 
 function persistentSummary(title, result) {
     return title + "\n\nCompleted: " + result.success_count +
-        "\nEnvironment updates: " + (result.env_changed ? "Yes" : "No") +
-        "\nAdministrator properties set: " + result.admin_property_count +
-        "\nAdministrator properties removed: " + result.admin_removed_count +
-        "\nStartup entries: " + result.startup_count +
-        "\nStart11 menu pins ready: " + result.menu_pin_count +
-        "\nStart11 shortcuts created: " + result.menu_created_count +
-        "\nStart11 shortcuts removed: " + result.menu_removed_count +
-        "\nErrors: " + result.error_count;
+        "\n\nEnvironment updates: " + (result.env_changed ? "Yes" : "No") +
+        "\n\nAdministrator properties set: " + result.admin_property_count +
+        "\n\nAdministrator properties removed: " + result.admin_removed_count +
+        "\n\nStartup entries: " + result.startup_count +
+        "\n\nStart11 menu pins ready: " + result.menu_pin_count +
+        "\n\nStart11 shortcuts created: " + result.menu_created_count +
+        "\n\nStart11 shortcuts removed: " + result.menu_removed_count +
+        "\n\nErrors: " + result.error_count;
 }
 
 function applyPersistentPaths() {
@@ -3152,7 +3246,7 @@ function applyPersistentPaths() {
             persistentError(result, "Row " + (i + 1) + " administrator-property target is empty.");
         }
         if (row.menu) {
-            ensureStart11MenuPin(path, row.run_as_admin ? true : false, result, "Row " + (i + 1));
+            ensureStart11MenuPin(path, row.run_as_admin ? true : false, result, "Row " + (i + 1), row.link_name || "");
         } else if (path) {
             removeStart11MenuPin(path, result, "Row " + (i + 1));
         }
@@ -3584,6 +3678,22 @@ function runConfiguredTarget(path, result) {
     }
 }
 
+
+function runMklink(mklinkArguments) {
+    var exitCode = wsh.Run("cmd.exe /d /c " + mklinkArguments, 0, true);
+    if (exitCode !== 1) {
+        return exitCode;
+    }
+    var script = "$process=Start-Process -FilePath $env:ComSpec -ArgumentList @(" +
+        powerShellLiteral("/d") + "," + powerShellLiteral("/c") + "," + powerShellLiteral(mklinkArguments) +
+        ") -Verb RunAs -WindowStyle Hidden -Wait -PassThru;exit $process.ExitCode";
+    try {
+        return wsh.Run("powershell.exe -NoProfile -WindowStyle Hidden -Command " + quoteArg(script), 0, true);
+    } catch (ignoreElevatedMklink) {
+        return exitCode;
+    }
+}
+
 function createConfiguredLink(link, result) {
     var variables = configuredEnvironmentVariables();
     var src = expandPathVariables(link.src, variables);
@@ -3608,19 +3718,25 @@ function createConfiguredLink(link, result) {
             appendLog("Shortcut created: " + shortcutPath, false);
             return;
         }
+        if (!fso.FolderExists(targetDir)) {
+            throw new Error("Link folder not found: " + targetDir);
+        }
+        var isDirectory = fso.FolderExists(src);
+        if (!isDirectory && !fso.FileExists(src)) {
+            throw new Error("Source path not found: " + src);
+        }
         var targetPath = joinPath(targetDir, targetName);
         prepareLinkTarget(targetPath);
-        var isDirectory = fso.FolderExists(src);
         var command;
         if (link.type === "Symlink") {
-            command = 'cmd.exe /d /c mklink ' + (isDirectory ? "/D " : "") + quoteArg(targetPath) + " " + quoteArg(src);
+            command = 'mklink ' + (isDirectory ? "/D " : "") + quoteArg(targetPath) + " " + quoteArg(src);
         } else {
             if (isDirectory) {
                 throw new Error("Hard links can only target files");
             }
-            command = 'cmd.exe /d /c mklink /H ' + quoteArg(targetPath) + " " + quoteArg(src);
+            command = 'mklink /H ' + quoteArg(targetPath) + " " + quoteArg(src);
         }
-        var exitCode = wsh.Run(command, 0, true);
+        var exitCode = runMklink(command);
         if (exitCode !== 0) {
             throw new Error("mklink returned exit code " + exitCode);
         }
@@ -3631,31 +3747,55 @@ function createConfiguredLink(link, result) {
     }
 }
 
-function availableLinkBackupPath(path) {
-    var base = path + ".default";
-    var candidate = base;
-    var suffix = 2;
-    while (fso.FileExists(candidate) || fso.FolderExists(candidate)) {
-        candidate = base + "." + suffix;
-        suffix++;
+function linkBackupPath(path) {
+    return path + ".default";
+}
+
+function linkBackupExists(path) {
+    var backupPath = linkBackupPath(path);
+    return fso.FileExists(backupPath) || fso.FolderExists(backupPath);
+}
+
+function removeBrokenReparsePoint(path) {
+    var script = "$item=Get-Item -LiteralPath " + powerShellLiteral(path) +
+        " -Force -ErrorAction SilentlyContinue;" +
+        "if(!$item -or (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -eq 0)){exit 1};" +
+        "$broken=$true;foreach($target in @($item.Target)){" +
+        "if(!$target){$broken=$false;break};" +
+        "if([IO.Path]::IsPathRooted($target)){$resolved=$target}else{$resolved=Join-Path $item.DirectoryName $target};" +
+        "if(Test-Path -LiteralPath $resolved){$broken=$false;break}};" +
+        "if(!$broken){exit 1};" +
+        "Remove-Item -LiteralPath " + powerShellLiteral(path) +
+        " -Force -ErrorAction Stop;exit 0";
+    try {
+        return wsh.Run("powershell.exe -NoProfile -WindowStyle Hidden -Command " + quoteArg(script), 0, true) === 0;
+    } catch (ignoreBrokenReparseCleanup) {
+        return false;
     }
-    return candidate;
 }
 
 function prepareLinkTarget(path) {
+    if (removeBrokenReparsePoint(path)) {
+        return;
+    }
+    var backupExists = linkBackupExists(path);
     if (fso.FileExists(path)) {
         var file = fso.GetFile(path);
         if ((file.Attributes & 1024) === 1024) {
             fso.DeleteFile(path, true);
+        } else if (backupExists) {
+            fso.DeleteFile(path, true);
         } else {
-            fso.MoveFile(path, availableLinkBackupPath(path));
+            fso.MoveFile(path, linkBackupPath(path));
         }
     } else if (fso.FolderExists(path)) {
         var folder = fso.GetFolder(path);
         if ((folder.Attributes & 1024) === 1024) {
             fso.DeleteFolder(path, true);
+        } else if (backupExists) {
+            fso.DeleteFolder(path, true);
         } else {
-            fso.MoveFolder(path, availableLinkBackupPath(path));
+            fso.MoveFolder(path, linkBackupPath(path));
         }
     }
 }
@@ -3701,6 +3841,7 @@ function initialize() {
         iniPath = fso.BuildPath(appDir, "Path-Config.ini");
         legacyIniPath = fso.BuildPath(appDir, "System-Config.ini");
         logPath = fso.BuildPath(appDir, "Path-Config-Apply-Log.md");
+        errorsLogPath = fso.BuildPath(appDir, "ERRORS-Log.md");
         heartbeatPath = fso.BuildPath(appDir, "Path-Config.heartbeat");
         relaunchRequestPath = fso.BuildPath(appDir, "Path-Config.relaunch");
         loadState();
@@ -3723,6 +3864,7 @@ function initialize() {
         document.attachEvent("onkeyup", trackInputChange);
         document.attachEvent("onpropertychange", trackInputChange);
         document.attachEvent("onchange", trackInputChange);
+        document.attachEvent("onfocusout", trackInputChange);
         window.attachEvent("onbeforeunload", handleBeforeUnload);
         window.attachEvent("onunload", cleanupLauncherBridge);
     } catch (error) {

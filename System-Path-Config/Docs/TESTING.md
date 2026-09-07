@@ -6,8 +6,8 @@ Create a new permanent test file only when a change needs new lasting regression
 
 Current source and latest full regression suite:
 
-- `Path-Config.hta` development version `0.74`
-- `Test/Path-Config-Test_0.72.ps1`
+- `Path-Config.hta` development version `0.83`
+- `Test/Path-Config-Test_0.83.ps1`
 - stable release marker: `STABLE_VERSION` = `0.70`
 
 The canonical source filename remains `Path-Config.hta`; versioned PowerShell tests are stored under `Test/`, and the test filename advances with each version.
@@ -148,7 +148,10 @@ Parser success does not replace runtime UI testing.
 - Hover each checkbox and confirm its administrator, sign-in startup, or Start11 menu tooltip appears.
 - Confirm Apply-mode YES statuses display `✔` in green when matching and `✘` in red when mismatching; confirm every NO and N/A status is blank.
 - In Config mode, confirm existing paths retain the normal field border and missing paths use a red border.
-- On a program tab in Apply mode, confirm APPLY {TAB NAME} appears immediately left of MODE: APPLY and no duplicate appears below the tab content.
+- In Apply mode, confirm APPLY PATHS on Common and APPLY {TAB NAME} on a program tab appear immediately left of MODE: APPLY, with no duplicate below either tab content.
+- Start each Apply action and confirm every visible Apply button immediately becomes disabled and grey before work begins, remains disabled through any Apply-mode rerender, rejects a second click, and returns to its green enabled state after success or failure.
+- Confirm every completion-summary line is separated from the next by one blank line.
+- Cause an Apply error and confirm `ERRORS-Log.md` contains only failed entries and opens after dismissing the result dialog; run a successful Apply and confirm the stale error log is removed and not reopened.
 - Confirm the burger menu is aligned left and the position button is aligned right.
 - Confirm dynamic program tabs still appear after it.
 
@@ -163,18 +166,18 @@ Run as Admin: unchecked
 Run on startup: unchecked
 ```
 
-Save, close, reopen, and confirm every value is restored.
+Enter a custom Start Menu Name. Save, close, reopen, and confirm every value is restored. Enable Menu and confirm Apply creates the canonical shortcut with that name; clear it and confirm the source-derived fallback returns.
 
 Repeat with all three checkboxes checked.
 
 ### 3. Add and delete rows
 
 - Add at least three rows.
-- Confirm each row has all five fields.
+- Confirm each Common row is ordered Menu button, Browse, File path, Environment variable, ADMIN, STARTUP, MENU, START MENU NAME, Move in both Config and Apply modes.
 - Confirm the combined ordering control is the first control on every row.
 - Left-click it to move a row down and right-click it to move a row up.
 - Confirm right-click does not open a context menu.
-- Confirm the path, Env var, Run as Admin, Run on startup, and Menu values stay together.
+- Confirm the path, Env var, Run as Admin, Run on startup, Menu, and Start Menu Name values stay together.
 - Confirm the first row cannot move up and the last row cannot move down.
 - Confirm the mouse cursor follows the combined ordering button to the moved row after a valid move.
 - Delete the middle row.
@@ -182,7 +185,7 @@ Repeat with all three checkboxes checked.
 - Confirm the moved order and all remaining row values and flags are restored.
 - Confirm every row has a same-sized burger menu in place of the old X button.
 - Confirm both left-click and right-click open the same menu showing Move to New Tab and Delete Row, with no browser context menu.
-- Move a populated row to a new tab and confirm all five fields transfer, the source row disappears, and the new tab opens.
+- Move a populated row to a new tab and confirm all six fields transfer, including Start Menu Name; confirm the source row disappears and the new tab opens.
 - Confirm duplicate inferred tab names receive a numeric suffix.
 - Confirm moving the only fixed row leaves one empty Paths row.
 - Confirm Delete Row remains disabled for the first row and deletes later rows.
@@ -192,10 +195,10 @@ Repeat with all three checkboxes checked.
 - On the first file or folder browse, confirm the native Windows dialog starts at `C:\`.
 - Confirm the dialog can navigate drives, Desktop, and the full PC rather than being rooted at the Path-Config program directory.
 - Browse to a file with spaces and a lowercase drive letter and confirm the full path is stored with an uppercase drive letter.
-- In Config mode, type a lowercase direct-drive directory and confirm the drive becomes uppercase and the existing directory ends with `\`; repeat with a `%NAME%`-based directory and confirm the variable text is preserved.
-- Browse to a directory with and without a trailing separator and confirm the stored folder ends with exactly one `\`.
+- In Config mode, type `c:\Users\vilbur\.gk` and confirm it remains untouched while editing; move focus away and confirm it becomes `C:/Users/vilbur/.gk`. Repeat with an existing lowercase direct-drive directory and confirm it gains one trailing `/`; repeat with a `%NAME%`-based directory and confirm the variable text is preserved.
+- Browse to a directory with and without a trailing separator and confirm the stored folder uses native single backslashes and ends with exactly one trailing backslash.
 - Open another file or folder browser and confirm it starts at the directory selected previously.
-- Select a folder and confirm its drive letter is uppercase and its trailing backslash is removed; confirm a drive root remains valid as `C:\`, then confirm the next browser remembers the sanitized directory.
+- Select a folder and confirm its drive letter is uppercase and it ends with one trailing backslash; confirm a drive root remains valid as C:\, then confirm the next browser remembers the sanitized directory.
 - Right-click each Browse/D/F picker type in fixed Paths, Programs Paths, Environment Variables, Executables, and Links; confirm the same menu opens with `Find in Explorer`.
 - Confirm `Find in Explorer` selects the currently typed adjacent file or folder, including a valid `%NAME%` path that has not been saved yet.
 - Confirm the item is disabled for an empty field and a missing target reports an error without changing the row.
@@ -306,7 +309,7 @@ Verify:
 - add another Link after a blank Link folder and confirm the new Link folder remains blank
 - type or browse a Link Source while Link Name is empty and confirm Link Name defaults to the Source file or folder name
 - enter a custom Link Name, change the Source, and confirm the custom Link Name is preserved
-- replace a managed file symlink with a regular file while its .default backup already exists, Apply again, and confirm the current file moves to .default.2 before the symlink is recreated
+- replace a managed file symlink with a regular file while its `.default` backup already exists, Apply again, and confirm the existing `.default` remains unchanged, no numbered backup is created, and the symlink is recreated
 - confirm CONFIG labels read Source, Link folder, Link name, and Type
 - confirm every Links row has a rightmost arrow after Delete; left-click moves the complete row down, right-click moves it up, and the cursor follows the moved row
 - save and reload, then confirm the reordered Links sequence persists; confirm no arrow appears in Apply mode

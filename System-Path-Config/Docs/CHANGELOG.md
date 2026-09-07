@@ -1,5 +1,94 @@
 ﻿# Path-Config Changelog
 
+## 0.83
+
+Recovered automatically from stale links and missing symlink privileges.
+
+- removes only destination reparse points whose recorded targets are all missing
+- preserves valid symlinks, junctions, ordinary targets, and canonical .default backups
+- validates the source and Link folder before invoking mklink
+- retries an exit-code-1 symbolic-link command with a visible UAC elevation prompt
+- keeps helper windows hidden and UI paths displayed with single native backslashes
+- adds Test/Path-Config-Test_0.83.ps1 parser and full regression coverage
+
+## 0.82
+
+Normalized path separators after environment-variable expansion.
+
+- removes hidden doubled separators introduced where a variable value and configured suffix meet
+- applies the same normalization to validation and all Apply operations
+- fixes existing sources such as %GoogleDrive%\ProgramsData when GoogleDrive itself ends with a separator
+- adds Test/Path-Config-Test_0.82.ps1 parser and full regression coverage
+
+## 0.81
+
+Restored native Windows path separators with duplicate-separator cleanup.
+
+- keeps path controls untouched while the user is typing or pasting
+- normalizes only after the control loses focus
+- converts forward slashes to native backslashes and collapses repeated backslashes to one
+- safely changes paths such as Dir\\.Subdir to Dir\.Subdir
+- adds Test/Path-Config-Test_0.81.ps1 parser and full regression coverage
+
+## 0.80
+
+Made path editing safe for dot-prefixed directories.
+
+- preserves the exact text in path controls while the user is typing or pasting
+- normalizes paths only after the control loses focus
+- stores normalized path separators as `/`, preventing sequences such as `\.` from being interpreted as escapes
+- keeps drive-letter capitalization and existing-directory trailing-separator behavior
+- adds `Test/Path-Config-Test_0.80.ps1` parser and full regression coverage
+
+## 0.79
+
+Improved Apply result readability and error reporting.
+
+- separates every Apply completion-summary line with a blank line
+- creates a fresh `ERRORS-Log.md` beside Path-Config only when the current Apply run records failures
+- writes only failed entries to the dedicated error log and opens it after the result dialog is dismissed
+- removes a stale `ERRORS-Log.md` at the start of the next Apply run
+- adds `Test/Path-Config-Test_0.79.ps1` parser and full regression coverage
+
+## 0.78
+
+Stopped creating duplicate Link target backups.
+
+- keeps the first `<link path>.default` file or folder as the canonical backup
+- removes a replacement regular target when that canonical backup already exists, allowing the configured link to be recreated
+- never creates numbered `.default.2`, `.default.3`, or later backup copies
+- adds `Test/Path-Config-Test_0.78.ps1` parser and full regression coverage
+
+## 0.77
+
+Disabled Apply actions while Apply is running.
+
+- immediately disables and greys all visible Apply buttons before work starts
+- defers the operation once so the disabled state can repaint
+- prevents overlapping Apply actions and preserves the lock through Apply-mode rerenders
+- restores the buttons through guaranteed cleanup after success or failure
+- adds Test/Path-Config-Test_0.77.ps1 running-state, failure-restoration, parser, and full regression coverage
+
+## 0.76
+
+Reordered Common row controls.
+
+- moves ADMIN, STARTUP, MENU, and START MENU NAME after Environment variable
+- uses the same order in Config and Apply modes
+- preserves row data, persistence, actions, spacing, and the edge-aligned menu and Move buttons
+- adds `Test/Path-Config-Test_0.76.ps1` parser and regression coverage
+
+## 0.75
+
+Added Start Menu Name to Common rows and aligned the Common Apply action.
+
+- adds a 15% START MENU NAME field after MENU on every Common row
+- persists the optional value as `<row>_LinkName` in `[PersistentPaths]`
+- uses the custom name for the canonical Start11 shortcut while an empty value retains the source-derived name
+- transfers Start Menu Name when a Common row moves to a new program tab
+- moves `APPLY PATHS` from the Common footer to immediately before `MODE: APPLY`
+- adds `Test/Path-Config-Test_0.75.ps1` full parser and regression coverage
+
 ## 0.74
 
 Refined the program Paths Start Menu naming control.

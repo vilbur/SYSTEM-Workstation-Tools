@@ -11,7 +11,7 @@ Current stable approved baseline:
 - `Path-Config.exe`
 - `Test/Path-Config-Test_0.70.ps1`
 
-Continue development only from the latest stable approved baseline. Never rebuild from memory when the current source files are available. The current development source is `Path-Config.hta` version `0.74`; the stable marker remains `0.70`.
+Continue development only from the latest stable approved baseline. Never rebuild from memory when the current source files are available. The current development source is `Path-Config.hta` version `0.83`; the stable marker remains `0.70`.
 
 ## Mandatory workflow
 
@@ -53,10 +53,10 @@ Preserve the current dark UI style:
 - approximately 26–32 px control height
 - dark edits and controls
 - fake text-based dark buttons where already used
-- highlighted `CONFIG` and `APPLY` mode controls; in Apply mode on a program tab, place `APPLY {TAB NAME}` immediately left of `MODE: APPLY` in the top bar
+- highlighted `CONFIG` and `APPLY` mode controls; in Apply mode, place `APPLY PATHS` for Common or `APPLY {TAB NAME}` for a program tab immediately left of `MODE: APPLY` in the top bar; while any Apply action is running, disable and grey all visible Apply action buttons, prevent re-entry, and restore them after success or failure
 - render Save State as two distinct states: clean uses grey font, default cursor, resting v0.39 surface, no hover response, and no click handler; dirty restores the original v0.39 base class, white font, pointer/hover behavior, and direct save action; never use the native disabled attribute; auto-save pending Config edits before entering Apply and remain in Config if saving fails
 - in IE9-mode HTA, track input, keyup, propertychange, and change so typing/pasting immediately marks real value changes dirty; filter non-value property events
-- consistent row alignment
+- consistent row alignment; Common rows are ordered Menu button, Browse, File path, Environment variable, ADMIN, STARTUP, MENU, START MENU NAME, Move
 - a window no wider than half the display, Common file-path edits at least 560 px wide, program Paths file-path edits at least 500 px wide, restored 20% Environment Variable columns, preserved 15% Config-mode Link Name columns and compact Source/Link path/Type Links rows in Apply mode, compact fixed-width row-action columns across fixed Paths and every dynamic-tab section that produce exact visible 20 px gaps, flush outer controls, section Add buttons beside their labels on the left, and no inherited control margins
 - preserve the exact current outer window size when switching tabs; tab selection must not schedule content fitting, resizing, or recentering
 - larger icon-only Config-mode checkboxes
@@ -84,19 +84,21 @@ Each persistent row contains exactly these logical fields:
 - `env_var`
 - `run_as_admin`
 - `run_on_startup`
+- `link_name` (optional Start Menu Name)
 - `menu`
 
 The row UI contains:
 
 - file path edit
 - Browse button using native Windows Forms file/folder dialogs with full-PC access
-- Browse starts at the current field path when populated; an empty field uses the last selected directory, falling back to `C:\` before any selection; every returned path capitalizes its drive letter and folder results end with one trailing backslash
-- in Config mode, every path-like edit capitalizes a direct drive letter and gains a trailing backslash when its expanded value is an existing directory; raw `%NAME%` references remain intact
+- Browse starts at the current field path when populated; an empty field uses the last selected directory, falling back to C:\ before any selection; every returned path capitalizes its drive letter, uses native single backslashes, and folder results end with one trailing backslash
+- in Config mode, every path-like edit is left untouched while editing, then on focus loss uses native single backslashes, collapses repeated separators, capitalizes a direct drive letter, and gains a trailing backslash when its expanded value is an existing directory; raw `%NAME%` references remain intact
 - every file/folder Browse button opens a right-click menu containing `Find in Explorer`; it reads the adjacent live path, expands `%NAME%` references, and selects an existing target in Explorer
 - Env var edit
 - Run as Admin checkbox
 - Run on startup checkbox
 - Menu checkbox
+- optional Start Menu Name edit after Menu; it controls the canonical Start11 shortcut filename and falls back to the source-derived name when empty
 - fixed-size burger menu opened by either left-click or right-click, with Move to New Tab and Delete Row actions; Delete Row remains disabled for the first row
 - one rightmost ordering button: left-click moves down and right-click moves up
 - right-click context-menu suppression on the ordering button
@@ -132,7 +134,7 @@ Run as Admin:
 Start11 Menu:
 
 - when Menu is checked, accept either an existing `.exe` or an existing `.lnk` whose target exists
-- use the unsuffixed source or executable base name in the current user pinned Start Menu directory; before adding, remove exact Start11 registrations for a same-name conflicting shortcut, delete that conflicting file, and remove other pinned-directory shortcuts with the requested target-and-arguments signature
+- use the optional Common or program-row Start Menu Name, without a trailing `.lnk`, as the canonical shortcut filename; when empty, use the unsuffixed source or executable base name; before adding, remove exact Start11 registrations for a same-name conflicting shortcut, delete that conflicting file, and remove other pinned-directory shortcuts with the requested target-and-arguments signature
 - preserve a configured shortcut's target and arguments
 - resolve Start11 registry pins through their `.lnk` target-and-arguments signature before deciding a pin is missing
 - create a new shortcut for configured executables only when needed
@@ -169,6 +171,7 @@ Version 0.04 fields use keys equivalent to:
 - `<row>_EnvVar`
 - `<row>_RunAsAdmin`
 - `<row>_RunOnStartup`
+- `<row>_LinkName`
 - `<row>_Menu`
 
 Preserve migration from version 0.03, where each row may exist as a plain numeric key containing only the path.

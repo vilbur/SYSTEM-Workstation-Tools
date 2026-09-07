@@ -28,12 +28,15 @@ Purpose: execute stored configuration.
 Expected capabilities:
 
 - inspect configured values
-- apply fixed Paths rows
+- apply fixed Common rows from `APPLY PATHS` immediately left of `MODE: APPLY` in the top bar
 - apply the current dynamic program tab from `APPLY {TAB NAME}` immediately left of `MODE: APPLY` in the top bar
+- disable and grey all visible Apply action buttons from click dispatch until the active Apply operation exits, including error cleanup and Apply-mode rerenders
 - apply all configurations
 - refresh the selected Apply-mode view from live state after a successful action without changing the outer window size
 
 Structural editing controls should be hidden or disabled in Apply mode.
+
+Apply completion dialogs separate each result line with a blank line. Every failed Apply entry is also written to a fresh `ERRORS-Log.md` beside the application; when failures occurred, that file opens automatically after the completion dialog is dismissed. A new Apply run removes the previous dedicated error log so it cannot be mistaken for current results.
 
 In Config mode, existing paths keep the neutral field border; only missing paths receive the red validation border. Existing green valid text and orange same-directory warnings remain unchanged.
 
@@ -80,11 +83,13 @@ The file-path edit receives the largest available share of the row and has a 560
 
 ## Path browsing
 
-File Browse actions use Windows Forms `OpenFileDialog`. Folder Browse actions use the native Windows `IFileOpenDialog` Common Item Dialog in folder-selection mode. Both provide access to the full PC. A populated path field opens Browse at that field path (or its containing directory for a file). An empty field opens at the last successfully selected directory; before any selection it starts at `C:\`. Every selected path passes through one sanitizer before reaching application state: direct drive letters are capitalized, forward separators are normalized, and folder results end with exactly one trailing backslash, including UNC shares. In Config mode, typed path-like values also capitalize direct drive letters and gain a trailing backslash when their expanded value is an existing directory, while preserving raw `%NAME%` references. Cancelling a dialog leaves the remembered directory unchanged.
+File Browse actions use Windows Forms OpenFileDialog. Folder Browse actions use the native Windows IFileOpenDialog Common Item Dialog in folder-selection mode. Both provide access to the full PC. A populated path field opens Browse at that field path (or its containing directory for a file). An empty field opens at the last successfully selected directory; before any selection it starts at C:\. Every selected path passes through one sanitizer before reaching application state: direct drive letters are capitalized, separators are normalized to native single backslashes, repeated separators are collapsed, and folder results end with exactly one trailing backslash. In Config mode, typed path-like values remain untouched during editing; after focus loss they use the same rules and preserve raw `%NAME%` references. Separator normalization is repeated after variable expansion so a trailing separator in a variable and a leading separator in the suffix cannot produce a hidden doubled path separator. Cancelling a dialog leaves the remembered directory unchanged. Before recreating a configured link, Apply removes an existing reparse point only when all of its recorded targets are missing. If ordinary symbolic-link creation fails with exit code 1 after source and destination validation, Apply retries that specific mklink command through a visible UAC elevation prompt.
 
 Every file/folder Browse button, including compact D/F controls, opens a shared right-click menu with `Find in Explorer`. The menu reads the live adjacent input rather than stale saved state, disables its action for an empty value, resolves `%NAME%` references, validates that the target exists, and launches visible Windows Explorer with the file or folder selected. Missing paths report an error without changing configuration.
 
 ## Programs-tab path rows
+
+Every Common row is ordered Menu button, Browse, File path, Environment variable, ADMIN, STARTUP, MENU, START MENU NAME, and Move. It includes an optional 15% START MENU NAME edit after MENU. It persists as `_LinkName`, controls the canonical Start11 shortcut filename, transfers with Move to New Tab, and falls back to the source-derived name when empty.
 
 Every dynamic Programs tab uses a minimum-500-px File path, compact 64 px Browse button, restored 20% Env var, larger icon-only Run as Admin, larger icon-only Run on startup, a 15% START MENU NAME edit, and compact 30 px Delete controls with the same exact visible 20 px horizontal spacing and flush outer alignment. START MENU NAME sits after MENU, producing STARTUP, MENU, START MENU NAME, persists as `_LinkName`, and selects the canonical Start11 shortcut filename; an empty value retains the executable-derived name. Environment Variables and Executables use compact fixed-width D/F/Browse/Delete action columns. Links rows add the Common-style ordering arrow after Delete as the flush-right control; left-click moves the complete row down, right-click moves it up, and the cursor follows the moved row. Paired D/F buttons remain separated by exactly 20 px and first fields stay flush left. Links keeps Link Name at 15% in Config mode; Apply mode combines Link folder and Link name into one Link path column, so the visible labels are Source, Link path, and Type. Rows are saved inside that tab's `_Paths` section. Legacy `_Name` and `_Val` keys migrate to the new Env var and file path fields.
 
