@@ -1,5 +1,26 @@
 ﻿# Path-Config Changelog
 
+## 0.85
+
+Restored reliable and transactional Link creation.
+
+- preserves an existing symlink when it already points to the configured source
+- prepares symlink and hardlink replacements before mutating their destinations
+- passes elevated `mklink` commands through a temporary command file so paths with spaces remain intact
+- creates Shortcut files in TEMP first and elevates only the destination installation when required
+- cleans up only temporary prepared links after failure, leaving existing destinations and every source untouched
+- adds `Test/Path-Config-Test_0.85.ps1` parser and regression coverage
+
+## 0.84
+
+Made Link apply source-safe.
+
+- never recursively deletes through a destination directory symlink or junction
+- unlinks only the destination reparse point before recreating a configured link
+- rejects equal or nested source/destination paths before any target mutation
+- treats configured source files and directories as read-only during Link apply
+- adds `Test/Path-Config-Test_0.84.ps1` parser and regression coverage
+
 ## 0.83
 
 Recovered automatically from stale links and missing symlink privileges.

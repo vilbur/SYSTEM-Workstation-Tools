@@ -435,7 +435,7 @@ button, input, select {
 }
 </style>
 <script language="JScript" type="text/javascript">
-var VERSION = "0.83";
+var VERSION = "0.85";
 var STARTUP_PREFIX = "PathConfig_Path_";
 var PROGRAM_STARTUP_PREFIX = "PathConfig_Program_";
 var REG_ENV = "HKCU\\Environment\\";
@@ -3684,13 +3684,98 @@ function runMklink(mklinkArguments) {
     if (exitCode !== 1) {
         return exitCode;
     }
-    var script = "$process=Start-Process -FilePath $env:ComSpec -ArgumentList @(" +
-        powerShellLiteral("/d") + "," + powerShellLiteral("/c") + "," + powerShellLiteral(mklinkArguments) +
-        ") -Verb RunAs -WindowStyle Hidden -Wait -PassThru;exit $process.ExitCode";
+    var helperName = "PathConfig-Mklink-" + new Date().valueOf() + "-" + Math.floor(Math.random() * 1000000) + ".cmd";
+    var helperPath = fso.BuildPath(wsh.ExpandEnvironmentStrings("%TEMP%"), helperName);
     try {
+        writeText(helperPath, "@echo off\r\n" + mklinkArguments + "\r\nexit /b %errorlevel%\r\n");
+        var script = "$process=Start-Process -FilePath $env:ComSpec -ArgumentList @(" +
+            powerShellLiteral("/d") + "," + powerShellLiteral("/c") + "," + powerShellLiteral(quoteArg(helperPath)) +
+            ") -Verb RunAs -WindowStyle Hidden -Wait -PassThru;exit [int]$process.ExitCode";
         return wsh.Run("powershell.exe -NoProfile -WindowStyle Hidden -Command " + quoteArg(script), 0, true);
     } catch (ignoreElevatedMklink) {
         return exitCode;
+    } finally {
+        try {
+            if (fso.FileExists(helperPath)) {
+                fso.DeleteFile(helperPath, true);
+            }
+        } catch (ignoreMklinkHelperCleanup) {}
+    }
+}
+
+function configuredReparsePointStatus(path, expectedSource) {
+    var script = "$path=" + powerShellLiteral(path) + ";$expected=" + powerShellLiteral(expectedSource) + ";" +
+        "try{$item=Get-Item -LiteralPath $path -Force -ErrorAction Stop}catch [System.Management.Automation.ItemNotFoundException]{exit 0}catch{exit 3};" +
+        "if(($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -eq 0){exit 0};" +
+        "try{$expected=[IO.Path]::GetFullPath($expected)}catch{exit 3};" +
+        "foreach($recorded in @($item.Target)){if(!$recorded){continue};" +
+        "if([IO.Path]::IsPathRooted($recorded)){$resolved=$recorded}else{$resolved=Join-Path $item.DirectoryName $recorded};" +
+        "try{$candidate=[IO.Path]::GetFullPath($resolved)}catch{continue};" +
+        "if([string]::Equals($candidate.TrimEnd('\\'),$expected.TrimEnd('\\'),[StringComparison]::OrdinalIgnoreCase)){exit 1}};exit 2";
+    try {
+        return wsh.Run("powershell.exe -NoProfile -WindowStyle Hidden -Command " + quoteArg(script), 0, true);
+    } catch (ignoreConfiguredReparseStatus) {
+        return 3;
+    }
+}
+
+function temporaryLinkPath(targetPath) {
+    var candidate = targetPath + ".pathconfig-new-" + new Date().valueOf() + "-" + Math.floor(Math.random() * 1000000);
+    while (fso.FileExists(candidate) || fso.FolderExists(candidate)) {
+        candidate += "x";
+    }
+    return candidate;
+}
+
+function discardPreparedLink(path) {
+    var reparseResult = removeTargetReparsePoint(path);
+    if (reparseResult === 0) {
+        return;
+    }
+    if (fso.FileExists(path)) {
+        fso.DeleteFile(path, true);
+    }
+}
+
+function movePreparedLink(sourcePath, targetPath, isDirectory) {
+    if (isDirectory) {
+        var script = "try{[IO.Directory]::Move(" + powerShellLiteral(sourcePath) + "," + powerShellLiteral(targetPath) + ");exit 0}catch{exit 1}";
+        if (wsh.Run("powershell.exe -NoProfile -WindowStyle Hidden -Command " + quoteArg(script), 0, true) !== 0) {
+            throw new Error("Could not install the prepared directory link");
+        }
+        return;
+    }
+    fso.MoveFile(sourcePath, targetPath);
+}
+
+function runElevatedPowerShellHelper(scriptText) {
+    var helperName = "PathConfig-Elevated-" + new Date().valueOf() + "-" + Math.floor(Math.random() * 1000000) + ".ps1";
+    var helperPath = fso.BuildPath(wsh.ExpandEnvironmentStrings("%TEMP%"), helperName);
+    try {
+        writeText(helperPath, scriptText);
+        var script = "$process=Start-Process -FilePath powershell.exe -ArgumentList @(" +
+            powerShellLiteral("-NoProfile") + "," + powerShellLiteral("-ExecutionPolicy") + "," + powerShellLiteral("Bypass") + "," +
+            powerShellLiteral("-File") + "," + powerShellLiteral(quoteArg(helperPath)) + ") -Verb RunAs -WindowStyle Hidden -Wait -PassThru;exit [int]$process.ExitCode";
+        return wsh.Run("powershell.exe -NoProfile -WindowStyle Hidden -Command " + quoteArg(script), 0, true);
+    } catch (ignoreElevatedPowerShellHelper) {
+        return 1;
+    } finally {
+        try {
+            if (fso.FileExists(helperPath)) {
+                fso.DeleteFile(helperPath, true);
+            }
+        } catch (ignoreElevatedHelperCleanup) {}
+    }
+}
+
+function installPreparedShortcut(preparedPath, targetPath) {
+    try {
+        fso.CopyFile(preparedPath, targetPath, true);
+        return;
+    } catch (ignoreOrdinaryShortcutInstall) {}
+    var script = "try{[IO.File]::Copy(" + powerShellLiteral(preparedPath) + "," + powerShellLiteral(targetPath) + ",$true);exit 0}catch{exit 1}";
+    if (runElevatedPowerShellHelper(script) !== 0) {
+        throw new Error("Permission denied while installing Shortcut destination: " + targetPath);
     }
 }
 
@@ -3702,19 +3787,36 @@ function createConfiguredLink(link, result) {
     if (!src || !targetDir || !targetName) {
         return;
     }
+    var preparedPath = "";
     try {
         if (link.type === "Shortcut") {
             if (!/\.lnk$/i.test(targetName)) {
                 targetName += ".lnk";
             }
             var shortcutPath = joinPath(targetDir, targetName);
-            if (fso.FileExists(shortcutPath)) {
-                fso.DeleteFile(shortcutPath, true);
+            assertSafeLinkPaths(src, shortcutPath, fso.FolderExists(src));
+            if (!fso.FolderExists(targetDir)) {
+                throw new Error("Link folder not found: " + targetDir);
             }
-            var shortcut = wsh.CreateShortcut(shortcutPath);
-            shortcut.TargetPath = src;
-            shortcut.WorkingDirectory = fso.FolderExists(src) ? src : fso.GetParentFolderName(src);
-            shortcut.Save();
+            var existingShortcut = start11ShortcutDetails(shortcutPath);
+            if (existingShortcut && !existingShortcut.arguments && normalizedStart11Path(existingShortcut.target_path) === normalizedStart11Path(src)) {
+                appendLog("Shortcut already correct: " + shortcutPath, false);
+                return;
+            }
+            var preparedShortcut = fso.BuildPath(wsh.ExpandEnvironmentStrings("%TEMP%"), "PathConfig-Shortcut-" + new Date().valueOf() + "-" + Math.floor(Math.random() * 1000000) + ".lnk");
+            try {
+                var shortcut = wsh.CreateShortcut(preparedShortcut);
+                shortcut.TargetPath = src;
+                shortcut.WorkingDirectory = fso.FolderExists(src) ? src : fso.GetParentFolderName(src);
+                shortcut.Save();
+                installPreparedShortcut(preparedShortcut, shortcutPath);
+            } finally {
+                try {
+                    if (fso.FileExists(preparedShortcut)) {
+                        fso.DeleteFile(preparedShortcut, true);
+                    }
+                } catch (ignorePreparedShortcutCleanup) {}
+            }
             appendLog("Shortcut created: " + shortcutPath, false);
             return;
         }
@@ -3726,22 +3828,41 @@ function createConfiguredLink(link, result) {
             throw new Error("Source path not found: " + src);
         }
         var targetPath = joinPath(targetDir, targetName);
-        prepareLinkTarget(targetPath);
+        assertSafeLinkPaths(src, targetPath, isDirectory);
+        if (link.type === "Symlink") {
+            var existingStatus = configuredReparsePointStatus(targetPath, src);
+            if (existingStatus === 1) {
+                appendLog("Symlink already correct: " + targetPath, false);
+                return;
+            }
+            if (existingStatus === 3) {
+                throw new Error("Could not safely inspect the existing Link destination: " + targetPath);
+            }
+        }
+        preparedPath = temporaryLinkPath(targetPath);
         var command;
         if (link.type === "Symlink") {
-            command = 'mklink ' + (isDirectory ? "/D " : "") + quoteArg(targetPath) + " " + quoteArg(src);
+            command = 'mklink ' + (isDirectory ? "/D " : "") + quoteArg(preparedPath) + " " + quoteArg(src);
         } else {
             if (isDirectory) {
                 throw new Error("Hard links can only target files");
             }
-            command = 'mklink /H ' + quoteArg(targetPath) + " " + quoteArg(src);
+            command = 'mklink /H ' + quoteArg(preparedPath) + " " + quoteArg(src);
         }
         var exitCode = runMklink(command);
         if (exitCode !== 0) {
             throw new Error("mklink returned exit code " + exitCode);
         }
+        prepareLinkTarget(targetPath);
+        movePreparedLink(preparedPath, targetPath, isDirectory);
+        preparedPath = "";
         appendLog(link.type + " created: " + targetPath, false);
     } catch (error) {
+        if (preparedPath) {
+            try {
+                discardPreparedLink(preparedPath);
+            } catch (ignorePreparedLinkCleanup) {}
+        }
         result.errors++;
         appendLog(link.type + " failed for " + src + ": " + error.message, true);
     }
@@ -3756,27 +3877,49 @@ function linkBackupExists(path) {
     return fso.FileExists(backupPath) || fso.FolderExists(backupPath);
 }
 
-function removeBrokenReparsePoint(path) {
-    var script = "$item=Get-Item -LiteralPath " + powerShellLiteral(path) +
-        " -Force -ErrorAction SilentlyContinue;" +
-        "if(!$item -or (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -eq 0)){exit 1};" +
-        "$broken=$true;foreach($target in @($item.Target)){" +
-        "if(!$target){$broken=$false;break};" +
-        "if([IO.Path]::IsPathRooted($target)){$resolved=$target}else{$resolved=Join-Path $item.DirectoryName $target};" +
-        "if(Test-Path -LiteralPath $resolved){$broken=$false;break}};" +
-        "if(!$broken){exit 1};" +
-        "Remove-Item -LiteralPath " + powerShellLiteral(path) +
-        " -Force -ErrorAction Stop;exit 0";
+function normalizedLinkSafetyPath(path) {
+    var value = normalizePathSeparators(String(path || ""));
+    while (value.length > 3 && /\\$/.test(value)) {
+        value = value.substr(0, value.length - 1);
+    }
+    return lower(value);
+}
+
+function linkPathContains(parentPath, childPath) {
+    return childPath === parentPath || childPath.indexOf(parentPath + "\\") === 0;
+}
+
+function assertSafeLinkPaths(sourcePath, targetPath, sourceIsDirectory) {
+    var source = normalizedLinkSafetyPath(sourcePath);
+    var target = normalizedLinkSafetyPath(targetPath);
+    if (!source || !target || source === target || linkPathContains(target, source) ||
+            (sourceIsDirectory && linkPathContains(source, target))) {
+        throw new Error("Unsafe Link path overlap; source paths are read-only: " + sourcePath + " -> " + targetPath);
+    }
+}
+
+function removeTargetReparsePoint(path) {
+    var literalPath = powerShellLiteral(path);
+    var script = "$path=" + literalPath + ";try{" +
+        "$item=Get-Item -LiteralPath $path -Force -ErrorAction Stop" +
+        "}catch [System.Management.Automation.ItemNotFoundException]{exit 1}catch{exit 2};" +
+        "if(($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -eq 0){exit 1};" +
+        "try{$directory=(($item.Attributes -band [IO.FileAttributes]::Directory) -ne 0) -or $item.PSIsContainer;" +
+        "if($directory){[IO.Directory]::Delete($path,$false)}else{[IO.File]::Delete($path)};exit 0}catch{exit 2}";
     try {
-        return wsh.Run("powershell.exe -NoProfile -WindowStyle Hidden -Command " + quoteArg(script), 0, true) === 0;
-    } catch (ignoreBrokenReparseCleanup) {
-        return false;
+        return wsh.Run("powershell.exe -NoProfile -WindowStyle Hidden -Command " + quoteArg(script), 0, true);
+    } catch (ignoreTargetReparseCleanup) {
+        return 2;
     }
 }
 
 function prepareLinkTarget(path) {
-    if (removeBrokenReparsePoint(path)) {
+    var reparseResult = removeTargetReparsePoint(path);
+    if (reparseResult === 0) {
         return;
+    }
+    if (reparseResult !== 1) {
+        throw new Error("Could not safely inspect the existing Link destination: " + path);
     }
     var backupExists = linkBackupExists(path);
     if (fso.FileExists(path)) {
@@ -3790,13 +3933,10 @@ function prepareLinkTarget(path) {
         }
     } else if (fso.FolderExists(path)) {
         var folder = fso.GetFolder(path);
-        if ((folder.Attributes & 1024) === 1024) {
-            fso.DeleteFolder(path, true);
-        } else if (backupExists) {
-            fso.DeleteFolder(path, true);
-        } else {
-            fso.MoveFolder(path, linkBackupPath(path));
+        if ((folder.Attributes & 1024) === 1024 || backupExists) {
+            throw new Error("Refusing to recursively delete an existing Link destination directory: " + path);
         }
+        fso.MoveFolder(path, linkBackupPath(path));
     }
 }
 

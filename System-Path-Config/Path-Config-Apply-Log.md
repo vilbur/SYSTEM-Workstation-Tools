@@ -1,14 +1,24 @@
-# Apply Execution Log - Monday, 7 September 2026 17:50:50
+# Apply Execution Log - Monday, 7 September 2026 20:51:14
 
-- OK: Program tab: GitKraken
+- OK: Program tab: 3ds Max 2026
 
-- OK: Enabled "Run this program as an administrator": C:\Users\vilbur\AppData\Local\gitkraken\gitkraken.exe
+- OK: Enabled "Run this program as an administrator": C:\Program Files\Autodesk\3ds Max 2026\3dsmax.exe
 
-- OK: Start11 menu shortcut ready with administrator launch: C:\Users\vilbur\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu\GitKraken.lnk
+- OK: Start11 menu shortcut ready with administrator launch: C:\Users\vilbur\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu\Max 2026.lnk
 
-- OK: Symlink created: C:\Users\vilbur\AppData\Roaming\.gitkraken
+- OK: Environment variable APPDATA_MAX = %localAppData%\Autodesk\3dsMax\2026 - 64bit\ENU\
 
-- OK: Symlink created: C:\Users\vilbur\.gk
+- OK: Symlink created: C:\Users\vilbur\AppData\Local\Autodesk\3dsMax\2026 - 64bit\ENU\3dsMax.ini
 
-- OK: Symlink created: C:\Users\vilbur\.gitconfig
+- OK: Symlink created: C:\Users\vilbur\AppData\Local\Autodesk\3dsMax\2026 - 64bit\ENU\scripts
+
+- OK: Symlink created: C:\Users\vilbur\AppData\Local\Autodesk\3dsMax\2026 - 64bit\ENU\en-US
+
+- OK: Symlink created: C:\Users\vilbur\AppData\Local\Autodesk\3dsMax\2026 - 64bit\ENU\usermacros
+
+- OK: Symlink created: C:\Users\vilbur\AppData\Local\Autodesk\3dsMax\2026 - 64bit\ENU\MXS_Editor.properties
+
+- OK: Symlink created: C:\Users\vilbur\AppData\Local\Autodesk\3dsMax\2026 - 64bit\ENU\MXS_EditorUser.properties
+
+- OK: Shortcut already correct: C:\Program Files\Autodesk\3ds Max 2026\en-US\UI\saved-UI.lnk
 
