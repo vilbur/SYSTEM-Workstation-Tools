@@ -1,30 +1,48 @@
-# Apply Execution Log - Saturday, 12 September 2026 04:51:25
+# Apply Execution Log - Saturday, 12 September 2026 05:45:10
 
-- OK: Program tab: Backup Tools
+- OK: Persistent Paths
 
-- OK: Enabled "Run this program as an administrator": C:\Program Files\FreeFileSync\FreeFileSync.exe
+- OK: Startup entry PathConfig_Path_1 configured and enabled in Windows Startup Apps.
 
-- OK: Removed conflicting or duplicate Start11 shortcut state for C:\Users\vilbur\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu\BACKUP Files.lnk (registry=2, shortcuts=1)
+- OK: Enabled "Run this program as an administrator": D:\GoogleDrive\TotalComander\TOTALCMD64.EXE
 
-- OK: Start11 menu shortcut ready with administrator launch: C:\Users\vilbur\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu\BACKUP Files.lnk (2 registry entries added)
+- OK: Start11 menu shortcut ready with administrator launch: C:\Users\vilbur\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu\TOTAL COMMANDER.lnk (1 registry entry added)
 
-- OK: Enabled "Run this program as an administrator": C:\Program Files (x86)\AOMEI\AOMEI Backupper\ABLauncher.exe
+- OK: Existing Windows Startup Apps entry Ditto set to On: D:\GoogleDrive\ProgramsData\CORE\Ditto\Ditto.exe
 
-- OK: Removed conflicting or duplicate Start11 shortcut state for C:\Users\vilbur\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu\BACKUP System.lnk (registry=1, shortcuts=1)
+- OK: Start11 menu shortcut ready: C:\Users\vilbur\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu\Ditto.lnk
 
-- OK: Start11 menu shortcut ready with administrator launch: C:\Users\vilbur\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu\BACKUP System.lnk (1 registry entry added)
+- OK: Environment variable notepad_exe = %GoogleDrive%\TotalComander\_Utilities\Notepad++\notepad++.exe
 
-- OK: Enabled "Run this program as an administrator": D:\GoogleDrive\ProgramsData\CORE\PowerToys\Backup PowerToys.exe
+- OK: Startup entry PathConfig_Path_3 configured and enabled in Windows Startup Apps.
 
-- OK: Removed conflicting or duplicate Start11 shortcut state for C:\Users\vilbur\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu\Backup PowerToys.lnk (registry=2, shortcuts=1)
+- OK: Enabled "Run this program as an administrator": D:\GoogleDrive\TotalComander\_Utilities\Notepad++\notepad++.exe
 
-- OK: Start11 menu shortcut ready with administrator launch: C:\Users\vilbur\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu\Backup PowerToys.lnk (2 registry entries added)
+- OK: Start11 menu shortcut ready with administrator launch: C:\Users\vilbur\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu\Notepad.lnk (1 registry entry added)
 
-- OK: Enabled "Run this program as an administrator": D:\GoogleDrive\ProgramsData\CORE\Start11\Start-11-Backup.exe
+- OK: Enabled "Run this program as an administrator": D:\GoogleDrive\TotalComander\_Utilities\Everything Portable\Everything.exe
 
-- OK: Start11 menu shortcut ready with administrator launch: C:\Users\vilbur\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu\Start-11-Backup.lnk (1 registry entry added)
+- OK: Start11 menu shortcut ready with administrator launch: C:\Users\vilbur\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu\Everything.lnk
 
-- FAILED: Row Backup Tools row 5 administrator property requires an existing .exe file: D:\GoogleDrive\ProgramsData\CORE\Windows\Shortcuts\Windows Back up.lnk
+- OK: Environment variable chrome_exe = C:\Program Files\Google\Chrome\Application\chrome.exe
 
-- FAILED: Backup Tools row 5 Menu requires an existing .exe or .lnk with an existing target: D:\GoogleDrive\ProgramsData\CORE\Windows\Shortcuts\Windows Back up.lnk
+- OK: Enabled "Run this program as an administrator": C:\Program Files\Google\Chrome\Application\chrome.exe
+
+- OK: Start11 menu shortcut ready with administrator launch: C:\Users\vilbur\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu\CHROME.lnk
+
+- OK: Enabled "Run this program as an administrator": C:\Program Files\VideoLAN\VLC\vlc.exe
+
+- OK: Start11 menu shortcut ready with administrator launch: C:\Users\vilbur\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu\VLC.lnk (1 registry entry added)
+
+- OK: Enabled "Run this program as an administrator": C:\Program Files (x86)\ActiveState Komodo IDE 12\komodo.exe
+
+- OK: Start11 menu shortcut ready with administrator launch: C:\Users\vilbur\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu\KOMODO.lnk (1 registry entry added)
+
+- OK: Enabled "Run this program as an administrator": C:\Users\vilbur\AppData\Local\PowerToys\PowerToys.exe
+
+- OK: Start11 menu shortcut ready with administrator launch: C:\Users\vilbur\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu\PowerToys.lnk (1 registry entry added)
+
+- OK: Enabled "Run this program as an administrator": C:\Program Files (x86)\ClipGrab\clipgrab.exe
+
+- OK: Start11 menu shortcut ready with administrator launch: C:\Users\vilbur\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu\Clip Grab.lnk (1 registry entry added)
 
