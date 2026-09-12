@@ -5,12 +5,12 @@ DetectHiddenWindows, On
 
 ; ==============================================================================
 ; Everything Assistance - Launcher
-; Version: 0.09
+; Filename: Everything-Assistance.ahk
+; Version: 0.15
 ; ==============================================================================
-script_version := "0.09"
+script_version := "0.15"
 assistant_path := getAssistantPath()
 settings_path := getSharedSettingsPath()
-migrateLegacySettings(settings_path, assistant_path)
 origin_window := WinExist("A")
 
 visible_window := getVisibleEverythingWindow()
@@ -30,13 +30,21 @@ if (visible_window)
             ExitApp
         }
 
-        WinRestore, ahk_id %visible_window%
-        WinActivate, ahk_id %visible_window%
+        if !requestAssistantWindowAction(assistant_path, 2, visible_window)
+        {
+            MsgBox, 16, Everything Assistance, The Everything window could not be restored.
+            ExitApp
+        }
     }
     else
     {
         rememberEverythingWindow(visible_window)
-        WinHide, ahk_id %visible_window%
+        if !requestAssistantWindowAction(assistant_path, 1, visible_window)
+        {
+            clearRememberedEverythingWindow()
+            MsgBox, 16, Everything Assistance, The Everything window could not be hidden.
+            ExitApp
+        }
     }
 
     ExitApp
@@ -55,17 +63,22 @@ if (hidden_window)
         ExitApp
     }
 
-    showRememberedEverythingWindow(hidden_window)
+    if !requestAssistantWindowAction(assistant_path, 3, hidden_window)
+    {
+        MsgBox, 16, Everything Assistance, The Everything window could not be shown.
+        ExitApp
+    }
+    clearRememberedEverythingWindow()
     ExitApp
 }
 
 if !FileExist(assistant_path)
 {
-    MsgBox, 16, Everything Assistance, A versioned Everything-Assistance_0.xx.ahk file was not found in:`n%A_ScriptDir%
+    MsgBox, 16, Everything Assistance, The methods script was not found:`n%assistant_path%
     ExitApp
 }
 
-if !triggerAssistant(assistant_path)
+if !triggerAssistant(assistant_path, origin_window)
 {
     MsgBox, 16, Everything Assistance, The main Everything Assistance script could not be started.
 }
@@ -159,6 +172,7 @@ getRememberedEverythingWindow()
 
     if DllCall("IsWindowVisible", "Ptr", window_id)
     {
+        clearRememberedEverythingWindow()
         return 0
     }
 
@@ -274,68 +288,17 @@ rememberEverythingExecutablePath(window_id)
 }
 
 /**
-Return the version-independent shared settings file path.
+Return the project-root settings file path.
 */
 getSharedSettingsPath()
 {
-    if (A_AppData = "")
-    {
-        return A_ScriptDir . "\Everything-Assistance.ini"
-    }
-
-    settings_directory := A_AppData . "\Everything-Assistance"
-    FileCreateDir, %settings_directory%
-    if ErrorLevel
-    {
-        return A_ScriptDir . "\Everything-Assistance.ini"
-    }
-
-    return settings_directory . "\Everything-Assistance.ini"
-}
-
-/**
-Import EverythingPath from a legacy INI beside the assistant or launcher.
-*/
-migrateLegacySettings(settings_path, assistant_path)
-{
-    IniRead, shared_path, %settings_path%, Settings, EverythingPath, ERROR
-    if (shared_path != "ERROR" && shared_path != "")
-    {
-        return true
-    }
-
-    legacy_paths := []
-    if (assistant_path != "")
-    {
-        SplitPath, assistant_path,, assistant_directory
-        legacy_paths.Push(assistant_directory . "\Everything-Assistance.ini")
-    }
-    legacy_paths.Push(A_ScriptDir . "\Everything-Assistance.ini")
-
-    for _, legacy_path in legacy_paths
-    {
-        if (legacy_path = settings_path || !FileExist(legacy_path))
-        {
-            continue
-        }
-
-        IniRead, legacy_everything_path, %legacy_path%, Settings, EverythingPath, ERROR
-        if (legacy_everything_path = "ERROR" || legacy_everything_path = "")
-        {
-            continue
-        }
-
-        IniWrite, %legacy_everything_path%, %settings_path%, Settings, EverythingPath
-        return !ErrorLevel
-    }
-
-    return false
+    return getProjectRootPath() . "\Everything-Assistance.ini"
 }
 
 /**
 Start the assistant when needed and request manual Everything mode.
 */
-triggerAssistant(assistant_path)
+triggerAssistant(assistant_path, origin_window)
 {
     assistant_window := getAssistantWindow(assistant_path)
 
@@ -344,8 +307,8 @@ triggerAssistant(assistant_path)
         return false
     }
 
-    PostMessage, 0x5555, 0, 0,, ahk_id %assistant_window%
-    return true
+    PostMessage, 0x5555, %origin_window%, 0,, ahk_id %assistant_window%
+    return (ErrorLevel = 0)
 }
 
 /**
@@ -360,11 +323,29 @@ updateAssistantOrigin(assistant_path, origin_window, everything_window)
     }
 
     PostMessage, 0x5556, %origin_window%, %everything_window%,, ahk_id %assistant_window%
-    return (ErrorLevel != "FAIL")
+    return (ErrorLevel = 0)
 }
 
 /**
-Return the running assistant window, starting the selected version if needed.
+Ask the background assistant to control an Everything window.
+
+The assistant may run at a higher integrity level than a third-party launcher,
+so window state changes must be performed in the assistant process.
+*/
+requestAssistantWindowAction(assistant_path, action, everything_window)
+{
+    assistant_window := getAssistantWindow(assistant_path)
+    if (!assistant_window || !everything_window)
+    {
+        return false
+    }
+
+    SendMessage, 0x5557, %action%, %everything_window%,, ahk_id %assistant_window%,,,, 5000
+    return (ErrorLevel = 1)
+}
+
+/**
+Return the running methods window, starting it when needed.
 */
 getAssistantWindow(assistant_path)
 {
@@ -410,57 +391,24 @@ runAssistantScript(assistant_path)
 }
 
 /**
-Find the highest numbered versioned assistant.
+Return the persistent methods script used by the launcher.
 */
 getAssistantPath()
 {
-    newest_path := ""
-    newest_major := -1
-    newest_minor := -1
-    newest_patch := -1
-
-    Loop, Files, % A_ScriptDir . "\Everything-Assistance_*.ahk", F
-    {
-        if RegExMatch(A_LoopFileName, "i)_([0-9]+)\.([0-9]+)(?:\.([0-9]+))?\.ahk$", version_match)
-        {
-            version_major := version_match1 + 0
-            version_minor := version_match2 + 0
-            version_patch := version_match3 + 0
-
-            if isNewerVersion(version_major, version_minor, version_patch
-                , newest_major, newest_minor, newest_patch)
-            {
-                newest_major := version_major
-                newest_minor := version_minor
-                newest_patch := version_patch
-                newest_path := A_LoopFileFullPath
-            }
-        }
-    }
-
-    if (newest_path != "")
-    {
-        return newest_path
-    }
-
-    return ""
+    return getProjectRootPath() . "\dev\lib\Everything-Assistance-methods.ahk"
 }
 
 /**
-Compare three numeric version components without decimal-number ambiguity.
+Return the root directory in source and compiled launcher modes.
 */
-isNewerVersion(candidate_major, candidate_minor, candidate_patch
-    , current_major, current_minor, current_patch)
+getProjectRootPath()
 {
-    if (candidate_major != current_major)
+    if A_IsCompiled
     {
-        return candidate_major > current_major
+        return A_ScriptDir
     }
 
-    if (candidate_minor != current_minor)
-    {
-        return candidate_minor > current_minor
-    }
-
-    return candidate_patch > current_patch
+    SplitPath, A_ScriptDir,, dev_directory
+    SplitPath, dev_directory,, project_root
+    return project_root
 }

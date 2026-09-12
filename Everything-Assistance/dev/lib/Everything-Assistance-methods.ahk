@@ -2,13 +2,14 @@
 #SingleInstance Force  ; Standard behavior: don't allow multiple copies
 ; ==============================================================================
 ; Everything Assistance
-; Filename: Everything-Assistance_0.07.ahk
-; Version: 0.07
+; Filename: Everything-Assistance-methods.ahk
+; Version: 0.13
 ; ==============================================================================
 SetBatchLines, -1
 SetTitleMatchMode, 2
 DetectHiddenWindows, On
 closeOtherAssistantVersions()
+allowLauncherMessages()
 ; ==============================================================================
 ; 1. PARAMETER CHECK (The "Re-Run" Trigger)
 ; ==============================================================================
@@ -32,10 +33,11 @@ if (A_Args.Length() > 0) {
 ; ==============================================================================
 OnMessage(0x5555, "TriggerManualMode")
 OnMessage(0x5556, "captureManualOrigin")
+OnMessage(0x5557, "controlEverythingWindow")
 
-global scriptVersion := "0.07"
-global settingsPath := A_ScriptDir . "\Everything-Assistance.ini" ; Shared with Everything-Assistance-Launcher.ahk
-global trayIconPath := A_ScriptDir . "\Everything-Assistance.ico"
+global scriptVersion := "0.13"
+global settingsPath := getSharedSettingsPath()
+global trayIconPath := getProjectRootPath() . "\dev\Everything-Assistance.ico"
 
 EnvGet, googleDrivePath, GoogleDrive
 if (googleDrivePath = "")
@@ -88,7 +90,7 @@ closeOtherAssistantVersions()
             continue
         }
 
-        if !RegExMatch(instance_title, "i)\\Everything-Assistance(?:_[0-9]+\.[0-9]+)?\.ahk - AutoHotkey")
+        if !RegExMatch(instance_title, "i)\\Everything-Assistance(?:-methods|_[0-9]+\.[0-9]+)\.ahk - AutoHotkey")
         {
             continue
         }
@@ -97,6 +99,125 @@ closeOtherAssistantVersions()
         WinWaitClose, ahk_id %instance_id%,, 2
     }
 }
+
+/**
+Allow the launcher messages through Windows UIPI.
+
+Logi Options launches configured applications at medium integrity. The assistant
+can already be running at high integrity when it was started by an elevated
+AutoHotkey process. Windows otherwise rejects the launcher's PostMessage calls,
+so the manual trigger is silently lost.
+*/
+allowLauncherMessages()
+{
+    static MSGFLT_ALLOW := 1
+    static MANUAL_TRIGGER_MESSAGE := 0x5555
+    static CAPTURE_ORIGIN_MESSAGE := 0x5556
+    static WINDOW_ACTION_MESSAGE := 0x5557
+
+    manual_allowed := DllCall("User32.dll\ChangeWindowMessageFilterEx"
+        , "Ptr", A_ScriptHwnd
+        , "UInt", MANUAL_TRIGGER_MESSAGE
+        , "UInt", MSGFLT_ALLOW
+        , "Ptr", 0)
+
+    origin_allowed := DllCall("User32.dll\ChangeWindowMessageFilterEx"
+        , "Ptr", A_ScriptHwnd
+        , "UInt", CAPTURE_ORIGIN_MESSAGE
+        , "UInt", MSGFLT_ALLOW
+        , "Ptr", 0)
+
+    action_allowed := DllCall("User32.dll\ChangeWindowMessageFilterEx"
+        , "Ptr", A_ScriptHwnd
+        , "UInt", WINDOW_ACTION_MESSAGE
+        , "UInt", MSGFLT_ALLOW
+        , "Ptr", 0)
+
+    return (manual_allowed && origin_allowed && action_allowed)
+}
+
+
+/**
+Hide, restore, or show an Everything window on behalf of the launcher.
+*/
+controlEverythingWindow(action, window_id)
+{
+    global settingsPath
+
+    if (action < 1 || action > 3 || !window_id || !WinExist("ahk_id " . window_id))
+    {
+        return false
+    }
+
+    WinGet, process_name, ProcessName, ahk_id %window_id%
+    if (process_name != "Everything.exe")
+    {
+        return false
+    }
+
+    if (action = 1)
+    {
+        WinHide, ahk_id %window_id%
+        Sleep, 100
+        return !DllCall("IsWindowVisible", "Ptr", window_id)
+    }
+
+    if (action = 2)
+    {
+        WinRestore, ahk_id %window_id%
+        WinActivate, ahk_id %window_id%
+        positionWindowAtMouse(window_id)
+        Sleep, 150
+        return DllCall("IsWindowVisible", "Ptr", window_id)
+    }
+
+    IniRead, window_x, %settingsPath%, HiddenWindow, X, 0
+    IniRead, window_y, %settingsPath%, HiddenWindow, Y, 0
+    IniRead, window_width, %settingsPath%, HiddenWindow, Width, 900
+    IniRead, window_height, %settingsPath%, HiddenWindow, Height, 600
+    IniRead, window_state, %settingsPath%, HiddenWindow, State, 0
+
+    WinShow, ahk_id %window_id%
+    if (window_state = 1)
+    {
+        WinMaximize, ahk_id %window_id%
+    }
+    else
+    {
+        WinRestore, ahk_id %window_id%
+        positionWindowAtMouse(window_id, window_width, window_height)
+    }
+
+    WinActivate, ahk_id %window_id%
+    Sleep, 150
+    return DllCall("IsWindowVisible", "Ptr", window_id)
+}
+
+/**
+Position a manual Everything window with its upper-left corner at the cursor.
+*/
+positionWindowAtMouse(window_id, window_width := "", window_height := "")
+{
+    if (!window_id || !WinExist("ahk_id " . window_id))
+    {
+        return false
+    }
+
+    CoordMode, Mouse, Screen
+    MouseGetPos, cursor_x, cursor_y
+
+    if (window_width != "" && window_height != "")
+    {
+        WinMove, ahk_id %window_id%,, %cursor_x%, %cursor_y%, %window_width%, %window_height%
+    }
+    else
+    {
+        WinMove, ahk_id %window_id%,, %cursor_x%, %cursor_y%
+    }
+
+    return true
+}
+
 
 ; ==============================================================================
 ; 3. BEHAVIOR: AUTO-DIALOG WATCHER (Class #32770)
@@ -202,7 +323,7 @@ return
 ; ==============================================================================
 ; 4. BEHAVIOR: MANUAL CURSOR TRIGGER (Fired by Parameter)
 ; ==============================================================================
-TriggerManualMode() {
+TriggerManualMode(origin_window := 0) {
     global currentMode, origWin, origCtrl, eWin, eHeight, everythingPath
 
     ; --- PATH VALIDATION & PERSISTENT SETTINGS ---
@@ -220,7 +341,12 @@ TriggerManualMode() {
     }
 
     currentMode := "Manual"
-    origWin := WinExist("A")
+    if (origin_window && WinExist("ahk_id " . origin_window))
+    {
+        origWin := origin_window
+    }
+    else
+        origWin := WinExist("A")
     ControlGetFocus, origCtrl, ahk_id %origWin%
 
     if !WinExist("ahk_id " . eWin)
@@ -330,7 +456,7 @@ TestEverythingPath:
 return
 
 /**
-Load the remembered Everything.exe path from the script INI file.
+Load the remembered Everything.exe path from the shared INI file.
 */
 LoadEverythingPath()
 {
@@ -366,12 +492,12 @@ EnsureEverythingPath()
         return true
     }
 
-    MsgBox, 48, Path Not Found, Everything.exe was not found at:`n%everythingPath%`n`nPlease locate it. The selected path will be remembered.
+    MsgBox, 48, Path Not Found, Everything.exe was not found at:`n%everythingPath%`n`nSettings file:`n%settingsPath%`n`nPlease locate it. The selected path will be remembered.
     return SelectEverythingPath()
 }
 
 /**
-Select Everything.exe and save its path beside the script.
+Select Everything.exe and save its path in the shared INI file.
 */
 SelectEverythingPath()
 {
@@ -411,6 +537,24 @@ SelectEverythingPath()
     }
 
     return true
+}
+
+/**
+Return the project-root settings file path.
+*/
+getSharedSettingsPath()
+{
+    return getProjectRootPath() . "\Everything-Assistance.ini"
+}
+
+/**
+Return the project root from the methods script directory.
+*/
+getProjectRootPath()
+{
+    SplitPath, A_ScriptDir,, dev_directory
+    SplitPath, dev_directory,, project_root
+    return project_root
 }
 
 /**

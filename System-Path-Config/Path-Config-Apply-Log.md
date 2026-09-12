@@ -1,24 +1,30 @@
-# Apply Execution Log - Monday, 7 September 2026 20:51:14
+# Apply Execution Log - Saturday, 12 September 2026 04:51:25
 
-- OK: Program tab: 3ds Max 2026
+- OK: Program tab: Backup Tools
 
-- OK: Enabled "Run this program as an administrator": C:\Program Files\Autodesk\3ds Max 2026\3dsmax.exe
+- OK: Enabled "Run this program as an administrator": C:\Program Files\FreeFileSync\FreeFileSync.exe
 
-- OK: Start11 menu shortcut ready with administrator launch: C:\Users\vilbur\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu\Max 2026.lnk
+- OK: Removed conflicting or duplicate Start11 shortcut state for C:\Users\vilbur\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu\BACKUP Files.lnk (registry=2, shortcuts=1)
 
-- OK: Environment variable APPDATA_MAX = %localAppData%\Autodesk\3dsMax\2026 - 64bit\ENU\
+- OK: Start11 menu shortcut ready with administrator launch: C:\Users\vilbur\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu\BACKUP Files.lnk (2 registry entries added)
 
-- OK: Symlink created: C:\Users\vilbur\AppData\Local\Autodesk\3dsMax\2026 - 64bit\ENU\3dsMax.ini
+- OK: Enabled "Run this program as an administrator": C:\Program Files (x86)\AOMEI\AOMEI Backupper\ABLauncher.exe
 
-- OK: Symlink created: C:\Users\vilbur\AppData\Local\Autodesk\3dsMax\2026 - 64bit\ENU\scripts
+- OK: Removed conflicting or duplicate Start11 shortcut state for C:\Users\vilbur\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu\BACKUP System.lnk (registry=1, shortcuts=1)
 
-- OK: Symlink created: C:\Users\vilbur\AppData\Local\Autodesk\3dsMax\2026 - 64bit\ENU\en-US
+- OK: Start11 menu shortcut ready with administrator launch: C:\Users\vilbur\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu\BACKUP System.lnk (1 registry entry added)
 
-- OK: Symlink created: C:\Users\vilbur\AppData\Local\Autodesk\3dsMax\2026 - 64bit\ENU\usermacros
+- OK: Enabled "Run this program as an administrator": D:\GoogleDrive\ProgramsData\CORE\PowerToys\Backup PowerToys.exe
 
-- OK: Symlink created: C:\Users\vilbur\AppData\Local\Autodesk\3dsMax\2026 - 64bit\ENU\MXS_Editor.properties
+- OK: Removed conflicting or duplicate Start11 shortcut state for C:\Users\vilbur\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu\Backup PowerToys.lnk (registry=2, shortcuts=1)
 
-- OK: Symlink created: C:\Users\vilbur\AppData\Local\Autodesk\3dsMax\2026 - 64bit\ENU\MXS_EditorUser.properties
+- OK: Start11 menu shortcut ready with administrator launch: C:\Users\vilbur\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu\Backup PowerToys.lnk (2 registry entries added)
 
-- OK: Shortcut already correct: C:\Program Files\Autodesk\3ds Max 2026\en-US\UI\saved-UI.lnk
+- OK: Enabled "Run this program as an administrator": D:\GoogleDrive\ProgramsData\CORE\Start11\Start-11-Backup.exe
+
+- OK: Start11 menu shortcut ready with administrator launch: C:\Users\vilbur\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu\Start-11-Backup.lnk (1 registry entry added)
+
+- FAILED: Row Backup Tools row 5 administrator property requires an existing .exe file: D:\GoogleDrive\ProgramsData\CORE\Windows\Shortcuts\Windows Back up.lnk
+
+- FAILED: Backup Tools row 5 Menu requires an existing .exe or .lnk with an existing target: D:\GoogleDrive\ProgramsData\CORE\Windows\Shortcuts\Windows Back up.lnk
 

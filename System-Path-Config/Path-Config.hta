@@ -312,6 +312,11 @@ button, input, select {
 .field.valid {
     color: #76df96;
 }
+.field.shortcut-type,
+.readonly.shortcut-type,
+option.shortcut-type {
+    color: #71b2ff;
+}
 .field.invalid {
     border-color: #80434b;
     color: #ff8f9d;
@@ -435,7 +440,7 @@ button, input, select {
 }
 </style>
 <script language="JScript" type="text/javascript">
-var VERSION = "0.85";
+var VERSION = "0.86";
 var STARTUP_PREFIX = "PathConfig_Path_";
 var PROGRAM_STARTUP_PREFIX = "PathConfig_Program_";
 var REG_ENV = "HKCU\\Environment\\";
@@ -1353,7 +1358,7 @@ function renderPersistent() {
                 ' oncontextmenu="return showPersistentRowMenu(' + i + ',this)">&#9776;</button></td>';
             out += '<td><button class="button button-small path-browse-button" onclick="browsePersistent(' + i + ')" oncontextmenu="return showBrowseContextMenu(this)">Browse</button></td>';
             out += fieldInput("persistent", "", i, "path", row.path, 'data-pathcheck="1"');
-            out += fieldInput("persistent", "", i, "env_var", row.env_var, "");
+            out += fieldInput("persistent", "", i, "env_var", row.env_var, 'data-envsetcheck="1"');
             out += checkboxInput("persistent", "", i, "run_as_admin", row.run_as_admin);
             out += checkboxInput("persistent", "", i, "run_on_startup", row.run_on_startup);
             out += checkboxInput("persistent", "", i, "menu", row.menu);
@@ -1365,7 +1370,7 @@ function renderPersistent() {
             out += '<td></td>';
             out += '<td></td>';
             out += readonlyCell(row.path, "pathcheck");
-            out += readonlyCell(row.env_var, "");
+            out += readonlyCell(row.env_var, "envsetcheck");
             out += adminPropertyMatchCell(row.path, row.run_as_admin);
             out += startupMatchCell(row.path, row.run_on_startup);
             out += menuPinMatchCell(row.path, row.menu);
@@ -1406,7 +1411,7 @@ function renderProgramPaths(tabIndex, rows) {
         if (state.mode === "Config") {
             out += fieldInput("dynamic", "paths", i, "path", row.path, 'data-tab="' + tabIndex + '" data-pathcheck="1"');
             out += '<td><button class="button button-small path-browse-button" onclick="browseDynamicPath(' + tabIndex + ',' + i + ')" oncontextmenu="return showBrowseContextMenu(this)">Browse</button></td>';
-            out += fieldInput("dynamic", "paths", i, "env_var", row.env_var, 'data-tab="' + tabIndex + '"');
+            out += fieldInput("dynamic", "paths", i, "env_var", row.env_var, 'data-tab="' + tabIndex + '" data-envsetcheck="1"');
             out += checkboxInput("dynamic", "paths", i, "run_as_admin", row.run_as_admin, tabIndex);
             out += checkboxInput("dynamic", "paths", i, "run_on_startup", row.run_on_startup, tabIndex);
             out += checkboxInput("dynamic", "paths", i, "menu", row.menu, tabIndex);
@@ -1416,7 +1421,7 @@ function renderProgramPaths(tabIndex, rows) {
         } else {
             out += readonlyCell(row.path, "pathcheck");
             out += '<td></td>';
-            out += readonlyCell(row.env_var, "");
+            out += readonlyCell(row.env_var, "envsetcheck");
             out += adminPropertyMatchCell(row.path, row.run_as_admin);
             out += startupMatchCell(row.path, row.run_on_startup);
             out += menuPinMatchCell(row.path, row.menu);
@@ -1446,14 +1451,15 @@ function renderNameValueSection(tabIndex, kind, title, rows, keepFirst) {
         check = kind === "paths" ? 'data-pathcheck="1"' : 'data-smartcheck="1"';
         out += '<tr>';
         if (state.mode === "Config") {
-            out += fieldInput("dynamic", kind, i, "name", row.name, 'data-tab="' + tabIndex + '"');
+            out += fieldInput("dynamic", kind, i, "name", row.name, 'data-tab="' + tabIndex + '"' +
+                (kind === "envs" ? ' data-envsetcheck="1"' : ''));
             out += fieldInput("dynamic", kind, i, "val", row.val, 'data-tab="' + tabIndex + '" ' + check);
             out += '<td class="row-action-pair"><button class="button button-small" onclick="browseDynamic(' + tabIndex + ',\'' + kind + '\',' + i + ',false)" oncontextmenu="return showBrowseContextMenu(this)">D</button>' +
                 '<button class="button button-small" onclick="browseDynamic(' + tabIndex + ',\'' + kind + '\',' + i + ',true)" oncontextmenu="return showBrowseContextMenu(this)">F</button></td>';
             out += '<td>' + ((!keepFirst || i > 0) ? '<button class="button button-small button-danger" onclick="deleteDynamicRow(' +
                 tabIndex + ',\'' + kind + '\',' + i + ')">X</button>' : '') + '</td>';
         } else {
-            out += readonlyCell(row.name, kind === "envs" ? "envcheck" : "");
+            out += readonlyCell(row.name, kind === "envs" ? "envsetcheck" : "");
             out += readonlyCell(row.val, kind === "paths" ? "pathcheck" : "smartcheck");
             out += '<td></td><td></td>';
         }
@@ -1512,13 +1518,13 @@ function renderLinksSection(tabIndex, rows) {
         row = rows[i];
         out += '<tr>';
         if (state.mode === "Config") {
-            out += fieldInput("dynamic", "links", i, "src", row.src, 'data-tab="' + tabIndex + '" data-pathcheck="1" data-linkdirectorycheck="1"');
+            out += fieldInput("dynamic", "links", i, "src", row.src, 'data-tab="' + tabIndex + '" data-pathcheck="1" data-pathrole="source" data-linkdirectorycheck="1"');
             out += '<td class="row-action-pair"><button class="button button-small" onclick="browseLinkSource(' + tabIndex + ',' + i + ',false)" oncontextmenu="return showBrowseContextMenu(this)">D</button>' +
                 '<button class="button button-small" onclick="browseLinkSource(' + tabIndex + ',' + i + ',true)" oncontextmenu="return showBrowseContextMenu(this)">F</button></td>';
-            out += fieldInput("dynamic", "links", i, "tgt_dir", row.tgt_dir, 'data-tab="' + tabIndex + '" data-pathcheck="1" data-linkdirectorycheck="1"');
+            out += fieldInput("dynamic", "links", i, "tgt_dir", row.tgt_dir, 'data-tab="' + tabIndex + '" data-pathcheck="1" data-pathrole="target" data-linkdirectorycheck="1"');
             out += '<td><button class="button button-small" onclick="browseLinkTarget(' + tabIndex + ',' + i + ')" oncontextmenu="return showBrowseContextMenu(this)">D</button></td>';
             out += fieldInput("dynamic", "links", i, "tgt_name", row.tgt_name, 'data-tab="' + tabIndex + '"');
-            out += '<td><select class="field" data-scope="dynamic" data-kind="links" data-index="' + i +
+            out += '<td><select class="field' + (row.type === "Shortcut" ? ' shortcut-type' : '') + '" data-scope="dynamic" data-kind="links" data-index="' + i +
                 '" data-tab="' + tabIndex + '" data-field="type">' +
                 option("Shortcut", row.type) + option("Symlink", row.type) + option("Hardlink", row.type) + '</select></td>';
             out += '<td><button class="button button-small button-danger" onclick="deleteDynamicRow(' + tabIndex + ',\'links\',' + i + ')">X</button></td>';
@@ -1528,8 +1534,9 @@ function renderLinksSection(tabIndex, rows) {
         } else {
             target = joinPath(row.tgt_dir, row.tgt_name + (row.type === "Shortcut" && !/\.lnk$/i.test(row.tgt_name) ? ".lnk" : ""));
             sameDirectory = linkDirectoriesAreSame(row.src, row.tgt_dir);
-            out += readonlyCell(row.src, sameDirectory ? "same-directory" : "pathcheck") +
-                readonlyCell(target, sameDirectory ? "same-directory" : "") + readonlyCell(row.type, "");
+            out += readonlyCell(row.src, sameDirectory ? "same-directory" : "sourcepath") +
+                readonlyCell(target, sameDirectory ? "same-directory" : "targetpath") +
+                readonlyCell(row.type, row.type === "Shortcut" ? "shortcut" : "");
         }
         out += '</tr>';
     }
@@ -1574,6 +1581,14 @@ function readonlyCell(value, checkType) {
         className += pathExists(value) ? " valid" : " invalid";
     } else if (checkType === "envcheck" && trimText(value)) {
         className += environmentExists(value) ? " valid" : " invalid";
+    } else if (checkType === "envsetcheck" && trimText(value)) {
+        className += windowsEnvironmentExists(value) ? " valid" : "";
+    } else if (checkType === "sourcepath" && trimText(value)) {
+        className += pathExists(value) ? "" : " invalid";
+    } else if (checkType === "targetpath" && trimText(value)) {
+        className += pathExists(value) ? " valid" : " invalid";
+    } else if (checkType === "shortcut") {
+        className += " shortcut-type";
     }
     return '<td><div class="' + className + '" title="' + html(value) + '">' + (html(value) || '&nbsp;') + '</div></td>';
 }
@@ -2247,7 +2262,8 @@ function ensureStart11MenuPin(path, runAsAdmin, result, rowLabel) {
         (registryWrites ? " (" + registryWrites + " registry entr" + (registryWrites === 1 ? "y" : "ies") + " added)" : ""));
 }
 function option(value, selected) {
-    return '<option value="' + value + '"' + (value === selected ? ' selected="selected"' : '') + '>' + value + '</option>';
+    return '<option value="' + value + '"' + (value === "Shortcut" ? ' class="shortcut-type"' : '') +
+        (value === selected ? ' selected="selected"' : '') + '>' + value + '</option>';
 }
 
 function looksLikePath(value) {
@@ -2267,6 +2283,18 @@ function environmentExists(name) {
     try {
         return wsh.ExpandEnvironmentStrings("%" + name + "%") !== "%" + name + "%";
     } catch (ignore) {
+        return false;
+    }
+}
+
+function windowsEnvironmentExists(name) {
+    name = trimText(name);
+    if (!name) {
+        return false;
+    }
+    try {
+        return wsh.ExpandEnvironmentStrings("%" + name + "%") !== "%" + name + "%";
+    } catch (ignoreWindowsEnvironmentCheck) {
         return false;
     }
 }
@@ -2325,9 +2353,17 @@ function validateInputs() {
         value = trimText(inputs[i].value);
         className = inputs[i].className.indexOf("path-field") >= 0 ? "field path-field" : "field";
         if (inputs[i].getAttribute("data-pathcheck") === "1" && value) {
-            className += pathExists(value) ? " valid" : " invalid";
+            if (inputs[i].getAttribute("data-pathrole") === "source") {
+                className += pathExists(value) ? "" : " invalid";
+            } else {
+                className += pathExists(value) ? " valid" : " invalid";
+            }
         } else if (inputs[i].getAttribute("data-smartcheck") === "1" && looksLikePath(value)) {
             className += pathExists(value) ? " valid" : " invalid";
+        }
+        if (inputs[i].getAttribute("data-envsetcheck") === "1" && value &&
+                windowsEnvironmentExists(value)) {
+            className += " valid";
         }
         if (inputs[i].getAttribute("data-linkdirectorycheck") === "1" &&
                 linkInputDirectoriesAreSame(inputs[i])) {
@@ -2335,6 +2371,13 @@ function validateInputs() {
         }
         if (inputs[i].className.indexOf("field") >= 0) {
             inputs[i].className = className;
+        }
+    }
+    var selects = document.getElementsByTagName("select");
+    for (i = 0; i < selects.length; i++) {
+        if (selects[i].getAttribute("data-kind") === "links" &&
+                selects[i].getAttribute("data-field") === "type") {
+            selects[i].className = selects[i].value === "Shortcut" ? "field shortcut-type" : "field";
         }
     }
 }

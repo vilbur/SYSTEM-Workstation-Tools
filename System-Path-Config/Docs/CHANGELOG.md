@@ -1,5 +1,14 @@
 ﻿# Path-Config Changelog
 
+## 0.86
+
+Refined validation colors across program control tabs.
+
+- keeps valid Link source paths neutral while preserving invalid-source and same-folder warnings
+- colors valid Link target paths green in Config and Apply modes
+- colors environment-variable names green only when they already exist in Windows
+- colors the Shortcut Link type light blue in Config and Apply modes
+- reuses the v0.85 full regression suite without adding a permanent layout-only test file
 ## 0.85
 
 Restored reliable and transactional Link creation.

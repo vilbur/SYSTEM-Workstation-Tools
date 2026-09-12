@@ -6,11 +6,11 @@ Create a new permanent test file only when a change needs new lasting regression
 
 Current source and latest full regression suite:
 
-- `Path-Config.hta` development version `0.85`
+- `Path-Config.hta` development version `0.86`
 - `Test/Path-Config-Test_0.85.ps1`
 - stable release marker: `STABLE_VERSION` = `0.70`
 
-The canonical source filename remains `Path-Config.hta`; versioned PowerShell tests are stored under `Test/`, and the test filename advances with each version.
+The canonical source filename remains `Path-Config.hta`; versioned PowerShell tests are stored under `Test/`, and the latest full regression test may remain on an earlier version when a small UI-only change is verified with focused temporary checks.
 
 ## Automated test safety
 

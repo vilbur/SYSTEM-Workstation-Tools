@@ -2,7 +2,7 @@
 
 Everything Assistance connects Everything Search with Windows dialogs, File Explorer, and Total Commander.
 
-**Index**
+## Index
 
 - [Overview and purpose](#overview-and-purpose)
 - [Usage](#usage)
@@ -20,7 +20,7 @@ Use Everything to find a file or folder, then send the selected result back to:
 - the original File Explorer window;
 - the active panel of the original Total Commander window.
 
-Everything can open automatically for supported dialogs or manually through the launcher.
+`Everything-Assistance.exe` starts the background methods script when required and toggles the Everything search window.
 
 ---
 
@@ -28,57 +28,54 @@ Everything can open automatically for supported dialogs or manually through the 
 
 ### How to run the tool
 
-Start `Everything-Assistance.ahk` once and leave it running in the background.
+Run `Everything-Assistance.exe` from the project root.
 
 #### Automatic dialog mode
 
-1. Open a Windows Open, Save, Browse, or Select dialog.
-2. Everything opens automatically below the dialog.
-3. Select a file or folder.
-4. Press `Shift + Enter`.
-5. The selected full path is inserted into the dialog.
+1. Run `Everything-Assistance.exe` once to start the background methods script.
+2. Open a Windows Open, Save, Browse, or Select dialog.
+3. Everything opens automatically below the dialog.
+4. Select a file or folder.
+5. Press `Shift + Enter`.
 
-#### Manual launcher mode
+The selected full path is inserted into the dialog.
+
+#### Manual mode
 
 1. Activate the File Explorer window or Total Commander panel that should receive the result.
-2. Run `Everything-Assistance-Launcher.ahk`.
+2. Run `Everything-Assistance.exe`.
 3. Select a file or folder in Everything.
 4. Press `Shift + Enter`.
-5. The original window navigates to the selected folder.
 
-Running the launcher again toggles the Everything search window:
+The original window navigates to the selected folder. If a file is selected, its parent folder is used.
+When opened, shown, or restored in manual mode, a non-maximized Everything window places its upper-left corner at the current mouse cursor position.
 
-| Everything state | Launcher action |
+
+### Shortcuts
+
+| Shortcut or action | Usage |
+| --- | --- |
+| Run `Everything-Assistance.exe` | Toggle manual Everything mode |
+| `Shift + Enter` inside Everything | Send the selected result to the original window |
+
+The executable does not register a global shortcut. Assign it to the desired keyboard key, mouse button, or external-device action.
+
+### Toggle behavior
+
+| Everything state | Executable action |
 | --- | --- |
 | Not open | Opens Everything |
 | Visible | Hides Everything |
 | Hidden | Shows and activates Everything |
 | Minimized | Restores and activates Everything |
 
-### Shortcuts
-
-| Shortcut or action | Usage |
-| --- | --- |
-| Run `Everything-Assistance-Launcher.ahk` | Toggle manual Everything mode |
-| `Shift + Enter` inside Everything | Send the selected result to the original window |
-
-The launcher does not define its own keyboard shortcut. Assign it to the desired keyboard key, mouse button, or external-device action.
-
-### Result behavior
-
-| Original window | Result |
-| --- | --- |
-| Open, Save, Browse, or Select dialog | Insert the selected full path |
-| File Explorer | Open the selected folder, or the parent folder of a selected file |
-| Total Commander | Open the selected folder, or the parent folder of a selected file, in the original active panel |
-
 ### Tray controls
 
-The persistent assistant tray menu provides:
+The background methods script provides:
 
 - `Change Everything.exe Path`
 - `Test Everything.exe Path`
-- `Everything-Assistance.ico` as the tray icon when the ICO file exists beside the assistant
+- the `Everything-Assistance.ico` tray icon
 
 ---
 
@@ -88,36 +85,48 @@ The persistent assistant tray menu provides:
 
 - Microsoft Windows
 - AutoHotkey v1.1
+- AutoHotkey v1 compiler component for rebuilding the EXE
 - Everything Search
 - Total Commander only when Total Commander integration is required
 
 No external `go_to_path.ahk` helper is required.
 
-### Files
+### File tree
+
+```text
+\dev\Everything-Assistance.ico
+\dev\Everything-Assistance-compiler.ahk
+\dev\lib\Everything-Assistance.ahk
+\dev\lib\Everything-Assistance-methods.ahk
+\Everything-Assistance.ini
+\Everything-Assistance.exe
+\readme.md
+```
 
 | File | Purpose |
 | --- | --- |
-| `Everything-Assistance.ahk` | Persistent background assistant |
-| `Everything-Assistance-Launcher.ahk` | Manual show/hide launcher |
-| `Everything-Assistance.ico` | Assistant tray icon |
-| `Everything-Assistance.ini` | Shared settings and hidden-window state |
+| `dev\Everything-Assistance.ico` | Tray and compiled executable icon |
+| `dev\Everything-Assistance-compiler.ahk` | Builds the root executable |
+| `dev\lib\Everything-Assistance.ahk` | Launcher source compiled into the EXE |
+| `dev\lib\Everything-Assistance-methods.ahk` | Persistent dialog and result-handoff methods |
+| `Everything-Assistance.ini` | Shared root settings and hidden-window state |
+| `Everything-Assistance.exe` | Tool entry point and Everything show/hide toggle |
 
-### Installation steps
+### Compile the executable
 
-1. Put both AHK scripts and `Everything-Assistance.ico` in the same directory.
-2. For the first launch, place the scripts beside the old `Everything-Assistance.ini` so its saved `EverythingPath` can be migrated.
-3. Run `Everything-Assistance.ahk`.
-4. Select the correct `Everything.exe` if requested.
-5. Assign `Everything-Assistance-Launcher.ahk` to the desired keyboard, mouse, or external-device action.
+1. Keep the files in the structure shown above.
+2. Run `dev\Everything-Assistance-compiler.ahk`.
+3. If requested, select the AutoHotkey v1 `Ahk2Exe.exe` compiler.
+4. The compiler creates or replaces `Everything-Assistance.exe` in the project root.
 
-The launcher locates `Everything-Assistance.ahk` in its directory.
+Run the compiler with `-test` to verify the source, icon, compiler, and output paths without compiling.
 
-### Shared Everything.exe path
+### Everything.exe path
 
-Both scripts use this settings file:
+Both scripts use only the root settings file:
 
 ```text
-%APPDATA%\Everything-Assistance\Everything-Assistance.ini
+\Everything-Assistance.ini
 ```
 
 The executable path is stored as:
@@ -127,192 +136,95 @@ The executable path is stored as:
 EverythingPath=C:\Path\To\Everything.exe
 ```
 
-On first launch, `EverythingPath` is imported from a legacy INI beside the assistant or launcher when the shared INI does not contain a path. The legacy file is left untouched as a backup.
-
-The assistant reloads the shared value before every Everything launch. The launcher also records the real executable path when it finds a running Everything window.
-
-The default fallback path is:
-
-```text
-%GoogleDrive%\TotalComander\_Utilities\Everything Portable\Everything.exe
-```
-
-If the `GoogleDrive` environment variable is unavailable, the fallback root is `D:\GoogleDrive`.
+The methods script reloads this value before every Everything launch. The launcher also records the real executable path when it finds a running Everything window.
 
 ---
 
 ## Troubleshooting
 
-### EverythingPath is requested again
+### Everything.exe path is requested again
 
-1. Confirm that this file exists:
+Confirm that the project-root `Everything-Assistance.ini` contains a valid path:
 
-   ```text
-   %APPDATA%\Everything-Assistance\Everything-Assistance.ini
-   ```
+```ini
+[Settings]
+EverythingPath=C:\Actual\Path\To\Everything.exe
+```
 
-2. Confirm that it contains:
+Use the tray commands `Change Everything.exe Path` and `Test Everything.exe Path` if the executable was moved.
 
-   ```ini
-   [Settings]
-   EverythingPath=C:\Actual\Path\To\Everything.exe
-   ```
+### A third-party button starts the launcher but Everything does not appear
 
-3. Confirm that the stored executable still exists.
-4. Run `Everything-Assistance.ahk` beside the old local INI once if migration has not occurred.
-5. Exit any other assistant instance and start `Everything-Assistance.ahk`.
+The background methods script accepts the launcher's private messages across
+Windows integrity levels. This supports application launch actions from software
+such as Logi Options when Everything Assistance is already running elevated.
 
-The path-selection error message displays the exact INI file being read.
+If the problem continues, confirm that the third-party software actually starts
+`Everything-Assistance.exe` and that all programs are running in the same signed-in
+Windows desktop session. Windows services running in session 0 cannot control the
+interactive Everything window.
 
-### Everything does not open
 
-Use the assistant tray menu:
+### Compilation fails
 
-1. Select `Change Everything.exe Path`.
-2. Choose the real `Everything.exe`.
-3. Select `Test Everything.exe Path`.
+Confirm that:
+
+- the complete file tree is preserved;
+- `dev\Everything-Assistance.ico` exists;
+- both AHK source files exist under `dev\lib`;
+- the AutoHotkey v1 compiler component is installed;
+- `Everything-Assistance.exe` is not running while it is being replaced.
+
+Run this command to validate the compiler inputs without building:
+
+```cmd
+AutoHotkey.exe "dev\Everything-Assistance-compiler.ahk" -test
+```
 
 ### A small Everything title bar appears
 
-Use `Everything-Assistance-Launcher.ahk`. It ignores helper windows smaller than 250 × 150 pixels and restores only the remembered search window.
+Run `Everything-Assistance.exe` again. The launcher ignores helper windows smaller than 250 × 150 pixels and restores only the remembered search window.
 
 ### Total Commander does not navigate
 
 Check that:
 
-- the launcher was invoked while the intended Total Commander panel was active;
+- `Everything-Assistance.exe` was invoked while the intended Total Commander panel was active;
 - a valid file or folder was selected in Everything;
 - `Shift + Enter` copied a full path;
 - Total Commander and AutoHotkey run at the same Windows privilege level.
 
 When Total Commander rejects the handoff, Everything remains open and an error is displayed.
 
-### Automatic dialog mode stops after manual use
-
-If a manual Everything session was closed without completing `Shift + Enter`, restart `Everything-Assistance.ahk`.
-
 ---
 
 ## Development notes
 
-### Instance handling
+### Runtime paths
 
-- Only one assistant instance should remain active.
-- The launcher locates the assistant in its directory.
-- Settings are independent of the script filename and directory.
+- The compiled `Everything-Assistance.exe` runs from the project root.
+- The source launcher runs from `dev\lib`.
+- Both modes resolve `dev\lib\Everything-Assistance-methods.ahk` explicitly.
+- The methods script resolves the tray icon from `dev\Everything-Assistance.ico`.
+- Both scripts read and write only the root `Everything-Assistance.ini`.
 
-### Automatic dialog implementation
+### Instance messages
 
-The assistant checks every 250 ms for windows with class `#32770` whose title contains:
+- Message `0x5555` begins a manual session and carries the original window handle.
+- Message `0x5556` refreshes the original window when an existing Everything window is restored.
+- Message `0x5557` delegates hide, show, and restore actions across Windows integrity levels.
 
-```text
-open
-save
-browse
-select
-```
+### Result handoff
 
-When detected, the assistant remembers the dialog and focused edit control, starts Everything, and keeps it aligned below the dialog.
+Everything's `Ctrl + Shift + C` command copies the selected full path.
 
-Positioning values:
-
-```ahk
-global eHeight := 400
-global padding := 0
-```
-
-The primary monitor work area is used to prevent overlap with the taskbar.
-
-### Manual launcher implementation
-
-The launcher:
-
-- ignores small Everything helper windows;
-- remembers the real search-window handle, placement, and state;
-- stores hidden-window information in the shared INI;
-- sends message `0x5555` to begin a new manual session;
-- sends message `0x5556` to refresh the original window when restoring an existing session.
-
-Stored window state:
-
-```ini
-[HiddenWindow]
-Hwnd=
-X=
-Y=
-Width=
-Height=
-State=
-```
-
-### Result handoff implementation
-
-Everything's `Ctrl + Shift + C` command is used internally to copy the selected full path.
-
-- File Explorer is navigated through `ComObjCreate("Shell.Application")`.
+- File Explorer is navigated through `Shell.Application`.
 - Total Commander receives a direct `WM_COPYDATA` change-directory message.
-- The exact original Total Commander window is targeted.
-- The Total Commander payload contains a UTF-8 byte-order marker and source-panel selector.
-- Standard dialogs receive the selected full path through the remembered edit control, with `Edit1` as fallback.
-
-### Clipboard behavior
-
-- Manual opening temporarily copies selected text for the initial Everything query, then restores the previous clipboard.
-- Result handoff copies the selected full path. That path remains in the clipboard.
-
-### Settings behavior
-
-Both scripts use one file:
-
-```text
-%APPDATA%\Everything-Assistance\Everything-Assistance.ini
-```
-
-Every saved `EverythingPath` is read back for verification. The assistant reloads it before each launch.
-
-### Test code
-
-This test starts manual mode while Total Commander remains active:
-
-```ahk
-#NoEnv
-#SingleInstance Force
-DetectHiddenWindows, On
-
-assistant_path := A_ScriptDir . "\Everything-Assistance.ahk"
-assistant_window := WinExist(assistant_path . " ahk_class AutoHotkey")
-
-if !assistant_window
-{
-    Run, "%A_AhkPath%" "%assistant_path%"
-    WinWait, %assistant_path% ahk_class AutoHotkey,, 5
-    assistant_window := WinExist(assistant_path . " ahk_class AutoHotkey")
-}
-
-if !assistant_window
-{
-    MsgBox, 16, Test Failed, Everything Assistance did not start.
-    ExitApp
-}
-
-PostMessage, 0x5555, 0, 0,, ahk_id %assistant_window%
-ExitApp
-```
-
-Test procedure:
-
-1. Save the test beside `Everything-Assistance.ahk`.
-2. Activate the required Total Commander panel.
-3. Run the test without activating another window.
-4. Select a result in Everything.
-5. Press `Shift + Enter`.
-6. Confirm that the original panel opens the destination folder.
+- Standard dialogs receive the path through the remembered edit control, with `Edit1` as fallback.
 
 ### Current limitations
 
 - Automatic alignment uses the primary monitor work area only.
 - Automatic dialog detection depends on English title keywords.
-- Manual selected-text capture can wait up to one second.
 - Result transfer depends on Everything's `Ctrl + Shift + C` full-path command.
-- The launcher identifies the real Everything window by process name and minimum size.
-- Closing a manual Everything session without `Shift + Enter` can leave automatic dialog detection paused until the assistant restarts.
+- Closing a manual Everything session without `Shift + Enter` can leave automatic dialog detection paused until the methods script restarts.

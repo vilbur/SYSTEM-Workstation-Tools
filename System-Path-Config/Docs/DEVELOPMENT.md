@@ -2,7 +2,7 @@
 
 ## Current stable baseline
 
-The latest approved stable version is `0.70`. The root `STABLE_VERSION` marker remains `0.70` until the user explicitly promotes a newer release. The current development source is `Path-Config.hta` version `0.85`.
+The latest approved stable version is `0.70`. The root `STABLE_VERSION` marker remains `0.70` until the user explicitly promotes a newer release. The current development source is `Path-Config.hta` version `0.86`.
 
 Primary files:
 
@@ -12,7 +12,7 @@ Primary files:
 - `Test/Path-Config-Test_0.70.ps1`
 - `Path-Config.ini` at runtime
 
-The next code delivery must be version `0.80` unless another version has already been approved in the repository.
+The next code delivery must be version `0.87` unless another version has already been approved in the repository.
 
 ## Product purpose
 
