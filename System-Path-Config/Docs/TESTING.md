@@ -6,7 +6,7 @@ Create a new permanent test file only when a change needs new lasting regression
 
 Current source and latest full regression suite:
 
-- `Path-Config.hta` development version `0.87`
+- `Path-Config.hta` development version `0.88`
 - `Test/Path-Config-Test_0.87.ps1`
 - stable release marker: `STABLE_VERSION` = `0.70`
 

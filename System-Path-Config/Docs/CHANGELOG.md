@@ -1,5 +1,14 @@
 ﻿# Path-Config Changelog
 
+## 0.88
+
+Synchronized Apply-mode status symbols with the ADMIN, STARTUP, and MENU Config checkboxes.
+
+- shows a green check when an enabled option matches the live Windows state
+- shows a red cross when an enabled option does not match the live Windows state
+- leaves the matching Apply cell empty whenever its Config checkbox is disabled
+- refreshes the comparison through the existing initial render and Config/Apply mode switch render
+- reuses the v0.87 regression suite with focused temporary checks
 ## 0.87
 
 Prevented Apply mode from duplicating Start11 shortcuts moved into custom groups.

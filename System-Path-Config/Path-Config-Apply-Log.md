@@ -1,26 +1,24 @@
-# Apply Execution Log - Saturday, 12 September 2026 11:04:56
+# Apply Execution Log - Sunday, 13 September 2026 07:31:24
 
-- OK: Program tab: 3ds Max 2026
+- OK: Program tab: Backup Tools
 
-- OK: Enabled "Run this program as an administrator": C:\Program Files\Autodesk\3ds Max 2026\3dsmax.exe
+- OK: Enabled "Run this program as an administrator": C:\Program Files\FreeFileSync\FreeFileSync.exe
 
-- OK: Start11 menu shortcut ready with administrator launch: C:\Users\vilbur\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu\Max 2026.lnk
+- OK: Start11 menu shortcut ready with administrator launch: C:\Users\vilbur\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu\BACKUP Files.lnk
 
-- OK: Environment variable APPDATA_MAX = %localAppData%\Autodesk\3dsMax\2026 - 64bit\ENU\
+- OK: Enabled "Run this program as an administrator": C:\Program Files (x86)\AOMEI\AOMEI Backupper\ABLauncher.exe
 
-- OK: Symlink already correct: C:\Users\vilbur\AppData\Local\Autodesk\3dsMax\2026 - 64bit\ENU\3dsMax.ini
+- OK: Start11 menu shortcut ready with administrator launch: C:\Users\vilbur\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu\BACKUP System.lnk
 
-- OK: Symlink already correct: C:\Users\vilbur\AppData\Local\Autodesk\3dsMax\2026 - 64bit\ENU\scripts
+- OK: Enabled "Run this program as an administrator": D:\GoogleDrive\ProgramsData\CORE\PowerToys\Backup PowerToys.exe
 
-- OK: Symlink already correct: C:\Users\vilbur\AppData\Local\Autodesk\3dsMax\2026 - 64bit\ENU\en-US
+- OK: Start11 menu shortcut ready with administrator launch: C:\Users\vilbur\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu\Backup PowerToys.lnk
 
-- OK: Symlink already correct: C:\Users\vilbur\AppData\Local\Autodesk\3dsMax\2026 - 64bit\ENU\usermacros
+- OK: Enabled "Run this program as an administrator": D:\GoogleDrive\ProgramsData\CORE\Start11\Start-11-Backup.exe
 
-- OK: Symlink already correct: C:\Users\vilbur\AppData\Local\Autodesk\3dsMax\2026 - 64bit\ENU\MXS_Editor.properties
+- OK: Start11 menu shortcut ready with administrator launch: C:\Users\vilbur\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu\Start-11-Backup.lnk
 
-- OK: Symlink already correct: C:\Users\vilbur\AppData\Local\Autodesk\3dsMax\2026 - 64bit\ENU\MXS_EditorUser.properties
+- OK: Enabled "Run this program as an administrator": D:\GoogleDrive\ProgramsData\CORE\Windows\Shortcuts\Windows Cloud Backup.exe
 
-- OK: Shortcut already correct: C:\Program Files\Autodesk\3ds Max 2026\en-US\UI\saved-UI.lnk
-
-- OK: Shortcut created: C:\Users\vilbur\Autodesk\3ds Max 2026\User Settings\Saved-UI.lnk
+- OK: Start11 menu shortcut ready with administrator launch: C:\Users\vilbur\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu\Windows Cloud Backup.lnk
 

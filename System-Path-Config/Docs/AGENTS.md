@@ -11,7 +11,7 @@ Current stable approved baseline:
 - `Path-Config.exe`
 - `Test/Path-Config-Test_0.70.ps1`
 
-Continue development only from the latest stable approved baseline. Never rebuild from memory when the current source files are available. The current development source is `Path-Config.hta` version `0.87`; the stable marker remains `0.70`.
+Continue development only from the latest stable approved baseline. Never rebuild from memory when the current source files are available. The current development source is `Path-Config.hta` version `0.88`; the stable marker remains `0.70`.
 
 ## Mandatory workflow
 

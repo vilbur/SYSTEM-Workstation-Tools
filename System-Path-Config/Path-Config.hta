@@ -440,7 +440,7 @@ option.shortcut-type {
 }
 </style>
 <script language="JScript" type="text/javascript">
-var VERSION = "0.87";
+var VERSION = "0.88";
 var STARTUP_PREFIX = "PathConfig_Path_";
 var PROGRAM_STARTUP_PREFIX = "PathConfig_Program_";
 var REG_ENV = "HKCU\\Environment\\";
@@ -1730,19 +1730,20 @@ function findExistingStartupEntry(path) {
 }
 
 function startupMatchCell(path, expected) {
+    if (!expected) {
+        return booleanStatusCell(false, "no", "");
+    }
     if (!trimText(path)) {
-        return booleanStatusCell(false, "no", "No path configured");
+        return booleanStatusCell(true, "mismatch", "No path configured");
     }
     var actual = startupStateForPath(path);
     if (actual.ambiguous) {
-        return booleanStatusCell(false, "mismatch",
+        return booleanStatusCell(true, "mismatch",
             "Multiple Windows Startup Apps entries match this executable");
     }
-    var matches = actual.enabled === (expected ? true : false);
-    var detail = "Configured: " + (expected ? "On" : "Off") +
-        "; Windows Startup Apps: " + (actual.enabled ? "On" : "Off") +
+    var detail = "Configured: On; Windows Startup Apps: " + (actual.enabled ? "On" : "Off") +
         (actual.name ? " (" + actual.name + ")" : " (entry not found)");
-    return booleanStatusCell(expected ? true : false, matches ? "yes" : "mismatch", detail);
+    return booleanStatusCell(true, actual.enabled ? "yes" : "mismatch", detail);
 }
 function booleanStatusCell(value, statusClass, title) {
     var symbol = value ? (statusClass === "mismatch" ? "&#10008;" : "&#10004;") : "&nbsp;";
@@ -1751,14 +1752,15 @@ function booleanStatusCell(value, statusClass, title) {
 }
 
 function adminPropertyMatchCell(path, expected) {
+    if (!expected) {
+        return booleanStatusCell(false, "no", "");
+    }
     if (!trimText(path)) {
-        return booleanStatusCell(false, "no", "No path configured");
+        return booleanStatusCell(true, "mismatch", "No path configured");
     }
     var actual = hasRunAsAdminProperty(path);
-    var matches = actual === (expected ? true : false);
-    var detail = "Configured: " + (expected ? "Yes" : "No") +
-        "; Windows property: " + (actual ? "Yes" : "No");
-    return booleanStatusCell(expected, matches ? "yes" : "mismatch", detail);
+    var detail = "Configured: Yes; Windows property: " + (actual ? "Yes" : "No");
+    return booleanStatusCell(true, actual ? "yes" : "mismatch", detail);
 }
 
 function start11ShortcutDetails(path) {
@@ -1835,14 +1837,16 @@ function hasRunAsAdminProperty(path) {
 }
 
 function menuPinMatchCell(path, expected) {
+    if (!expected) {
+        return booleanStatusCell(false, "no", "");
+    }
     var sourceInfo = start11MenuSourceInfo(path);
     if (!sourceInfo) {
-        return booleanStatusCell(false, "mismatch", "Menu requires an existing .exe or .lnk with an existing target");
+        return booleanStatusCell(true, "mismatch", "Menu requires an existing .exe or .lnk with an existing target");
     }
     var pinned = isStart11MenuSourcePinned(path);
-    var detail = "Configured: " + (expected ? "Yes" : "No") + "; actual Start11 pin: " +
-        (pinned ? "Yes" : "No");
-    return booleanStatusCell(pinned, pinned ? "yes" : "mismatch", detail);
+    var detail = "Configured: Yes; actual Start11 pin: " + (pinned ? "Yes" : "No");
+    return booleanStatusCell(true, pinned ? "yes" : "mismatch", detail);
 }
 
 function normalizedStart11Path(path) {
