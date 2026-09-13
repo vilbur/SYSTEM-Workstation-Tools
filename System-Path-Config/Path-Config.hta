@@ -440,7 +440,7 @@ option.shortcut-type {
 }
 </style>
 <script language="JScript" type="text/javascript">
-var VERSION = "0.86";
+var VERSION = "0.87";
 var STARTUP_PREFIX = "PathConfig_Path_";
 var PROGRAM_STARTUP_PREFIX = "PathConfig_Program_";
 var REG_ENV = "HKCU\\Environment\\";
@@ -2230,12 +2230,14 @@ function ensureStart11MenuPin(path, runAsAdmin, result, rowLabel) {
         shortcutCreated = true;
     }
 
-    var pinnedTreeHasShortcut = start11TreeContainsSignature(START11_PIN_ROOTS[0], sourceInfo.signature, "") ||
-        start11TreeContainsSignature(START11_PIN_ROOTS[1], sourceInfo.signature, START11_PIN_GROUPS[1].key);
+    var pinnedTreeHasShortcut = [
+        start11TreeContainsSignature(START11_PIN_ROOTS[0], sourceInfo.signature, ""),
+        start11TreeContainsSignature(START11_PIN_ROOTS[1], sourceInfo.signature, START11_PIN_GROUPS[1].key)
+    ];
     var i, values, valueName, registryWrites = 0;
     for (i = 0; i < START11_PIN_GROUPS.length; i++) {
         values = readStart11PinValues(START11_PIN_GROUPS[i].key);
-        if (!(i === 0 && pinnedTreeHasShortcut) && !start11GroupContainsSignature(values, sourceInfo.signature)) {
+        if (!pinnedTreeHasShortcut[i] && !start11GroupContainsSignature(values, sourceInfo.signature)) {
             valueName = nextStart11ValueName(values);
             try {
                 wsh.RegWrite(START11_PIN_GROUPS[i].key + "\\" + valueName,

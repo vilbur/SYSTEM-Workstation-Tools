@@ -6,8 +6,8 @@ Create a new permanent test file only when a change needs new lasting regression
 
 Current source and latest full regression suite:
 
-- `Path-Config.hta` development version `0.86`
-- `Test/Path-Config-Test_0.85.ps1`
+- `Path-Config.hta` development version `0.87`
+- `Test/Path-Config-Test_0.87.ps1`
 - stable release marker: `STABLE_VERSION` = `0.70`
 
 The canonical source filename remains `Path-Config.hta`; versioned PowerShell tests are stored under `Test/`, and the latest full regression test may remain on an earlier version when a small UI-only change is verified with focused temporary checks.
@@ -240,7 +240,7 @@ Use a harmless executable.
 
 ### Start11 Menu
 
-Use a harmless executable. Enable Menu, confirm Apply mode reports the live pin as missing, then Apply and verify that the shortcut appears in the user pinned Start Menu folder and Start11 without restarting Explorer. Apply again and confirm there are no duplicates. Move the pin into a custom Start11 group, return to/reload Apply mode, and confirm MENU remains YES and another Apply does not recreate a root duplicate. Enable Admin, apply again, and confirm launching the shortcut requests elevation.
+Use a harmless executable. Enable Menu, confirm Apply mode reports the live pin as missing, then Apply and verify that the shortcut appears in the user pinned Start Menu folder and Start11 without restarting Explorer. Apply again and confirm there are no duplicates. Move the pin into a custom Start11 group, return to/reload Apply mode, and confirm MENU remains YES and another Apply does not recreate a duplicate in either default group. Enable Admin, apply again, and confirm launching the shortcut requests elevation.
 
 Repeat with an existing `.lnk` that has command-line arguments. First place a different-target shortcut with the same filename and a requested-target ` (2).lnk` duplicate in the pinned Start Menu folder, with Start11 registrations for both. Confirm Apply removes both exact registrations and files, copies the source to the unsuffixed canonical filename without altering the original, preserves its target and arguments, registers that one canonical shortcut in Start11, and does not create a duplicate on the second Apply. If Admin is enabled, confirm RUNASADMIN is applied to the shortcut's resolved executable target. Uncheck Menu and Apply; confirm matching registrations and the matching pinned-directory shortcut are removed, unrelated pins remain, and MENU becomes NO. Apply again and confirm removal is idempotent. Recheck Menu and confirm it can be added again.
 ### 7. Run on startup

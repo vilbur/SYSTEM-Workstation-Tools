@@ -1,48 +1,26 @@
-# Apply Execution Log - Saturday, 12 September 2026 05:45:10
+# Apply Execution Log - Saturday, 12 September 2026 11:04:56
 
-- OK: Persistent Paths
+- OK: Program tab: 3ds Max 2026
 
-- OK: Startup entry PathConfig_Path_1 configured and enabled in Windows Startup Apps.
+- OK: Enabled "Run this program as an administrator": C:\Program Files\Autodesk\3ds Max 2026\3dsmax.exe
 
-- OK: Enabled "Run this program as an administrator": D:\GoogleDrive\TotalComander\TOTALCMD64.EXE
+- OK: Start11 menu shortcut ready with administrator launch: C:\Users\vilbur\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu\Max 2026.lnk
 
-- OK: Start11 menu shortcut ready with administrator launch: C:\Users\vilbur\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu\TOTAL COMMANDER.lnk (1 registry entry added)
+- OK: Environment variable APPDATA_MAX = %localAppData%\Autodesk\3dsMax\2026 - 64bit\ENU\
 
-- OK: Existing Windows Startup Apps entry Ditto set to On: D:\GoogleDrive\ProgramsData\CORE\Ditto\Ditto.exe
+- OK: Symlink already correct: C:\Users\vilbur\AppData\Local\Autodesk\3dsMax\2026 - 64bit\ENU\3dsMax.ini
 
-- OK: Start11 menu shortcut ready: C:\Users\vilbur\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu\Ditto.lnk
+- OK: Symlink already correct: C:\Users\vilbur\AppData\Local\Autodesk\3dsMax\2026 - 64bit\ENU\scripts
 
-- OK: Environment variable notepad_exe = %GoogleDrive%\TotalComander\_Utilities\Notepad++\notepad++.exe
+- OK: Symlink already correct: C:\Users\vilbur\AppData\Local\Autodesk\3dsMax\2026 - 64bit\ENU\en-US
 
-- OK: Startup entry PathConfig_Path_3 configured and enabled in Windows Startup Apps.
+- OK: Symlink already correct: C:\Users\vilbur\AppData\Local\Autodesk\3dsMax\2026 - 64bit\ENU\usermacros
 
-- OK: Enabled "Run this program as an administrator": D:\GoogleDrive\TotalComander\_Utilities\Notepad++\notepad++.exe
+- OK: Symlink already correct: C:\Users\vilbur\AppData\Local\Autodesk\3dsMax\2026 - 64bit\ENU\MXS_Editor.properties
 
-- OK: Start11 menu shortcut ready with administrator launch: C:\Users\vilbur\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu\Notepad.lnk (1 registry entry added)
+- OK: Symlink already correct: C:\Users\vilbur\AppData\Local\Autodesk\3dsMax\2026 - 64bit\ENU\MXS_EditorUser.properties
 
-- OK: Enabled "Run this program as an administrator": D:\GoogleDrive\TotalComander\_Utilities\Everything Portable\Everything.exe
+- OK: Shortcut already correct: C:\Program Files\Autodesk\3ds Max 2026\en-US\UI\saved-UI.lnk
 
-- OK: Start11 menu shortcut ready with administrator launch: C:\Users\vilbur\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu\Everything.lnk
-
-- OK: Environment variable chrome_exe = C:\Program Files\Google\Chrome\Application\chrome.exe
-
-- OK: Enabled "Run this program as an administrator": C:\Program Files\Google\Chrome\Application\chrome.exe
-
-- OK: Start11 menu shortcut ready with administrator launch: C:\Users\vilbur\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu\CHROME.lnk
-
-- OK: Enabled "Run this program as an administrator": C:\Program Files\VideoLAN\VLC\vlc.exe
-
-- OK: Start11 menu shortcut ready with administrator launch: C:\Users\vilbur\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu\VLC.lnk (1 registry entry added)
-
-- OK: Enabled "Run this program as an administrator": C:\Program Files (x86)\ActiveState Komodo IDE 12\komodo.exe
-
-- OK: Start11 menu shortcut ready with administrator launch: C:\Users\vilbur\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu\KOMODO.lnk (1 registry entry added)
-
-- OK: Enabled "Run this program as an administrator": C:\Users\vilbur\AppData\Local\PowerToys\PowerToys.exe
-
-- OK: Start11 menu shortcut ready with administrator launch: C:\Users\vilbur\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu\PowerToys.lnk (1 registry entry added)
-
-- OK: Enabled "Run this program as an administrator": C:\Program Files (x86)\ClipGrab\clipgrab.exe
-
-- OK: Start11 menu shortcut ready with administrator launch: C:\Users\vilbur\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu\Clip Grab.lnk (1 registry entry added)
+- OK: Shortcut created: C:\Users\vilbur\Autodesk\3ds Max 2026\User Settings\Saved-UI.lnk
 

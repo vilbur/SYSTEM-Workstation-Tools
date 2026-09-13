@@ -2,7 +2,7 @@
 
 ## Current stable baseline
 
-The latest approved stable version is `0.70`. The root `STABLE_VERSION` marker remains `0.70` until the user explicitly promotes a newer release. The current development source is `Path-Config.hta` version `0.86`.
+The latest approved stable version is `0.70`. The root `STABLE_VERSION` marker remains `0.70` until the user explicitly promotes a newer release. The current development source is `Path-Config.hta` version `0.87`.
 
 Primary files:
 
@@ -12,7 +12,7 @@ Primary files:
 - `Test/Path-Config-Test_0.70.ps1`
 - `Path-Config.ini` at runtime
 
-The next code delivery must be version `0.87` unless another version has already been approved in the repository.
+The next code delivery must be version `0.88` unless another version has already been approved in the repository.
 
 ## Product purpose
 
@@ -164,7 +164,7 @@ Expected Windows behavior: an elevated startup row may produce a UAC prompt afte
 
 When Menu is enabled, Path-Config accepts an existing `.exe` or an existing `.lnk` whose target exists. Executables and configured `.lnk` files use one canonical unsuffixed shortcut name under the current user pinned Start Menu directory. Before addition, Path-Config removes registry entries that reference a same-name conflicting shortcut, deletes that conflicting file, and removes other pinned-directory shortcuts with the requested target-and-arguments signature. It then creates or copies the canonical shortcut while preserving configured shortcut targets and arguments. A correct existing canonical shortcut and its custom-group registration are reused.
 
-Apply synchronizes the checkbox with live Start11 state. Checked rows are ensured present, including detection of items moved into custom Start11 groups; unchecked rows remove numeric registrations recursively from the Start11 group trees and delete only pinned-directory shortcuts with the exact same resolved target and arguments. Every operation refreshes registry state and verifies the result. When Admin is enabled, a shortcut must resolve to an executable; the executable RUNASADMIN property is set and verified on that target before the shortcut is accepted.
+Apply synchronizes the checkbox with live Start11 state. Checked rows are ensured present, including detection of items moved into custom Start11 groups under either registry tree without recreating them in a default group; unchecked rows remove numeric registrations recursively from the Start11 group trees and delete only pinned-directory shortcuts with the exact same resolved target and arguments. Every operation refreshes registry state and verifies the result. When Admin is enabled, a shortcut must resolve to an executable; the executable RUNASADMIN property is set and verified on that target before the shortcut is accepted.
 ## Migration
 
 Version 0.03 stored fixed paths as plain numbered values in `[PersistentPaths]`.

@@ -1,5 +1,13 @@
 ﻿# Path-Config Changelog
 
+## 0.87
+
+Prevented Apply mode from duplicating Start11 shortcuts moved into custom groups.
+
+- detects matching shortcut signatures independently across both Start11 registry trees
+- preserves a pin in its custom group instead of recreating it in either default group
+- adds v0.87 regression coverage for repeated Apply after both group moves
+
 ## 0.86
 
 Refined validation colors across program control tabs.

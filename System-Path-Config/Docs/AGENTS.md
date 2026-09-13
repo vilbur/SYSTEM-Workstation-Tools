@@ -11,7 +11,7 @@ Current stable approved baseline:
 - `Path-Config.exe`
 - `Test/Path-Config-Test_0.70.ps1`
 
-Continue development only from the latest stable approved baseline. Never rebuild from memory when the current source files are available. The current development source is `Path-Config.hta` version `0.86`; the stable marker remains `0.70`.
+Continue development only from the latest stable approved baseline. Never rebuild from memory when the current source files are available. The current development source is `Path-Config.hta` version `0.87`; the stable marker remains `0.70`.
 
 ## Mandatory workflow
 
@@ -135,7 +135,7 @@ Start11 Menu:
 
 - when Menu is checked, accept either an existing `.exe` or an existing `.lnk` whose target exists
 - use the optional Common or program-row Start Menu Name, without a trailing `.lnk`, as the canonical shortcut filename; when empty, use the unsuffixed source or executable base name; before adding, remove exact Start11 registrations for a same-name conflicting shortcut, delete that conflicting file, and remove other pinned-directory shortcuts with the requested target-and-arguments signature
-- preserve a configured shortcut's target and arguments
+- preserve a configured shortcut's target and arguments, and treat a matching pin in a custom group under either Start11 registry tree as already present
 - resolve Start11 registry pins through their `.lnk` target-and-arguments signature before deciding a pin is missing
 - create a new shortcut for configured executables only when needed
 - register the shortcut in both Start11 pin groups with the next numeric value and correct suffix
